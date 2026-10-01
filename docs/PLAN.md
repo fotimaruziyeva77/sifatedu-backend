@@ -80,7 +80,7 @@ sifatedu/                          # deploy va orkestratsiya (alohida repo bo'li
 | `worker-video` | `./backend` (`video` target, ffmpeg bilan) | Celery: video → HLS. **4-qadamda qo'shiladi** | — |
 | `postgres` | pgvector/pgvector:pg17 | DB (`pgvector` 2-bosqich uchun tayyor) | 15433 (`POSTGRES_PORT`) |
 | `redis` | redis:7-alpine | Celery broker, kesh, sessiyalar, rate limit | — |
-| `seaweedfs` | chrislusf/seaweedfs | Faqat dev: S3-mos storage (MinIO community image'lari endi tarqatilmaydi). Prod'da mahalliy S3 provayder | 9000, 8888 |
+| `seaweedfs` | chrislusf/seaweedfs | S3-mos storage (MinIO community image'lari endi tarqatilmaydi). Production'da ham shu — serverning o'zida, `media.<domen>` orqali (18-qadam) | 9000, 8888 (faqat local) |
 
 - Portlar kompyuterdagi boshqa loyihalar bilan to'qnashmasligi uchun tanlangan: 5432, 5433, 6379, 8000 va 8080 band edi.
 - Har bir servisda `healthcheck` bor. `backend` DB va Redis tayyor bo'lgach ishga tushadi va avval `migrate` bajaradi.
@@ -1640,6 +1640,36 @@ Sinovda topilib tuzatildi: admin'dagi faqat ko'rish va amallar uchun sahifalarda
 
 Tekshiruv: yangi testlar — admin statistikani ko'radi va davrni almashtiradi (xabar joyida, raqamlar, tugmalar, https'da havola tugmalari), menejer menyusida tugma bor, o'quvchi va o'qituvchiga rad, akkauntsizga rad; taklif matni mukofotlari sozlamalardan; admin bosh sahifasida foydalanuvchilar va bot raqamlari.
 
+### 7B.13. 18-qadam: ishga tushirish — batafsil vazifalar
+
+**Qarorlar (2026-10-01):** kod GitHub'da ikki private repo'da (`sifatedu-backend`, `sifatedu-frontend`).
+Fayllar va videolar **serverning o'zida** (SeaweedFS). Videolar 50 soatgacha bo'lgani uchun VPS:
+**4 vCPU, 8 GB RAM, 160 GB NVMe, Ubuntu 24.04** (AHOST, Toshkent — TAS-IX orqali tez). Serverni
+buyurtmachi **o'zi qo'llanma bo'yicha** sozlaydi (`docs/DEPLOY.md`), yangilash — **bitta buyruq**
+(`infra/deploy/deploy.sh`). Shaxsiy ma'lumotlar va ularning zaxirasi O'zbekistondagi serverda
+(shaxsga doir ma'lumotlar qonuni talabi).
+
+| Qism | Vazifa |
+|---|---|
+| Server | `infra/deploy/setup-server.sh` (root, bir marta): yangilanishlar, Toshkent vaqti, swap 4 GB, Docker (rasmiy repo, log cheklovi, Docker Hub mirror), UFW (22/80/443), fail2ban, avtomatik xavfsizlik yangilanishlari, certbot. SSH kaliti qo'shilgan bo'lsa — parol bilan kirish o'chiriladi (kalit yo'q bo'lsa o'chirilmaydi: serverdan qulflanib qolmaslik uchun) |
+| Kod | Ikkala repo GitHub **deploy key** (faqat o'qish) bilan: `/srv/sifatedu` va uning ichida `frontend/` |
+| Sozlamalar | `infra/deploy/make-env.sh`: root, backend va frontend `.env`. Maxfiy qiymatlar serverda yaratiladi (`DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, S3 kalitlari, `VIDEO_KEY_SECRET`, `TELEGRAM_WEBHOOK_SECRET`). Tashqi kalitlar (bot, Click, Eskiz, Anthropic, Google, Sentry) serverda so'raladi va chatga yozilmaydi. Mavjud `.env` ustidan yozmaydi |
+| Domen va HTTPS | DNS: `sifatedu.uz`, `www`, `media` → server IP. Let's Encrypt (certbot, webroot, uchala nom uchun bitta sertifikat, `--cert-name sifatedu`), avtomatik yangilanadi va nginx qayta yuklanadi (`init-cert.sh`, `reload-nginx.sh`). `www` → asosiy domenga 301 |
+| Fayllar | SeaweedFS production'da ham. `media.sifatedu.uz` — nginx orqali S3: imzolangan havolalar Host bilan tekshiriladi. Local sinovda imzoli GET/PUT — 200; imzosiz, noto'g'ri imzo, ro'yxat — 403; DELETE nginx'da yopiq; CORS preflight o'tadi. Disk hajmiga qarab avtomatik (`-volume.max=0`); bucket va CORS backend ishga tushganda (`ENSURE_BUCKETS`) |
+| Yangilash | `infra/deploy/deploy.sh`: ikkala repo `git pull --ff-only` → build → `up -d` → tekshiruv (backend, frontend, https orqali sayt va API). Xato bo'lsa oldingi image'larga qaytadi. Migratsiyalar qaytmaydi — ular faqat qo'shiluvchi qilib yoziladi. Ishlatilmayotgan eski image'lar tozalanadi |
+| Zaxira | PostgreSQL har kuni 03:00, 30 kun (bor) — serverdagi `backups/`. Haftada bir marta kompyuterga `scp` bilan nusxa (qo'llanmada). AHOST'da snapshot xizmati bo'lsa — butun disk |
+| Monitoring | Server resurslari soatda bir tekshiriladi: disk 85% dan oshsa yoki bo'sh xotira 10% dan kam bo'lsa — Telegram ogohlantirish va admin "Muammolar"da. Tashqi uptime: UptimeRobot (bepul; `/healthz` va `/api/v1/health/`). Sentry (ixtiyoriy DSN). `status.sh`: konteynerlar, sertifikat muddati, bot webhook, oxirgi zaxira, disk |
+| Integratsiyalar | Bot: `telegram_webhook set`, `bot_setup`, BotFather `/setdomain sifatedu.uz`. Local'da boshqa (test) bot tokeni kerak — bitta token webhook va polling'da bir vaqtda ishlamaydi. Click: kabinetda Prepare/Complete manzillari. Eskiz: SMS shablonlari. Google OAuth: domen. Anthropic: kredit |
+| Tekshiruv | `manage.py check --deploy`; domen'da E2E smoke; Lighthouse (PageSpeed); 1000 so'mlik haqiqiy to'lov va qaytarish; SMS; bot (ro'yxatdan o'tish, test, admin panel, havola tugmalari); video yuklash va ko'rish; zaxiradan tiklash sinovi |
+| Hujjat | `docs/DEPLOY.md` — qadam-baqadam qo'llanma (buyruqlar, kutilgan natija, muammo bo'lsa nima qilish) |
+
+**Sizdan kerak:**
+- VPS va uning IP manzili.
+- Domen faollashuvi va DNS yozuvlari.
+- Let's Encrypt uchun e-pochta.
+- Click va Eskiz ma'lumotlari, Anthropic krediti.
+- Ixtiyoriy: Sentry va UptimeRobot akkauntlari.
+
 ## 8. Sizdan kerak bo'ladigan narsalar
 
 Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) rejimida ishlaydi. Keyinroq kerak bo'ladi:
@@ -1800,3 +1830,14 @@ Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) r
 |---|---|
 | Botda admin panel (`/admin`, "📊 Admin panel"): foydalanuvchilar, o'qish, savdo va muammolar statistikasi — direktor, admin, menejerga (4.12.2) | Buyurtmachi so'rovi: rahbarlar statistikani saytga kirmasdan ham ko'rsin |
 | Admin bosh sahifasida bot foydalanuvchilari kartasi va jami o'quvchilar | Foydalanuvchilar statistikasi saytdagi admin panelda ham ko'rinsin |
+
+### v3.2 → v3.3 (18-qadam: ishga tushirish)
+
+| O'zgarish | Sabab |
+|---|---|
+| Bitta VPS (AHOST, Toshkent): ilova, baza, fayllar va zaxira bir serverda; alohida DB va object storage serverlari olib tashlandi | Boshlang'ich yuklama uchun yetarli, xarajat va boshqaruv sodda; kengayish yo'li TZ'da qoldi |
+| Fayllar va videolar — serverdagi SeaweedFS (`media.<domen>`), mahalliy S3 provayder o'rniga | Buyurtmachi tanlovi: TAS-IX orqali tez, qo'shimcha to'lov yo'q, ma'lumotlar O'zbekistonda |
+| Staging, image registry va avtomatik deploy olib tashlandi; o'rniga `deploy.sh` (tekshiruv va avtomatik qaytish bilan) | Bitta server va kichik jamoa; buyurtmachi qo'lda chiqarishni tanladi |
+| Object storage versiyalash o'rniga — videolarning asl fayllari va provayder snapshot'i; baza nusxasi haftada bir serverdan tashqariga | SeaweedFS'da versiyalash yo'q; baza — eng muhim ma'lumot |
+| Judge0 sandbox serveri boshlang'ich konfiguratsiyadan chiqarildi | Kod ishga tushirish funksiyasi rejada yo'q (kerak bo'lsa — alohida server) |
+| Server resurslari kuzatuvi: disk va xotira → Telegram va admin "Muammolar" | Bitta serverda disk to'lsa baza va videolar yozilmay qoladi |

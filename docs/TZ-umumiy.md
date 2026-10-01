@@ -1019,7 +1019,7 @@ Loyiha **ikkita mustaqil ilovadan** iborat: `frontend/` (Next.js) va `backend/` 
 | Tarjima (kontent) | **django-modeltranslation** | Har bir til uchun alohida ustun, admin'da til tablari |
 | Kesh, sessiya, navbat | **Redis** + **Celery** (davriy vazifalar — Celery beat) | Rate limit, OTP, sessiyalar, fon vazifalari |
 | Auth | **Django session** (httpOnly cookie, Redis) + CSRF; parollar argon2 | Bitta domen, mobil ilova rejada yo'q |
-| Fayllar | **S3-mos object storage** (django-storages; dev'da SeaweedFS, prod'da mahalliy provayder) | |
+| Fayllar | **S3-mos object storage** (django-storages; SeaweedFS — local'da va production serverda, brauzerga `media.<domen>` orqali) | |
 | Video | **ffmpeg** (alohida Celery worker) | HLS + AES-128 |
 | Qidiruv | PostgreSQL full-text + `pg_trgm` | |
 | Audit | **django-auditlog** | Kim, qachon, nimani o'zgartirgan |
@@ -1368,44 +1368,42 @@ sifatedu/
 | `beat` | `./backend/Dockerfile` (boshqa buyruq) | Celery beat: davriy vazifalar |
 | `postgres` | pgvector/pgvector:pg17 | DB |
 | `redis` | redis:7-alpine | Celery broker, kesh, sessiyalar, rate limit |
-| `seaweedfs` | chrislusf/seaweedfs | Faqat dev: S3-mos storage |
+| `seaweedfs` | chrislusf/seaweedfs | S3-mos storage (local va production) |
 
 - Multi-stage build, runtime'da root bo'lmagan foydalanuvchi, har bir servisda `healthcheck`.
 - Maxfiy kalitlar image ichiga kirmaydi — faqat `.env` / secret orqali.
 
-**Hosting:** O'zbekistondagi data-markaz yoki bulut provayder (11-bo'limga ko'ra).
+**Hosting:** O'zbekistondagi data-markaz (11-bo'limga ko'ra): AHOST VPS, Toshkent. Shaxsiy
+ma'lumotlar va ularning zaxirasi O'zbekistonda.
 
-**Boshlang'ich production konfiguratsiyasi:**
+**Boshlang'ich production konfiguratsiyasi** (qo'llanma — `docs/DEPLOY.md`):
 
 | Server | Vazifasi |
 |---|---|
-| App server | nginx, frontend, backend, Celery worker'lar va beat (Docker Compose) |
-| DB server | PostgreSQL + kunlik backup boshqa joyga |
-| Object storage | Videolar va fayllar |
-| Sandbox server | Judge0 (B2'dan) |
+| VPS: 4 vCPU, 8 GB RAM, 160 GB NVMe, Ubuntu 24.04 | Bitta Docker Compose: nginx (HTTPS, Let's Encrypt), frontend, backend, Celery worker'lar va beat, PostgreSQL, Redis, SeaweedFS (fayllar va videolar), kunlik backup |
 
-**Kengayish:**
+**Kengayish** (yuklama oshganda):
+- Video worker'lar va fayllar alohida serverga chiqariladi, disk kengaytiriladi.
 - Frontend, backend va worker gorizontal ko'paytiriladi (stateless).
-- Video worker'lar alohida serverga chiqariladi.
 - CDN ulanadi.
 
-**CI/CD** (frontend va backend uchun alohida workflow):
-- PR'da: lint → typecheck → unit testlar → Docker build → E2E (staging'da).
-- `main` → Docker image registry'ga → staging'ga avtomatik deploy.
-- Production'ga qo'lda tasdiqlash bilan chiqariladi.
+**CI/CD** (frontend va backend — alohida repozitoriy va workflow):
+- Push va PR'da: lint → typecheck → testlar; E2E — qo'lda yoqiladi.
+- Production'ga: serverda bitta buyruq (`infra/deploy/deploy.sh`) — yangilash, yig'ish, tekshiruv,
+  xato bo'lsa oldingi versiyaga avtomatik qaytish.
 
 **Migratsiyalar:** Django migrations. Faqat orqaga mos o'zgarishlar; buzuvchi o'zgarishlar ikki bosqichda qilinadi.
 
 **Monitoring:**
 - Sentry (xatolar).
-- Uptime monitor.
-- Server metrikalari.
+- Uptime monitor (tashqi, `/healthz` va `/api/v1/health/`).
+- Server resurslari: disk (85%+) va xotira (10% dan kam) — Telegram va admin "Muammolar".
 - Biznes ogohlantirishlari Telegram'ga: to'lov xatolari, AI budjeti, video qayta ishlash xatolari.
 
 **Backup:**
-- Kunlik to'liq backup, 30 kun saqlanadi.
+- Bazaning kunlik to'liq nusxasi, 30 kun saqlanadi; haftada bir marta — serverdan tashqariga.
 - Har oy tiklash sinovi.
-- Object storage'da versiyalash.
+- Videolar: asl fayllar alohida saqlanadi; butun disk — provayder snapshot'i.
 
 ---
 

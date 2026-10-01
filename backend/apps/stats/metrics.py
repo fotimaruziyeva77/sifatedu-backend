@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from apps.assistant.models import Conversation, Message
 from apps.bot.models import BotChat
 from apps.bot.subscription import problems as channel_problems
+from apps.core.resources import disk_over_limit
 from apps.exams import services as exams
 from apps.homework.models import Submission
 from apps.leads.models import Lead
@@ -423,6 +424,12 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         len(channel_problems()),
         admin_link(viewer, "bot.requiredchannel"),
         _("Botni kanalga administrator qiling — hozircha obuna so'ralmayapti."),
+    )
+    add(
+        "danger",
+        _("Server diski to'lmoqda (band, %)"),
+        disk_over_limit(),
+        hint=_("Eski videolarni o'chiring yoki diskni kengaytiring (AHOST paneli)."),
     )
     for area, count in error_counts(p.days).items():
         add("danger", AREA_TITLES[area], count, hint=_("Tafsilot — Sentry'da."))

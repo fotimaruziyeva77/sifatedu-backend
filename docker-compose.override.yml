@@ -14,7 +14,7 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-15433}:5432"
 
-  # S3-mos storage (faqat local). Production'da mahalliy S3 provayder ishlatiladi.
+  # S3-mos storage. Production'da ham shu (docker-compose.prod.yml, media.<domen> orqali).
   seaweedfs:
     image: chrislusf/seaweedfs:4.47
     entrypoint: ["/bin/sh", "/start.sh"]

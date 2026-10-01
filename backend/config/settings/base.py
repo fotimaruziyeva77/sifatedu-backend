@@ -365,12 +365,22 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.rewards.tasks.weekly_winners",
         "schedule": crontab(day_of_week=1, hour=10, minute=0),
     },
+    # Server diski va xotirasi: chegaradan oshsa — jamoaga Telegram ogohlantirish.
+    "check-server-resources": {
+        "task": "apps.core.tasks.check_server_resources",
+        "schedule": crontab(minute=7),
+    },
     # Kunlik hisobot direktor va adminlarga (Telegram).
     "daily-report": {
         "task": "apps.stats.tasks.send_daily_report",
         "schedule": crontab(hour=env.int("DAILY_REPORT_HOUR", default=21), minute=0),
     },
 }
+
+# --- Server resurslari (soatlik tekshiruv: Telegram ogohlantirish va admin "Muammolar") ---
+RESOURCE_CHECKS = env.bool("RESOURCE_CHECKS", default=True)
+DISK_ALERT_PERCENT = env.int("DISK_ALERT_PERCENT", default=85)
+MEMORY_ALERT_FREE_PERCENT = env.int("MEMORY_ALERT_FREE_PERCENT", default=10)
 
 # --- SMS (Eskiz.uz) ---
 # DRY_RUN rejimida SMS yuborilmaydi, matn logga yoziladi (local va testlar uchun).

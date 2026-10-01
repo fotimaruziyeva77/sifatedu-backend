@@ -15,17 +15,18 @@ logger = logging.getLogger(__name__)
 COOLDOWN_SECONDS = 600
 
 
-def alert(kind: str, text: str) -> bool:
+def alert(kind: str, text: str, *, cooldown: int = COOLDOWN_SECONDS) -> bool:
     """Ogohlantirishni navbatga qo'yadi. Yuborilmagan bo'lsa (limit yoki sozlanmagan) — False.
 
-    `kind` — takrorlanishni aniqlash kaliti, masalan `click:sign_failed`.
+    `kind` — takrorlanishni aniqlash kaliti, masalan `click:sign_failed`; `cooldown` — shu
+    turdagi keyingi ogohlantirishgacha kamida necha soniya.
     Matnga shaxsiy ma'lumot (telefon, ism) qo'yilmaydi.
     """
     if not (settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_ALERTS_CHAT_ID):
         logger.warning("Ogohlantirish (Telegram sozlanmagan): %s — %s", kind, text)
         return False
     # `add` atomik: bir vaqtda kelgan ikki xatodan faqat bittasi yuboriladi.
-    if not cache.add(f"alert:{kind}", 1, timeout=COOLDOWN_SECONDS):
+    if not cache.add(f"alert:{kind}", 1, timeout=cooldown):
         return False
 
     from .tasks import send_alert_task

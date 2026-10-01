@@ -15,3 +15,6 @@ staticfiles/
 # Production: backup'lar va TLS kalitlari repozitoriyga tushmaydi
 backups/
 infra/certs/
+
+# Let's Encrypt tekshiruv fayllari (serverda certbot yozadi)
+/infra/certbot-www/

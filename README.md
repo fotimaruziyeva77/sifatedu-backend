@@ -69,7 +69,7 @@ Kerak: Docker Desktop va Git.
 | `beat` | Celery beat: davriy vazifalar |
 | `postgres` | PostgreSQL 17 + pgvector |
 | `redis` | Celery broker, kesh, sessiyalar |
-| `seaweedfs` | Faqat local: S3-mos storage (bucket'larni backend avtomatik yaratadi) |
+| `seaweedfs` | S3-mos storage, production'da ham (bucket'larni backend avtomatik yaratadi) |
 
 Local rejimda (`docker-compose.override.yml`) kod volume orqali ulanadi, o'zgarishlar avtomatik qayta yuklanadi. `node_modules` va Python muhiti faqat konteyner ichida saqlanadi.
 
@@ -610,19 +610,20 @@ yuboriladi. Har bir PR yashil bo'lishi kerak.
 
 ## Production
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-```
+To'liq qo'llanma — **[docs/DEPLOY.md](docs/DEPLOY.md)**: VPS'dan (AHOST, Ubuntu 24.04) to ishga
+tushirishgacha har bir buyruq va kutilgan natija. Qisqasi:
 
-Kerak bo'ladi:
+| Qadam | Buyruq |
+|---|---|
+| Server (bir marta) | `bash infra/deploy/setup-server.sh` — Docker, firewall, swap, fail2ban, certbot |
+| Sozlamalar | `bash infra/deploy/make-env.sh sifatedu.uz` — uchala `.env`, maxfiy qiymatlar serverda yaratiladi |
+| Ishga tushirish va HTTPS | `bash infra/deploy/init-cert.sh <e-pochta>` — Let's Encrypt (`sifatedu.uz`, `www`, `media`) |
+| Yangilash | `bash infra/deploy/deploy.sh` — yangilaydi, tekshiradi, xato bo'lsa oldingi versiyaga qaytadi |
+| Holat | `bash infra/deploy/status.sh` |
 
-1. Root `.env`: `POSTGRES_PASSWORD`, `APP_URL` (masalan `https://sifatedu.uz`), `S3_PUBLIC_URL`,
-   ixtiyoriy `SENTRY_DSN_FRONTEND`, backup sozlamalari.
-2. `backend/.env`: `DJANGO_SETTINGS_MODULE=config.settings.prod`, yangi `DJANGO_SECRET_KEY`,
-   `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, haqiqiy S3 (`S3_ENDPOINT`, kalitlar),
-   Click, Eskiz (`SMS_DRY_RUN=false`), Telegram, Sentry.
-3. TLS sertifikatlari: `TLS_CERT_DIR` papkasida `fullchain.pem` va `privkey.pem`
-   (certbot uchun `/.well-known/acme-challenge/` ochiq).
+Fayllar va videolar serverning o'zida (SeaweedFS). Brauzer ularni `media.<domen>` orqali oladi:
+nginx S3 API'ni imzolangan havolalar bilan o'tkazadi, o'chirish so'rovlari yopiq.
+Production fayli: `docker-compose.prod.yml`.
 
 **Backup:** `backup` servisi har kuni PostgreSQL nusxasini oladi (30 kun, ixtiyoriy S3'ga).
 Tiklash tartibi: `infra/backup/README.md`.

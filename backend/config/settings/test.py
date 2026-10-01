@@ -22,3 +22,5 @@ TELEGRAM_LEADS_CHAT_ID = ""
 TELEGRAM_ALERTS_CHAT_ID = ""
 TELEGRAM_REPORTS_CHAT_ID = ""
 TELEGRAM_WEBHOOK_SECRET = ""
+# Disk va xotira — test mashinasiniki; resurs testlari qiymatni o'zi yoqadi.
+RESOURCE_CHECKS = False

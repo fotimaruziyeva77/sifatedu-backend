@@ -1,13 +1,20 @@
-# Production:
+# Production (server: /srv/sifatedu). To'liq qo'llanma: docs/DEPLOY.md
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Yangilash: bash infra/deploy/deploy.sh
 #
-# Talablar: root .env (POSTGRES_*), backend/.env (DJANGO_SETTINGS_MODULE=config.settings.prod,
-# haqiqiy S3, Click, Eskiz, Sentry), frontend/.env va TLS sertifikatlari (TLS_CERT_DIR).
+# Talablar: root .env, backend/.env va frontend/.env (infra/deploy/make-env.sh yaratadi) va
+# Let's Encrypt sertifikati (infra/deploy/init-cert.sh).
 x-logging: &logging
   driver: json-file
   options:
     max-size: "20m"
     max-file: "5"
+
+# Fayllar va videolar shu serverdagi SeaweedFS'da (S3-mos). Kalitlar root .env'dan.
+x-s3: &s3
+  S3_ENDPOINT: http://seaweedfs:8333
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:?root .env faylida S3_ACCESS_KEY kerak}
+  S3_SECRET_KEY: ${S3_SECRET_KEY:?root .env faylida S3_SECRET_KEY kerak}
 
 services:
   postgres:
@@ -16,30 +23,61 @@ services:
   redis:
     logging: *logging
 
+  # Videolar, rasmlar, uy vazifasi fayllari. Brauzer media.<domen> orqali kiradi (nginx).
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
+    entrypoint: ["/bin/sh", "/start.sh"]
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET_PUBLIC: sifat-public
+      # 0 — volume'lar soni diskdagi bo'sh joyga qarab (local'da 40 GB chegara).
+      S3_MAX_VOLUMES: "0"
+    volumes:
+      - ./infra/seaweedfs/start.sh:/start.sh:ro
+      - s3data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8888/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+    restart: unless-stopped
+    logging: *logging
+
   backend:
     environment:
+      <<: *s3
       DJANGO_SETTINGS_MODULE: config.settings.prod
       RUN_MIGRATIONS: "1"
       COLLECT_STATIC: "1"
+      # Bucket'lar va ularning CORS'i (S3_CORS_ORIGINS) ishga tushganda tekshiriladi.
+      ENSURE_BUCKETS: "1"
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
     logging: *logging
 
   worker:
     environment:
+      <<: *s3
       DJANGO_SETTINGS_MODULE: config.settings.prod
     logging: *logging
 
   worker-ai:
     environment:
+      <<: *s3
       DJANGO_SETTINGS_MODULE: config.settings.prod
     logging: *logging
 
   worker-video:
     environment:
+      <<: *s3
       DJANGO_SETTINGS_MODULE: config.settings.prod
     logging: *logging
 
   beat:
     environment:
+      <<: *s3
       DJANGO_SETTINGS_MODULE: config.settings.prod
     logging: *logging
 
@@ -50,8 +88,9 @@ services:
     volumes: !override
       - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
       - static:/srv/static:ro
-      - ${TLS_CERT_DIR:-./infra/certs}:/etc/nginx/certs:ro
-      - certbot_www:/var/www/certbot:ro
+      # Let's Encrypt: sertifikatlarni serverdagi certbot oladi va yangilaydi (init-cert.sh).
+      - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro
+      - ./infra/certbot-www:/var/www/certbot:ro
     ports: !override
       - "80:80"
       - "443:443"
@@ -66,7 +105,7 @@ services:
       TZ: Asia/Tashkent
       BACKUP_HOUR: ${BACKUP_HOUR:-03}
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
-      # Ixtiyoriy: nusxa boshqa joyga (S3-mos bucket).
+      # Ixtiyoriy: nusxa boshqa joyga (S3-mos bucket; shaxsiy ma'lumotlar — O'zbekistondagi joyga).
       BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
       BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
       AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY:-}
@@ -81,4 +120,4 @@ services:
     logging: *logging
 
 volumes:
-  certbot_www:
+  s3data:

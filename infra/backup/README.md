@@ -1,8 +1,9 @@
 # Backup va tiklash
 
 **Nima saqlanadi:** PostgreSQL bazasi (foydalanuvchilar, kurslar, buyurtmalar, progress).
-Videolar va rasmlar object storage'da turadi — ular uchun provayderda **versiyalash**
-(bucket versioning) yoqiladi, bu yerda nusxalanmaydi.
+Videolar va fayllar shu serverdagi SeaweedFS'da turadi va bu yerda nusxalanmaydi: videolarning
+asl fayllari alohida saqlanadi, butun disk — provayderning snapshot xizmati bilan
+(`docs/DEPLOY.md`, 14-qadam).
 
 **Qachon:** har kuni `BACKUP_HOUR` da (standart 03:00, Toshkent vaqti). Konteyner birinchi
 marta ishga tushganda nusxa bo'lmasa, darhol bittasi olinadi. RPO — 24 soat.
