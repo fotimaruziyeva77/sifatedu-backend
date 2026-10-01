@@ -1,0 +1,15 @@
+# E2E va Lighthouse uchun: dev stack'da frontend o'rniga production build.
+# Dev server sahifalarni so'rov paytida kompilyatsiya qiladi va ko'p xotira oladi;
+# production build esa haqiqiy tezlik va xatti-harakatni ko'rsatadi.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml \
+#                  -f docker-compose.e2e.yml up -d --build frontend
+services:
+  frontend:
+    build:
+      target: runtime
+    # Dev image'ning ustiga yozilmasligi uchun alohida nom.
+    image: sifatedu-frontend-prod
+    command: !reset null
+    environment: !reset {}
+    volumes: !reset []

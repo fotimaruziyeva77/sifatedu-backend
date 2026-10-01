@@ -1,0 +1,172 @@
+# Asosiy servislar. Local ishlab chiqishda docker-compose.override.yml avtomatik qo'shiladi:
+#   docker compose up --build
+# Production:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+name: sifatedu
+
+x-backend: &backend
+  build:
+    context: ./backend
+    target: runtime
+  image: sifatedu-backend
+  env_file: ./backend/.env
+  environment: &backend-env
+    DATABASE_URL: postgres://${POSTGRES_USER:-sifatedu}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sifatedu}
+    REDIS_URL: redis://redis:6379/0
+    CELERY_BROKER_URL: redis://redis:6379/1
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sifatedu}
+      POSTGRES_USER: ${POSTGRES_USER:-sifatedu}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?root .env faylida POSTGRES_PASSWORD kerak}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  backend:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "1"
+      COLLECT_STATIC: "1"
+    volumes:
+      - static:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/', timeout=4)"
+      interval: 10s
+      timeout: 6s
+      retries: 18
+      start_period: 30s
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "config", "worker", "-l", "INFO", "-Q", "default,bulk"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+  # AI javoblari (Claude API): tarmoqni kutadigan ish — bitta jarayonda 8 ta oqim (threads).
+  # Alohida navbat: AI band bo'lsa ham SMS kodlari va boshqa vazifalar kechikmaydi.
+  worker-ai:
+    <<: *backend
+    command: ["celery", "-A", "config", "worker", "-l", "INFO", "-Q", "ai", "--pool", "threads", "--concurrency", "8", "-n", "ai@%h"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d ai@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+  # Video: ffmpeg og'ir, shuning uchun alohida navbat va bitta jarayon.
+  worker-video:
+    <<: *backend
+    build:
+      context: ./backend
+      target: video
+    image: sifatedu-backend-video
+    command: ["celery", "-A", "config", "worker", "-l", "INFO", "-Q", "video", "--concurrency", "1"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "config", "beat", "-l", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    # Beat o'zi so'rovga javob bermaydi: vazifalarni yubora olishi uchun broker ochiq bo'lishi kerak.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, redis; redis.Redis.from_url(os.environ['CELERY_BROKER_URL'], socket_timeout=3).ping()"
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+      # Brauzerga ketadigan sozlamalar build paytida yoziladi (frontend/Dockerfile).
+      args:
+        NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost}
+        NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/sifat-public}
+        NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_FRONTEND:-}
+        NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+    image: sifatedu-frontend
+    env_file: ./frontend/.env
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.30-alpine
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - static:/srv/static:ro
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  static:

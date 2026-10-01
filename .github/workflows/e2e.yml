@@ -1,0 +1,83 @@
+name: e2e
+
+# Butun stack: backend (shu repo) + frontend (alohida private repo — `frontend/` ga yuklanadi).
+# Ishlashi uchun repo sozlamalarida: secret `FRONTEND_REPO_TOKEN` (frontend repoga o'qish huquqli
+# fine-grained token) va variable `E2E_ENABLED=true`. Ular qo'shilmaguncha job o'tkazib yuboriladi.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright + axe (butun stack)
+    if: vars.E2E_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Frontend repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/${{ vars.FRONTEND_REPO || 'sifatedu-frontend' }}
+          token: ${{ secrets.FRONTEND_REPO_TOKEN }}
+          path: frontend
+
+      # Faqat CI uchun qiymatlar. Click kaliti — test to'lovlarini imzolash uchun; AI — test rejimida.
+      - name: Muhit fayllari
+        run: |
+          cp .env.example .env
+          cp backend/.env.example backend/.env
+          cp frontend/.env.example frontend/.env
+          {
+            echo "DJANGO_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123456789"
+            echo "CLICK_SERVICE_ID=11111"
+            echo "CLICK_MERCHANT_ID=22222"
+            echo "CLICK_SECRET_KEY=ci-click-secret"
+            echo "ASSISTANT_DRY_RUN=true"
+          } >> backend/.env
+
+      - name: Stack (frontend — production build)
+        run: >-
+          docker compose -f docker-compose.yml -f docker-compose.override.yml
+          -f docker-compose.e2e.yml up -d --build --wait nginx backend frontend worker worker-ai
+
+      - name: Test ma'lumotlari
+        run: docker compose exec -T backend python manage.py seed_e2e
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Playwright
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: E2E testlar
+        working-directory: frontend
+        env:
+          E2E_CLICK_SECRET: ci-click-secret
+        run: npx playwright test -c e2e/playwright.config.ts
+
+      - name: Natijalar (xato bo'lsa)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: frontend/test-results
+          retention-days: 7
+
+      - name: Konteyner loglari (xato bo'lsa)
+        if: failure()
+        run: docker compose logs --tail 200 backend worker-ai frontend nginx

@@ -1,0 +1,35 @@
+{% load i18n %}
+{% if reach %}
+    <dl class="flex flex-col gap-2">
+        <div class="flex justify-between gap-3 border-b border-base-200 pb-2 dark:border-base-700">
+            <dt>{% translate "Jami qabul qiluvchilar" %}</dt>
+            <dd class="font-semibold text-important">{{ reach.total }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+            <dt>{% translate "Telegram orqali" %}</dt>
+            <dd class="font-semibold text-important">{{ reach.telegram }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+            <dt>{% translate "SMS orqali" %}</dt>
+            <dd class="font-semibold text-important">
+                {{ reach.sms }}{% if reach.sms %} · ≈ {{ reach.sms_cost }} so'm{% endif %}
+            </dd>
+        </div>
+        <div class="flex justify-between gap-3">
+            <dt>{% translate "Faqat kabinetda" %}</dt>
+            <dd class="font-semibold text-important">{{ reach.site_only }}</dd>
+        </div>
+        {% if reach.bot %}
+            <div class="flex justify-between gap-3 border-t border-base-200 pt-2 dark:border-base-700">
+                <dt>{% translate "Qo'shimcha: bot foydalanuvchilari" %}</dt>
+                <dd class="font-semibold text-important">{{ reach.bot }}</dd>
+            </div>
+        {% endif %}
+    </dl>
+    {% if not reach.total %}
+        <p class="font-semibold text-important">{% translate "Filtrlarga mos o'quvchi yo'q — yuborib bo'lmaydi." %}</p>
+    {% endif %}
+    {% if night %}
+        <p class="text-subtle">{% translate "Hozir tungi vaqt: xabar ertalab 09:00 da yuboriladi." %}</p>
+    {% endif %}
+{% endif %}

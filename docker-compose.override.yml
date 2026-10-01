@@ -1,0 +1,129 @@
+# Local ishlab chiqish. `docker compose up` bu faylni avtomatik qo'shadi.
+# Kod volume orqali ulanadi (hot reload); node_modules va Python muhiti konteyner ichida qoladi.
+x-dev-s3: &dev-s3
+  S3_ENDPOINT: http://seaweedfs:8333
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY:-sifatedu}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  # Vosita keshlari kod papkasiga (OneDrive'ga) yozilmasligi uchun.
+  MYPY_CACHE_DIR: /tmp/.mypy_cache
+  RUFF_CACHE_DIR: /tmp/.ruff_cache
+  PYTEST_ADDOPTS: -p no:cacheprovider
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15433}:5432"
+
+  # S3-mos storage (faqat local). Production'da mahalliy S3 provayder ishlatiladi.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.47
+    entrypoint: ["/bin/sh", "/start.sh"]
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-sifatedu}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?root .env faylida S3_SECRET_KEY kerak}
+      S3_BUCKET_PUBLIC: sifat-public
+    volumes:
+      - ./infra/seaweedfs/start.sh:/start.sh:ro
+      - s3data:/data
+    ports:
+      - "127.0.0.1:${S3_PORT:-9000}:8333"
+      - "127.0.0.1:${S3_UI_PORT:-8888}:8888"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8888/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+    restart: unless-stopped
+
+  backend:
+    build:
+      target: dev
+    environment:
+      <<: *dev-s3
+      COLLECT_STATIC: "0"
+      ENSURE_SUPERUSER: "1"
+      ENSURE_BUCKETS: "1"
+    volumes: !override
+      - ./backend:/app
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+
+  # Kod o'zgarganda worker qayta ishga tushadi: aks holda yangi vazifalarni tanimaydi va tashlab yuboradi.
+  worker:
+    build:
+      target: dev
+    command:
+      - watchfiles
+      - --filter
+      - python
+      - celery -A config worker -l INFO -Q default,bulk
+      - /app/apps
+      - /app/config
+    environment:
+      <<: *dev-s3
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app
+
+  worker-ai:
+    build:
+      target: dev
+    command:
+      - watchfiles
+      - --filter
+      - python
+      - celery -A config worker -l INFO -Q ai --pool threads --concurrency 8 -n ai@%h
+      - /app/apps
+      - /app/config
+    environment:
+      <<: *dev-s3
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app
+
+  worker-video:
+    build:
+      target: video-dev
+    command:
+      - watchfiles
+      - --filter
+      - python
+      - celery -A config worker -l INFO -Q video --concurrency 1
+      - /app/apps
+      - /app/config
+    environment:
+      <<: *dev-s3
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+
+  beat:
+    build:
+      target: dev
+    volumes:
+      - ./backend:/app
+
+  # Windows/macOS bind-mount'da fayl o'zgarishi haqida xabar kelmaydi. Turbopack'ning polling'i
+  # bu muhitda ishlamadi, shuning uchun dev'da webpack + WATCHPACK_POLLING ishlatiladi.
+  frontend:
+    build:
+      target: dev
+    command:
+      - sh
+      - -c
+      - npm install --no-audit --no-fund && npx next dev --webpack --hostname 0.0.0.0
+    environment:
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+
+volumes:
+  s3data:
+  frontend_node_modules:
+  frontend_next:

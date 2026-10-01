@@ -1,0 +1,84 @@
+# Production:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Talablar: root .env (POSTGRES_*), backend/.env (DJANGO_SETTINGS_MODULE=config.settings.prod,
+# haqiqiy S3, Click, Eskiz, Sentry), frontend/.env va TLS sertifikatlari (TLS_CERT_DIR).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  postgres:
+    logging: *logging
+
+  redis:
+    logging: *logging
+
+  backend:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      RUN_MIGRATIONS: "1"
+      COLLECT_STATIC: "1"
+    logging: *logging
+
+  worker:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    logging: *logging
+
+  worker-ai:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    logging: *logging
+
+  worker-video:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    logging: *logging
+
+  beat:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+    logging: *logging
+
+  frontend:
+    logging: *logging
+
+  nginx:
+    volumes: !override
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - static:/srv/static:ro
+      - ${TLS_CERT_DIR:-./infra/certs}:/etc/nginx/certs:ro
+      - certbot_www:/var/www/certbot:ro
+    ports: !override
+      - "80:80"
+      - "443:443"
+    logging: *logging
+
+  # Kunlik PostgreSQL backup (RPO ≤ 24 soat), 30 kun saqlanadi. Tiklash: infra/backup/README.md
+  backup:
+    build: ./infra/backup
+    image: sifatedu-backup
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-sifatedu}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sifatedu}
+      TZ: Asia/Tashkent
+      BACKUP_HOUR: ${BACKUP_HOUR:-03}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      # Ixtiyoriy: nusxa boshqa joyga (S3-mos bucket).
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_S3_ACCESS_KEY:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      AWS_DEFAULT_REGION: ${BACKUP_S3_REGION:-us-east-1}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  certbot_www:

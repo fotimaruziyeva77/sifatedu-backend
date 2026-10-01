@@ -1,0 +1,42 @@
+{% load i18n %}
+<div class="video-upload"
+     data-video-upload
+     data-start-url="{{ widget.start_url }}"
+     data-max-mb="{{ widget.max_mb }}">
+  <input type="hidden" name="{{ widget.name }}" value="{{ widget.value|default_if_none:'' }}"
+         data-video-input>
+
+  <div class="video-upload__state" data-video-state>
+    {% if widget.video %}
+      {% if widget.video.thumbnail %}
+        <img class="video-upload__poster" src="{{ widget.video.thumbnail.url }}" alt="">
+      {% endif %}
+      <div>
+        <p class="video-upload__name">{{ widget.video }}</p>
+        <p class="video-upload__meta" data-video-status data-status="{{ widget.video.status }}"
+           data-id="{{ widget.video.pk }}">
+          {{ widget.video.get_status_display }}
+          {% if widget.video.duration_sec %}· {{ widget.video.duration_sec }} s{% endif %}
+        </p>
+        {% if widget.video.error %}
+          <p class="video-upload__error">{{ widget.video.error|truncatechars:300 }}</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="video-upload__meta">{% translate "Video biriktirilmagan." %}</p>
+    {% endif %}
+  </div>
+
+  <label class="video-upload__button">
+    <input type="file" accept="video/*" data-video-file hidden>
+    <span>{% if widget.video %}{{ widget.labels.replace }}{% else %}{{ widget.labels.choose }}{% endif %}</span>
+  </label>
+
+  <div class="video-upload__progress" data-video-progress hidden>
+    <div class="video-upload__bar"><span data-video-bar></span></div>
+    <p class="video-upload__meta" data-video-message></p>
+    <button type="button" class="video-upload__cancel" data-video-cancel>
+      {{ widget.labels.cancel }}
+    </button>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+[project]
+name = "sifatedu-backend"
+version = "0.1.0"
+description = "Sifat Edu — backend (Django + DRF)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "django>=5.2.17,<5.3",
+    "djangorestframework>=3.16",
+    "drf-spectacular>=0.28",
+    "django-filter>=25.1",
+    "django-unfold>=0.108",
+    "django-modeltranslation>=0.20",
+    "django-environ>=0.12",
+    "celery[redis]>=5.5",
+    "django-storages[s3]>=1.14.6",
+    "argon2-cffi>=25.1",
+    "django-auditlog>=3.4",
+    "nh3>=0.3",
+    # Google ID token (JWT) imzosini tekshirish; 4-qadamda video URL'lari uchun ham kerak.
+    "pyjwt[crypto]>=2.10",
+    "psycopg[binary,pool]>=3.2",
+    "pillow>=11",
+    "gunicorn>=23",
+    "uvicorn[standard]>=0.34",
+    "uvicorn-worker>=0.3",
+    "sentry-sdk[django,celery]>=2.30",
+    "anthropic>=1.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.11",
+    "factory-boy>=3.3",
+    "ruff>=0.12",
+    "django-stubs[compatible-mypy]>=5.2,<5.3",
+    "djangorestframework-stubs>=3.16",
+    "celery-types>=0.23",
+    "watchfiles>=1.1",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["**/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ", "S", "SIM", "RUF"]
+# RUF012: Django/DRF klass atributlari (permission_classes, Meta.fields) uslubiga zid.
+# RUF001-003: loyihada ruscha matnlar bor, kirill harflari ataylab ishlatiladi.
+ignore = ["RUF012", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+"config/settings/*.py" = ["F403", "F405"]
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+ignore_missing_imports = true
+check_untyped_defs = true
+exclude = ["migrations/"]
+
+[[tool.mypy.overrides]]
+# modeltranslation menejerlarni dinamik almashtiradi, django-stubs ularni aniqlay olmaydi.
+module = "apps.*.models"
+disable_error_code = ["django-manager-missing"]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]
+# --ds env'dagi DJANGO_SETTINGS_MODULE'dan ustun turadi: testlar doim test sozlamalarida.
+addopts = "-ra --strict-markers --ds=config.settings.test"

@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+__pycache__/
+*.pyc
+.venv/
+staticfiles/
+.DS_Store
+
+# Frontend — alohida repozitoriy (sifatedu-frontend): shu papkaga klonlanadi.
+/frontend/
+
+# Production: backup'lar va TLS kalitlari repozitoriyga tushmaydi
+backups/
+infra/certs/

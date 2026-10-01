@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+
+{% load i18n static %}
+
+{% comment %}
+  Admin bosh sahifasi. Statistikani ko'rish huquqi borlarga (Admin, Direktor, Menejer) —
+  kunlik statistika (apps/stats/dashboard.py), qolganlarga — Unfold'ning odatiy sahifasi.
+{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    {% if stats %}
+        <link rel="stylesheet" href="{% static 'admin/dashboard.css' %}">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {% if stats %}
+        {% include "admin/stats_dashboard.html" %}
+    {% else %}
+        {% include "unfold/helpers/dashboard_default.html" %}
+    {% endif %}
+{% endblock %}

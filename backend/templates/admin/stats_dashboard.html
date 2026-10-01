@@ -1,0 +1,160 @@
+{% load i18n unfold %}
+
+<div class="sd">
+    <header class="sd-head">
+        <div>
+            <h1 class="sd-title">{% translate "Statistika" %}</h1>
+            <p class="sd-sub">
+                {% blocktranslate with period=stats.period.label %}{{ period }} · Toshkent vaqti bilan{% endblocktranslate %}
+            </p>
+        </div>
+        <nav class="sd-periods" aria-label="{% translate 'Davr' %}">
+            {% for code, label in stats.periods %}
+                <a href="?period={{ code }}"
+                   class="sd-period{% if code == stats.period.key %} is-active{% endif %}"
+                   {% if code == stats.period.key %}aria-current="page"{% endif %}>{{ label }}</a>
+            {% endfor %}
+        </nav>
+    </header>
+
+    <section class="sd-cards" aria-label="{% translate 'Asosiy raqamlar' %}">
+        {% for card in stats.cards %}
+            <{% if card.url %}a href="{{ card.url }}"{% else %}div{% endif %} class="sd-card">
+                <span class="sd-card__label">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ card.icon }}</span>
+                    {{ card.title }}
+                </span>
+                <strong class="sd-card__value">{{ card.value }}</strong>
+                <span class="sd-trend sd-trend--{{ card.trend }}">
+                    {% if card.trend == "up" %}▲ +{{ card.delta }}{% elif card.trend == "down" %}▼ {{ card.delta }}{% else %}={% endif %}
+                    <span class="sd-trend__was">{{ stats.period.previous_label }}: {{ card.previous }}</span>
+                </span>
+                <span class="sd-card__note">{{ card.note }}</span>
+            </{% if card.url %}a{% else %}div{% endif %}>
+        {% endfor %}
+    </section>
+
+    <div class="sd-grid">
+        <section class="sd-panel" aria-labelledby="sd-problems">
+            <h2 id="sd-problems" class="sd-panel__title">{% translate "Muammolar" %}</h2>
+            {% if stats.problems %}
+                <ul class="sd-problems">
+                    {% for problem in stats.problems %}
+                        <li class="sd-problem sd-problem--{{ problem.level }}">
+                            <span class="sd-problem__count">{{ problem.count }}</span>
+                            <div class="sd-problem__body">
+                                {% if problem.url %}
+                                    <a href="{{ problem.url }}" class="sd-problem__title">{{ problem.title }}</a>
+                                {% else %}
+                                    <span class="sd-problem__title">{{ problem.title }}</span>
+                                {% endif %}
+                                {% if problem.hint %}<p class="sd-problem__hint">{{ problem.hint }}</p>{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="sd-ok">
+                    <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+                    {% translate "Muammo yo'q: to'lovlar, SMS, AI va arizalar joyida." %}
+                </p>
+            {% endif %}
+        </section>
+
+        <section class="sd-panel" aria-labelledby="sd-funnel">
+            <h2 id="sd-funnel" class="sd-panel__title">{% translate "Voronka" %}</h2>
+            <p class="sd-panel__hint">{% translate "Shu davrda ro'yxatdan o'tganlar hozirgacha qayergacha yetdi" %}</p>
+            <ol class="sd-funnel">
+                {% for step in stats.funnel %}
+                    <li class="sd-funnel__step">
+                        <span class="sd-funnel__name">{{ step.title }}</span>
+                        <strong class="sd-funnel__count">{{ step.count }}</strong>
+                        <span class="sd-funnel__percent">{{ step.percent }}%</span>
+                        <span class="sd-funnel__bar" aria-hidden="true"><span style="width: {{ step.percent }}%"></span></span>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+    </div>
+
+    <div class="sd-grid">
+        <section class="sd-panel" aria-labelledby="sd-calls">
+            <h2 id="sd-calls" class="sd-panel__title">{% translate "Qo'ng'iroq qilish kerak: kurs tanlamaganlar" %}</h2>
+            <p class="sd-panel__hint">{% translate "Ro'yxatdan o'tdi, lekin hali birorta kursga yozilmadi va to'lov boshlamadi." %}</p>
+            {% if stats.no_course %}
+                <table class="sd-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">{% translate "Ism" %}</th>
+                            <th scope="col">{% translate "Telefon" %}</th>
+                            <th scope="col">{% translate "Ro'yxatdan o'tdi" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for person in stats.no_course %}
+                            <tr>
+                                <td>
+                                    {% if stats.can_open_users %}
+                                        <a href="{% url 'admin:users_user_change' person.pk %}">{{ person.get_full_name|default:"—" }}</a>
+                                    {% else %}
+                                        {{ person.get_full_name|default:"—" }}
+                                    {% endif %}
+                                </td>
+                                <td><a href="tel:{{ person.phone }}" class="sd-phone">{{ person.phone }}</a></td>
+                                <td class="sd-muted">{{ person.date_joined|date:"d.m H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if stats.no_course_url and stats.no_course_total > stats.no_course|length %}
+                    <a class="sd-more" href="{{ stats.no_course_url }}">
+                        {% blocktranslate with total=stats.no_course_total %}Hammasi: {{ total }} →{% endblocktranslate %}
+                    </a>
+                {% endif %}
+            {% else %}
+                <p class="sd-empty">{% translate "Hammasi kurs tanlagan." %}</p>
+            {% endif %}
+        </section>
+
+        <section class="sd-panel" aria-labelledby="sd-expired">
+            <h2 id="sd-expired" class="sd-panel__title">{% translate "To'lov muddati tugaganlar (7 kun)" %}</h2>
+            <p class="sd-panel__hint">{% translate "Offlayn kurs: to'langan oy tugagan, yangi to'lov yo'q." %}</p>
+            {% if stats.expired %}
+                <table class="sd-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">{% translate "O'quvchi" %}</th>
+                            <th scope="col">{% translate "Kurs" %}</th>
+                            <th scope="col">{% translate "Tugadi" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in stats.expired %}
+                            <tr>
+                                <td>
+                                    {{ enrollment.user.get_full_name|default:"—" }}<br>
+                                    <a href="tel:{{ enrollment.user.phone }}" class="sd-phone">{{ enrollment.user.phone }}</a>
+                                </td>
+                                <td>{{ enrollment.course.title }}</td>
+                                <td class="sd-muted">{{ enrollment.expires_at|date:"d.m" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if stats.expired_url and stats.expired_total > stats.expired|length %}
+                    <a class="sd-more" href="{{ stats.expired_url }}">
+                        {% blocktranslate with total=stats.expired_total %}Hammasi: {{ total }} →{% endblocktranslate %}
+                    </a>
+                {% endif %}
+            {% else %}
+                <p class="sd-empty">{% translate "Muddati tugagan o'quvchi yo'q." %}</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="sd-panel" aria-labelledby="sd-chart">
+        <h2 id="sd-chart" class="sd-panel__title">{% translate "Oxirgi 30 kun" %}</h2>
+        <p class="sd-panel__hint">{% translate "Har kuni nechta odam ro'yxatdan o'tdi va nechta to'lov bo'ldi" %}</p>
+        {% component "unfold/components/chart/bar.html" with data=stats.chart height=240 %}{% endcomponent %}
+    </section>
+</div>
