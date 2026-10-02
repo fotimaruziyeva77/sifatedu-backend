@@ -8,6 +8,7 @@ Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yi
   dc exec -T -e ACTION=enroll   backend python manage.py shell < $S
   dc exec -T -e ACTION=open     backend python manage.py shell < $S
   dc exec -T -e ACTION=status   backend python manage.py shell < $S
+  dc exec -T -e ACTION=close    backend python manage.py shell < $S
 
 setup    — kurs, savollar banki (32 ta, har o'quvchiga tasodifiy 20 tasi), imtihon (hali yopiq),
            4 ta amaliy topshiriq va "Python" guruhi. Qayta ishga tushirsa, mavjudini o'zgartirmaydi.
@@ -15,6 +16,7 @@ students — botda ro'yxatdan o'tganlar va ular guruhdami.
 enroll   — guruhga hali qo'shilmagan hamma o'quvchini qo'shadi (EXCLUDE=5,9 — shu ID'larsiz).
 open     — imtihonni hozir ochadi (HOURS=3 soatga) va o'quvchilarga botda xabar yuboradi.
 status   — kim test ishladi, natija, nechta amaliy topshiriq yuborildi.
+close    — muddatidan oldin yopish (hamma tugatgan bo'lsa); natija baholangach boradi.
 
 Savollar banki alohida modulda: offlayn guruhda "dars o'tildi" deb belgilanmagan darsning testi
 o'quvchiga yopiq, shuning uchun savollarni oldindan ko'rib bo'lmaydi; imtihon esa ularni oladi.
@@ -583,11 +585,28 @@ def status() -> None:
     print(f"Qatnashchilar: {len(people)}")
 
 
+def close_exam() -> None:
+    """Muddatidan oldin yopish: javob qabul qilinmaydi, tugatilmagan testlar yakunlanadi.
+    Yakuniy natija o'quvchiga uning amaliy topshiriqlari baholangach boradi."""
+    test = exam()
+    now = timezone.now()
+    if test.closes_at > now:
+        Exam.objects.filter(pk=test.pk).update(closes_at=now)
+    finished = 0
+    for attempt in ExamAttempt.objects.filter(exam=test, finished_at__isnull=True):
+        exam_services.finish_test(attempt, now=now)
+        finished += 1
+    print(f"Imtihon yopildi ({timezone.localtime(now):%H:%M}). Yakunlangan testlar: {finished}.")
+    print("Natija har bir o'quvchiga amaliy topshiriqlari baholangach yuboriladi.")
+    status()
+
+
 ACTIONS = {
     "setup": setup,
     "students": students,
     "enroll": enroll,
     "open": open_exam,
+    "close": close_exam,
     "status": status,
 }
 if ACTION not in ACTIONS:
