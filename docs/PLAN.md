@@ -1280,7 +1280,10 @@ PDF va QR bilan tekshirish.
 | **16** ✅ | **XP:** kunlik topshiriqlar, shtraflar, seriya; **reyting** (saytda); **referal mukofotlari** (coin + chegirma) | o'rta–katta |
 | **17** ✅ | **Coin do'koni:** sovg'alar, zaxira, buyurtma va topshirish | o'rta |
 | **18** | **Ishga tushirish:** server, domen, HTTPS, bot webhook, Click va Eskiz, zaxira nusxa, monitoring | o'rta |
-| **Oxirida** | **SIFAT Kids** (yangi g'oyalar), ota-ona rejimi, o'yinlar, Kids ligasi | — |
+| **19** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
+| **20** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
+| **21** | **SaaS ishlatish:** markaz domeni va avtomatik HTTPS, yangi markazni 10 daqiqada ulash, tarif cheklovlari va foydalanish hisobi, obuna to'lovlari, markazlar uchun qo'llanma | o'rta–katta |
+| **Oxirida** | **SIFAT Kids** (yangi g'oyalar), ota-ona rejimi, o'yinlar, Kids ligasi — boshidan ko'p markazli | — |
 
 Mini App bo'lmagani uchun botni shu kompyuterda sinab bo'ladi (polling rejimi) — test server
 faqat ishga tushirishda kerak.
@@ -1670,6 +1673,41 @@ buyurtmachi **o'zi qo'llanma bo'yicha** sozlaydi (`docs/DEPLOY.md`), yangilash �
 - Click va Eskiz ma'lumotlari, Anthropic krediti.
 - Ixtiyoriy: Sentry va UptimeRobot akkauntlari.
 
+## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
+
+**Buyurtmachi qarori:** tizim boshqa **mustaqil o'quv markazlariga** (mijozlarga) oylik obuna
+bilan beriladi. Har markazning o'z domeni, Telegram boti, Click hisobi va dizayni bo'ladi
+(to'liq o'z brendi ostida). Tartib: 18-qadam (Sifat Edu ishga tushadi) → 19–21-qadamlar →
+SIFAT Kids (boshidan ko'p markazli yoziladi). Talablar — TZ 4.22.
+
+**Arxitektura tanlovi — har markaz uchun alohida PostgreSQL sxemasi (`django-tenants`):**
+
+| Variant | Qaror | Sabab |
+|---|---|---|
+| Har markazga alohida server va nusxa | Yo'q | N ta server, deploy, zaxira va kuzatuv; yangilanish har biriga alohida |
+| Bitta baza, har jadvalda `center_id` ustuni | Yo'q | 58 ta model va har bir so'rov o'zgaradi; bitta unutilgan filtr — boshqa markaz ma'lumoti ochiladi |
+| **Har markazga alohida sxema** | **Ha** | Ajratish baza darajasida (so'rov boshqa markaz sxemasini ko'rmaydi), modellar deyarli o'zgarmaydi, bitta deploy |
+
+**Hozirgi kodda nima o'zgaradi (o'lchab ko'rildi):** "Sifat" nomi 67 faylda to'g'ridan-to'g'ri
+yozilgan (frontend 33, backend 34) — brend sozlamasiga o'tadi. Global bot tokeni (11 joy),
+Click (6 joy), 3 ta yagona sozlama (AI, kontent, o'yin), fon vazifalari, kesh kalitlari va fayl
+yo'llari markazga bog'lanadi. Frontend'dagi build paytida yoziladigan manzillar
+(`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_S3_PUBLIC_URL`) so'rov paytida domen bo'yicha olinadi.
+Markaz domenlari uchun HTTPS — talab bo'yicha avtomatik sertifikat (on-demand TLS).
+
+**Pul va huquq:** har markaz o'quvchilardan o'z Click hisobiga oladi; platforma markazdan oylik
+obuna oladi (shartnoma, bank o'tkazmasi). Boshqalarning pulini yig'ib bo'lib berish — yo'q
+(litsenziya va soliq). Platforma — shaxsiy ma'lumotlarni qayta ishlovchi: har markaz bilan
+shartnoma, server O'zbekistonda.
+
+**Hozirgi ishlarga ta'siri:** 18-qadam o'zgarmaydi. Shu kundan yangi kodda "Sifat" nomi va
+global sozlamalar to'g'ridan-to'g'ri yozilmaydi.
+
+**19-qadam boshlanishidan oldin hal qilinadi:**
+- platformaning nomi va domeni (mijozlarga sotiladigan mahsulot, super admin va subdomenlar uchun);
+- tarif va narxlar;
+- AI va SMS — markazning o'z kaliti bilan yoki platformaniki (budjet bilan).
+
 ## 8. Sizdan kerak bo'ladigan narsalar
 
 Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) rejimida ishlaydi. Keyinroq kerak bo'ladi:
@@ -1841,3 +1879,10 @@ Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) r
 | Object storage versiyalash o'rniga — videolarning asl fayllari va provayder snapshot'i; baza nusxasi haftada bir serverdan tashqariga | SeaweedFS'da versiyalash yo'q; baza — eng muhim ma'lumot |
 | Judge0 sandbox serveri boshlang'ich konfiguratsiyadan chiqarildi | Kod ishga tushirish funksiyasi rejada yo'q (kerak bo'lsa — alohida server) |
 | Server resurslari kuzatuvi: disk va xotira → Telegram va admin "Muammolar" | Bitta serverda disk to'lsa baza va videolar yozilmay qoladi |
+
+### v3.3 → v3.4 (ko'p markazli platforma)
+
+| O'zgarish | Sabab |
+|---|---|
+| Yangi 4.22: platforma boshqa o'quv markazlariga obuna bilan beriladi; har markazning o'z domeni, boti, Click hisobi va dizayni | Buyurtmachi g'oyasi: har markazga alohida nusxa qilish o'rniga bitta tizim |
+| Yo'l xaritasiga 19–21-qadamlar (ko'p markazli asos, brend va integratsiyalar, SaaS ishlatish); SIFAT Kids ulardan keyin | Kids boshidan ko'p markazli yozilsin, ikki marta ish qilinmasin |

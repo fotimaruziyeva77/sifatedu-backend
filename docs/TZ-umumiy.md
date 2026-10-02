@@ -874,6 +874,38 @@ Admin panel — **Django Admin** (Unfold temasi), manzili `/admin/`. Faqat xodim
   - Admin ham faqat umumiy (agregat) statistikani ko'radi.
   - Instruktorga ko'rsatilmaydi.
 
+### 4.22. Ko'p markazli platforma (SaaS) (3-bosqich, 19–21-qadamlar)
+
+Platforma boshqa o'quv markazlariga oylik obuna bilan beriladi. Har bir markaz — alohida
+**mijoz**: o'z o'quvchilari, kurslari, xodimlari va puli bor, markazlar bir-birining
+ma'lumotini ko'rmaydi. Sifat Edu — birinchi markaz.
+
+**Ajratish:**
+- Har markazning ma'lumotlari bazada alohida sxemada (PostgreSQL schema). Fayllar va videolar
+  markaz papkasida, kesh va fon vazifalari markaz bo'yicha.
+- Akkauntlar markaz ichida: bir odam ikki markazda o'qisa — ikkita alohida akkaunt.
+- Markazlar orasida ma'lumot sizib chiqmasligi avtomatik testlar bilan tekshiriladi.
+
+**Har markazning o'zi:**
+- Domen (o'ziniki yoki platforma subdomeni), HTTPS avtomatik.
+- Brend: nomi, logo, favicon, ranglar. Landing matnlari, kurslar, ustozlar, oferta va maxfiylik
+  siyosati — admin'dan.
+- Telegram bot (o'z tokeni): ro'yxatdan o'tish, testlar, xabarlar va yangiliklar shu bot orqali.
+- Click hisobi (pul to'g'ridan-to'g'ri markazga), fiskal ma'lumotlar (STIR, MXIK).
+- SMS (Eskiz), AI maslahatchi sozlamalari va budjeti, XP va do'kon qiymatlari.
+- Maxfiy kalitlar (bot, Click, Eskiz) bazada shifrlangan holda saqlanadi.
+
+**Platforma egasi (super admin):**
+- Markaz qo'shish (domen, nom, tarif) — 10 daqiqada ishga tushadi; to'xtatish va qayta yoqish.
+- Har markaz bo'yicha foydalanish: o'quvchilar soni, disk (videolar), AI va SMS xarajati.
+- Tarif cheklovlari (o'quvchi soni, disk, AI budjeti) va obuna to'lovlari hisobi (shartnoma
+  asosida, bank o'tkazmasi).
+- Markaz ma'lumotlariga platforma xodimi faqat markaz ruxsati bilan kiradi (qo'llab-quvvatlash
+  uchun), har kirish jurnalga yoziladi.
+
+**Huquqiy:** platforma markazlar uchun shaxsiy ma'lumotlarni qayta ishlovchi; har markaz bilan
+shartnoma tuziladi; ma'lumotlar O'zbekistondagi serverda.
+
 ---
 
 ## 5. Sahifalar xaritasi
