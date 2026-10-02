@@ -31,12 +31,13 @@ RUN mkdir -p /app/staticfiles && chown app:app /app/staticfiles
 USER app
 EXPOSE 8000
 ENTRYPOINT ["sh", "/app/scripts/entrypoint.sh"]
-# Boshqaruv socket'i ishlatilmaydi (u /app ga yozishga urinadi, app foydalanuvchisi esa kod
-# papkasiga yoza olmaydi — shunday bo'lishi kerak).
+# Jarayonlar soni WEB_CONCURRENCY dan (gunicorn o'zi o'qiydi): kichik yoki umumiy serverda
+# compose orqali kamaytiriladi. Boshqaruv socket'i ishlatilmaydi (u /app ga yozishga urinadi,
+# app foydalanuvchisi esa kod papkasiga yoza olmaydi — shunday bo'lishi kerak).
+ENV WEB_CONCURRENCY=3
 CMD ["gunicorn", "config.asgi:application", \
      "--worker-class", "uvicorn_worker.UvicornWorker", \
      "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
      "--no-control-socket", \
      "--access-logfile", "-"]
 

@@ -347,8 +347,22 @@ SSH va Docker sozlamalarini o'zgartiradi va boshqa loyihalarga ta'sir qiladi.
 
 **Joylashuv:** frontend backend papkasi ichida bo'lishi kerak (`<loyiha>/frontend`).
 
-1. **Ichki port bo'shmi** (natija bo'sh bo'lsa — bo'sh): `ss -ltn | grep ':8090 '`. Band bo'lsa,
-   boshqa port tanlang va quyida 8090 o'rniga shuni yozing.
+**Xotira:** Sifat odatda 1,3–1,8 GB oladi (video qayta ishlanganda ko'proq). `free -h` dagi
+`available` kamida 2 GB bo'lsin. Bu rejimda har bir Sifat konteynerining xotirasi chegaralangan:
+oshib ketsa, faqat o'sha konteyner to'xtaydi, boshqa loyihalarga tegmaydi. Image'lar birma-bir
+yig'iladi. Swap bo'lmasa (`swapon --show` bo'sh chiqsa), 4 GB swap qo'shish tavsiya etiladi:
+
+```bash
+fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+```
+
+1. **Bo'sh ichki port:** quyidagi buyruq birinchi bo'sh portni chiqaradi — quyida 8090 o'rniga
+   shuni yozing:
+
+   ```bash
+   for p in 8090 8095 8096 8097 8098 8099; do ss -ltn | grep -q ":$p " || { echo "bo'sh port: $p"; break; }; done
+   ```
 2. **Sozlamalar:** `bash infra/deploy/make-env.sh sifatedu.uz umumiy 8090` (7-qadamdagi savollar).
 3. **Yig'ish va ishga tushirish** (10–20 daqiqa):
 

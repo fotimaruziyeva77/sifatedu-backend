@@ -1,8 +1,43 @@
 # Boshqa loyihalar bilan umumiy server (docs/DEPLOY.md, "Umumiy server" bo'limi): 80 va 443 ni
 # serverdagi nginx ushlaydi, HTTPS o'sha yerda. Sifat'ning nginx'i faqat 127.0.0.1:PROXY_PORT da.
-# Root .env (make-env.sh ... proxy yozadi):
-#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml:docker-compose.proxy.yml
+# Root .env (make-env.sh ... umumiy yozadi):
+#   COMPOSE_FILE=<...>/docker-compose.yml:<...>/docker-compose.prod.yml:<...>/docker-compose.proxy.yml
+#
+# Xotira: har konteynerga chegara — Sifat ko'p xotira olsa, faqat o'zining konteyneri to'xtaydi,
+# boshqa loyihalarga tegmaydi. Odatdagi jami ishlatish ~1.3–1.8 GB (video qayta ishlanganda ko'proq).
 services:
+  postgres:
+    mem_limit: 512m
+
+  redis:
+    mem_limit: 128m
+
+  seaweedfs:
+    mem_limit: 512m
+
+  backend:
+    environment:
+      WEB_CONCURRENCY: "2"
+    mem_limit: 768m
+
+  worker:
+    environment:
+      CELERY_WORKER_CONCURRENCY: "1"
+    mem_limit: 512m
+
+  worker-ai:
+    mem_limit: 384m
+
+  # ffmpeg: 1080p video qayta ishlashda ko'p xotira oladi.
+  worker-video:
+    mem_limit: 1536m
+
+  beat:
+    mem_limit: 192m
+
+  frontend:
+    mem_limit: 384m
+
   nginx:
     volumes: !override
       - ./infra/nginx/nginx.proxy.conf:/etc/nginx/nginx.conf:ro
@@ -10,3 +45,7 @@ services:
       - static:/srv/static:ro
     ports: !override
       - "127.0.0.1:${PROXY_PORT:-8090}:80"
+    mem_limit: 64m
+
+  backup:
+    mem_limit: 256m

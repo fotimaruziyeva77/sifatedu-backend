@@ -19,8 +19,15 @@ APP_URL="https://$DOMAIN"
 MEDIA_URL="https://media.$DOMAIN"
 
 case $MODE in
-    alohida) files=(docker-compose.yml docker-compose.prod.yml) ;;
-    umumiy) files=(docker-compose.yml docker-compose.prod.yml docker-compose.proxy.yml) ;;
+    alohida)
+        files=(docker-compose.yml docker-compose.prod.yml)
+        PARALLEL=""
+        ;;
+    umumiy)
+        files=(docker-compose.yml docker-compose.prod.yml docker-compose.proxy.yml)
+        # Image'lar birma-bir yig'iladi: boshqa loyihalar uchun xotira birdan kamayib ketmasin.
+        PARALLEL="COMPOSE_PARALLEL_LIMIT=1"
+        ;;
     *) echo "Rejim: alohida yoki umumiy (berildi: $MODE)" >&2; exit 1 ;;
 esac
 # To'liq yo'llar: `docker compose --project-directory ...` boshqa papkadan ham to'g'ri ishlasin.
@@ -103,6 +110,7 @@ cat > .env <<EOF
 COMPOSE_FILE=$COMPOSE_FILE
 # Umumiy serverda Sifat nginx'ining ichki porti (host nginx shu portga uzatadi).
 PROXY_PORT=$PROXY_PORT
+$PARALLEL
 
 POSTGRES_DB=sifatedu
 POSTGRES_USER=sifatedu
