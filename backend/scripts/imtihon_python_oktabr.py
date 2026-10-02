@@ -20,6 +20,8 @@ status   — kim test ishladi, natija, nechta amaliy topshiriq yuborildi.
 close    — muddatidan oldin yopish (hamma tugatgan bo'lsa); natija baholangach boradi.
 remove   — PHONES=+998...,+998... — guruh va imtihondan chiqarish (akkaunt qoladi); `enroll`
            ularni qayta qo'shmaydi.
+answers  — amaliy javoblar ro'yxati; STUDENT=ID bilan — o'sha o'quvchining kodlari.
+grade    — STUDENT=ID SCORES=90,80,70,100 — terminaldan baholash (saytdagi kabi natija yuboriladi).
 
 Savollar banki alohida modulda: offlayn guruhda "dars o'tildi" deb belgilanmagan darsning testi
 o'quvchiga yopiq, shuning uchun savollarni oldindan ko'rib bo'lmaydi; imtihon esa ularni oladi.
@@ -33,7 +35,7 @@ from django.utils import timezone
 
 from apps.catalog.models import Category, Course, Lesson, Module
 from apps.exams import services as exam_services
-from apps.exams.models import Exam, ExamAttempt, ExamTask, TaskAnswer
+from apps.exams.models import Exam, ExamAttempt, ExamResult, ExamTask, TaskAnswer
 from apps.learning.models import Enrollment, StudyGroup
 from apps.quizzes.models import Quiz
 from apps.quizzes.parser import parse
@@ -586,6 +588,75 @@ def status() -> None:
     print(f"Qatnashchilar: {len(people)}")
 
 
+def answers() -> None:
+    """Amaliy javoblar: STUDENT=ID bo'lsa — o'sha o'quvchining kodlari, aks holda ro'yxat."""
+    test = exam()
+    tasks = list(test.tasks.order_by("order", "id"))
+    given = TaskAnswer.objects.filter(task__exam=test).select_related("task", "student")
+    student_id = os.environ.get("STUDENT", "").strip()
+    if not student_id:
+        people: dict[User, list[TaskAnswer]] = {}
+        for answer in given:
+            people.setdefault(answer.student, []).append(answer)
+        print(f"{'ID':>4}  {'Ism':28} Yuborgan  Baholangan")
+        for user, items in sorted(people.items(), key=lambda pair: name_of(pair[0]).lower()):
+            graded = sum(1 for item in items if item.score is not None)
+            print(f"{user.pk:>4}  {name_of(user)[:28]:28} {len(items)}/{len(tasks):<7} {graded}")
+        print("Kodlarni ko'rish: -e STUDENT=ID")
+        return
+    user = User.objects.get(pk=int(student_id))
+    attempt = ExamAttempt.objects.filter(exam=test, student=user).first()
+    test_score = f"{attempt.score}%" if attempt and attempt.score is not None else "—"
+    print(f"===== {name_of(user)} (ID {user.pk}), test: {test_score} =====")
+    by_task = {answer.task_id: answer for answer in given.filter(student=user)}
+    for task in tasks:
+        answer = by_task.get(task.pk)
+        print(f"\n----- {task.title} -----")
+        if answer is None:
+            print("(yuborilmagan)")
+            continue
+        if answer.text:
+            print(f"Izoh: {answer.text}")
+        if answer.code:
+            print(answer.code)
+        if answer.link:
+            print(f"Havola: {answer.link}")
+        files = [item.name for item in answer.files.all()]
+        if files:
+            print(f"Fayllar: {', '.join(files)}")
+        mark = "qo'yilmagan" if answer.score is None else answer.score
+        print(f"[baho: {mark}]")
+
+
+def grade() -> None:
+    """STUDENT=ID SCORES=90,80,70,100 — topshiriqlar tartibida; "-" — o'tkazib yuborish."""
+    test = exam()
+    user = User.objects.get(pk=int(os.environ.get("STUDENT", "0")))
+    tasks = list(test.tasks.order_by("order", "id"))
+    scores = [value.strip() for value in os.environ.get("SCORES", "").split(",")]
+    if len(scores) != len(tasks):
+        raise SystemExit(f"{len(tasks)} ta baho kerak: -e SCORES=90,80,70,100")
+    reviewer = teacher()
+    for task, value in zip(tasks, scores, strict=True):
+        if value in ("", "-"):
+            continue
+        answer = TaskAnswer.objects.filter(task=task, student=user).first()
+        if answer is None:
+            print(f"  {task.title}: yuborilmagan — o'tkazildi")
+            continue
+        exam_services.grade_task(answer, reviewer, score=int(value))
+        print(f"  {task.title}: {value}")
+    result = ExamResult.objects.filter(exam=test, student=user).first()
+    if result is None:
+        return
+    verdict = "o'tdi" if result.passed else "o'tmadi"
+    sent = " — o'quvchiga yuborildi" if result.final_at else " — hali hammasi baholanmagan"
+    print(
+        f"{name_of(user)}: test {result.test_score}% + amaliy {result.practical_score}% = "
+        f"{result.total}%, {verdict}{sent}"
+    )
+
+
 @transaction.atomic
 def remove() -> None:
     """Guruh va imtihondan chiqarish (akkaunt qoladi): PHONES=+998901234567,+998..."""
@@ -633,6 +704,8 @@ ACTIONS = {
     "open": open_exam,
     "close": close_exam,
     "remove": remove,
+    "answers": answers,
+    "grade": grade,
     "status": status,
 }
 if ACTION not in ACTIONS:
