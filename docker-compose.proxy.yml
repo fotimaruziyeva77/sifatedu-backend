@@ -1,0 +1,12 @@
+# Boshqa loyihalar bilan umumiy server (docs/DEPLOY.md, "Umumiy server" bo'limi): 80 va 443 ni
+# serverdagi nginx ushlaydi, HTTPS o'sha yerda. Sifat'ning nginx'i faqat 127.0.0.1:PROXY_PORT da.
+# Root .env (make-env.sh ... proxy yozadi):
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml:docker-compose.proxy.yml
+services:
+  nginx:
+    volumes: !override
+      - ./infra/nginx/nginx.proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/sifat:/etc/nginx/sifat:ro
+      - static:/srv/static:ro
+    ports: !override
+      - "127.0.0.1:${PROXY_PORT:-8090}:80"

@@ -5,18 +5,18 @@
 #
 # Bitta sertifikat uch nom uchun: <domen>, www.<domen>, media.<domen>. Keyin certbot uni o'zi
 # yangilaydi (kuniga 2 marta tekshiradi) va nginx'ni qayta yuklaydi (reload-nginx.sh).
+# Faqat alohida server uchun: umumiy serverda HTTPS'ni host nginx va `certbot --nginx` beradi
+# (docs/DEPLOY.md, "Umumiy server").
 set -Eeuo pipefail
-cd "$(dirname "$0")/../.."
+# shellcheck source=infra/deploy/common.sh
+. "$(dirname "$0")/common.sh"
 
 EMAIL=${1:?"e-pochta kerak: bash infra/deploy/init-cert.sh siz@pochta.uz"}
 DOMAIN=${2:-sifatedu.uz}
 NAME=sifatedu
 LIVE=/etc/letsencrypt/live/$NAME
 WEBROOT=$PWD/infra/certbot-www
-COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
 HOSTS=("$DOMAIN" "www.$DOMAIN" "media.$DOMAIN")
-
-step() { printf '\n==> %s\n' "$*"; }
 
 step "DNS: uchala nom shu serverga qaraydimi"
 ip=$(hostname -I | awk '{print $1}')

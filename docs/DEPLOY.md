@@ -24,6 +24,13 @@ kunlik zaxira. Shaxsiy ma'lumotlar va ularning zaxirasi O'zbekistondagi serverda
 | `https://www.sifatedu.uz` | Asosiy manzilga yo'naltiriladi |
 | `https://media.sifatedu.uz` | Fayllar va videolar (brauzer to'g'ridan-to'g'ri, imzolangan havolalar bilan) |
 
+**Ikki rejim:**
+
+- **Alohida server** (tavsiya: AHOST, Toshkent) — server faqat Sifat uchun. Quyidagi 1–15-qadamlar.
+- **Umumiy server** — serverda boshqa loyihalar ham bor va 80/443 portlarini serverdagi nginx
+  ushlab turibdi. Bunda 6, 8 va 9-qadamlar o'rniga oxiridagi
+  [Umumiy server](#umumiy-server-boshqa-loyihalar-bilan) bo'limi bajariladi.
+
 ## 0. Oldindan tayyorlab qo'ying
 
 | Nima | Qayerdan |
@@ -138,11 +145,12 @@ You've successfully authenticated…` va frontend uchun ham xuddi shunday.
 git clone github-backend:fotimaruziyeva77/sifatedu-backend.git /srv/sifatedu
 git clone github-frontend:fotimaruziyeva77/sifatedu-frontend.git /srv/sifatedu/frontend
 cd /srv/sifatedu
-echo "alias dc='docker compose -f /srv/sifatedu/docker-compose.yml -f /srv/sifatedu/docker-compose.prod.yml'" >> ~/.bashrc
+echo "alias dc='docker compose --project-directory /srv/sifatedu'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-`dc` — production Docker Compose buyrug'ining qisqa nomi. Keyingi qadamlarda shu ishlatiladi.
+`dc` — Sifat'ning Docker Compose buyrug'i, istalgan papkadan ishlaydi. Qaysi fayllar
+ishlatilishini 7-qadamda yaratiladigan `.env` dagi `COMPOSE_FILE` belgilaydi.
 
 ## 6. Serverni tayyorlash (5–10 daqiqa)
 
@@ -322,3 +330,53 @@ dc logs -f --tail=100 backend  # backend loglari (chiqish — Ctrl+C)
 dc restart backend             # bitta servisni qayta ishga tushirish
 dc exec backend python manage.py check --deploy   # Django xavfsizlik tekshiruvi
 ```
+
+## Umumiy server (boshqa loyihalar bilan)
+
+Serverda boshqa saytlar ham ishlayotgan bo'lsa va 80/443 portlarini serverdagi nginx ushlab
+turgan bo'lsa, Sifat o'sha nginx'ning orqasida, faqat ichki portda (`127.0.0.1:8090`) ishlaydi.
+HTTPS va sertifikat — serverdagi nginx'da (`certbot --nginx`). Boshqa loyihalarga tegilmaydi.
+
+> **Eslatma:** server O'zbekistondan tashqarida bo'lsa, shaxsiy ma'lumotlar qonuni (27¹-modda)
+> bo'yicha xavf bor. Keyinchalik O'zbekistondagi serverga ko'chirish tavsiya etiladi — bu shu
+> qo'llanmaning alohida server rejimi bilan qilinadi.
+
+**Kerak:** Docker va Compose plugin, nginx, certbot va uning nginx plagini
+(`apt install python3-certbot-nginx`). **`setup-server.sh` ishga tushirilmaydi** — u firewall,
+SSH va Docker sozlamalarini o'zgartiradi va boshqa loyihalarga ta'sir qiladi.
+
+**Joylashuv:** frontend backend papkasi ichida bo'lishi kerak (`<loyiha>/frontend`).
+
+1. **Ichki port bo'shmi** (natija bo'sh bo'lsa — bo'sh): `ss -ltn | grep ':8090 '`. Band bo'lsa,
+   boshqa port tanlang va quyida 8090 o'rniga shuni yozing.
+2. **Sozlamalar:** `bash infra/deploy/make-env.sh sifatedu.uz umumiy 8090` (7-qadamdagi savollar).
+3. **Yig'ish va ishga tushirish** (10–20 daqiqa):
+
+   ```bash
+   dc build
+   dc up -d
+   dc ps
+   curl -s -H 'Host: sifatedu.uz' http://127.0.0.1:8090/api/v1/health/
+   ```
+
+   Kutilgan natija: `dc ps` da hamma servis `healthy` (birinchi marta 2–4 daqiqa),
+   `curl` — `{"status":"ok", ...}`.
+4. **Serverdagi nginx:**
+
+   ```bash
+   cp infra/deploy/host-nginx.conf /etc/nginx/sites-available/sifatedu
+   ln -s /etc/nginx/sites-available/sifatedu /etc/nginx/sites-enabled/sifatedu
+   nginx -t && systemctl reload nginx
+   ```
+
+   Port 8090 bo'lmasa: `sed -i 's/127.0.0.1:8090/127.0.0.1:PORT/' /etc/nginx/sites-available/sifatedu`.
+5. **HTTPS** (DNS serverga qaragandan keyin, 2-qadam):
+
+   ```bash
+   certbot --nginx --redirect -d sifatedu.uz -d www.sifatedu.uz -d media.sifatedu.uz
+   ```
+
+   Kutilgan natija: `Successfully deployed certificate`. Sertifikat avtomatik yangilanadi.
+6. **Tekshiruv:** `bash infra/deploy/status.sh` — sayt 200, ikkala sertifikat muddati ko'rinadi.
+
+Keyin 10-qadamdan davom eting. Yangilash ham shu: `bash infra/deploy/deploy.sh`.

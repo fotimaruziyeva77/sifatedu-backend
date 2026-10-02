@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 # Server holati — natijani dasturchiga yuborsa bo'ladi (maxfiy qiymatlar chiqmaydi):
-#   bash /srv/sifatedu/infra/deploy/status.sh
+#   bash infra/deploy/status.sh
 set -uo pipefail
-cd "$(dirname "$0")/../.."
-
-COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
-APP_URL=$(sed -n "s/^APP_URL=//p" .env 2> /dev/null | tr -d "\"'")
-HOST=${APP_URL#https://}
+# shellcheck source=infra/deploy/common.sh
+. "$(dirname "$0")/common.sh"
 
 section() { printf '\n== %s\n' "$*"; }
 
@@ -17,16 +14,19 @@ git -C frontend log -1 --format='frontend: %h %cd %s' --date=short
 section "Konteynerlar"
 "${COMPOSE[@]}" ps --format 'table {{.Service}}\t{{.Status}}'
 
-section "Sayt (nginx va TLS orqali)"
+section "Sayt (HTTPS orqali)"
 for path in /healthz /api/v1/health/; do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
         --resolve "$HOST:443:127.0.0.1" "$APP_URL$path")
     echo "$APP_URL$path → $code"
 done
 
-section "Sertifikat"
-openssl x509 -enddate -noout -in /etc/letsencrypt/live/sifatedu/fullchain.pem 2> /dev/null ||
-    echo "sertifikat yo'q (init-cert.sh)"
+section "Sertifikat (muddati)"
+for name in "$HOST" "media.$HOST"; do
+    end=$(echo | openssl s_client -connect 127.0.0.1:443 -servername "$name" 2> /dev/null |
+        openssl x509 -noout -enddate 2> /dev/null)
+    echo "$name: ${end:-sertifikat topilmadi}"
+done
 
 section "Telegram bot webhook"
 "${COMPOSE[@]}" exec -T backend python manage.py telegram_webhook info 2>&1 |

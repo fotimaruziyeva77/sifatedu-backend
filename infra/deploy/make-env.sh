@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Production sozlamalari: root .env, backend/.env va frontend/.env. Bir marta, serverda:
-#   bash infra/deploy/make-env.sh [domen]        (standart: sifatedu.uz)
+#   bash infra/deploy/make-env.sh [domen] [alohida|umumiy] [port]
+#     alohida (standart) — server faqat Sifat uchun: 80 va 443 Sifat nginx'ida
+#     umumiy             — serverda boshqa loyihalar ham bor: 80 va 443 serverdagi nginx'da,
+#                          Sifat nginx'i 127.0.0.1:<port> da (standart 8090)
 #
 # Maxfiy qiymatlar (Django kaliti, baza paroli, S3 va video kalitlari, webhook siri) shu yerda
 # tasodifiy yaratiladi. Tashqi kalitlar (bot, Click, Eskiz, AI, Google) so'raladi — ularni faqat
@@ -10,8 +13,19 @@ set -Eeuo pipefail
 cd "$(dirname "$0")/../.."
 
 DOMAIN=${1:-sifatedu.uz}
+MODE=${2:-alohida}
+PROXY_PORT=${3:-8090}
 APP_URL="https://$DOMAIN"
 MEDIA_URL="https://media.$DOMAIN"
+
+case $MODE in
+    alohida) files=(docker-compose.yml docker-compose.prod.yml) ;;
+    umumiy) files=(docker-compose.yml docker-compose.prod.yml docker-compose.proxy.yml) ;;
+    *) echo "Rejim: alohida yoki umumiy (berildi: $MODE)" >&2; exit 1 ;;
+esac
+# To'liq yo'llar: `docker compose --project-directory ...` boshqa papkadan ham to'g'ri ishlasin.
+COMPOSE_FILE=""
+for file in "${files[@]}"; do COMPOSE_FILE+="${COMPOSE_FILE:+:}$PWD/$file"; done
 
 [ -d frontend ] || { echo "frontend/ papkasi yo'q: avval frontend repozitoriyini klonlang." >&2; exit 1; }
 for file in .env backend/.env frontend/.env; do
@@ -85,6 +99,11 @@ umask 077
 
 cat > .env <<EOF
 # Production — infra/deploy/make-env.sh yaratdi ($(date +%F)). Maxfiy: hech kimga yubormang.
+# Docker Compose fayllari ($MODE server); deploy.sh va status.sh ham shundan foydalanadi.
+COMPOSE_FILE=$COMPOSE_FILE
+# Umumiy serverda Sifat nginx'ining ichki porti (host nginx shu portga uzatadi).
+PROXY_PORT=$PROXY_PORT
+
 POSTGRES_DB=sifatedu
 POSTGRES_USER=sifatedu
 POSTGRES_PASSWORD=$(hex 24)
@@ -194,4 +213,12 @@ missing=()
 if [ ${#missing[@]} -gt 0 ]; then
     echo "Keyin to'ldiriladi (backend/.env, so'ng deploy.sh):"
     printf '  - %s\n' "${missing[@]}"
+fi
+
+echo
+if [ "$MODE" = umumiy ]; then
+    echo "Keyingi qadam: docker compose build, so'ng docker compose up -d va serverdagi nginx"
+    echo "(infra/deploy/host-nginx.conf, port $PROXY_PORT) — docs/DEPLOY.md, \"Umumiy server\"."
+else
+    echo "Keyingi qadam: docker compose build, so'ng bash infra/deploy/init-cert.sh <e-pochta>."
 fi

@@ -87,6 +87,7 @@ services:
   nginx:
     volumes: !override
       - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/sifat:/etc/nginx/sifat:ro
       - static:/srv/static:ro
       # Let's Encrypt: sertifikatlarni serverdagi certbot oladi va yangilaydi (init-cert.sh).
       - ${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro

@@ -6,14 +6,10 @@
 # https orqali sayt va API). Tekshiruvdan o'tmasa — oldingi image'lar bilan qayta ishga tushadi.
 # Migratsiyalar orqaga qaytmaydi, shuning uchun ular faqat qo'shiluvchi qilib yoziladi.
 set -Eeuo pipefail
-cd "$(dirname "$0")/../.."
+# shellcheck source=infra/deploy/common.sh
+. "$(dirname "$0")/common.sh"
 
-COMPOSE=(docker compose -f docker-compose.yml -f docker-compose.prod.yml)
 IMAGES=(sifatedu-backend sifatedu-backend-video sifatedu-frontend)
-APP_URL=$(sed -n "s/^APP_URL=//p" .env | tr -d "\"'")
-HOST=${APP_URL#https://}
-
-step() { printf '\n==> %s\n' "$*"; }
 
 containers_healthy() {  # backend va frontend "healthy" bo'lguncha, 5 daqiqagacha
     local service id state ready
@@ -30,7 +26,7 @@ containers_healthy() {  # backend va frontend "healthy" bo'lguncha, 5 daqiqagach
     return 1
 }
 
-site_ok() {  # nginx va TLS orqali, xuddi foydalanuvchi kabi
+site_ok() {  # HTTPS orqali, xuddi foydalanuvchi kabi (umumiy serverda — host nginx orqali)
     local path
     for path in /healthz /api/v1/health/; do
         curl -fsS -o /dev/null --max-time 10 --resolve "$HOST:443:127.0.0.1" "$APP_URL$path" ||

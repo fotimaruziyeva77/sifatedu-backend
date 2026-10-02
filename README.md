@@ -620,6 +620,7 @@ tushirishgacha har bir buyruq va kutilgan natija. Qisqasi:
 | Ishga tushirish va HTTPS | `bash infra/deploy/init-cert.sh <e-pochta>` — Let's Encrypt (`sifatedu.uz`, `www`, `media`) |
 | Yangilash | `bash infra/deploy/deploy.sh` — yangilaydi, tekshiradi, xato bo'lsa oldingi versiyaga qaytadi |
 | Holat | `bash infra/deploy/status.sh` |
+| Umumiy server (boshqa loyihalar bilan) | `make-env.sh sifatedu.uz umumiy 8090` — Sifat nginx'i `127.0.0.1:8090` da, HTTPS serverdagi nginx'da (`infra/deploy/host-nginx.conf`, `certbot --nginx`) |
 
 Fayllar va videolar serverning o'zida (SeaweedFS). Brauzer ularni `media.<domen>` orqali oladi:
 nginx S3 API'ni imzolangan havolalar bilan o'tkazadi, o'chirish so'rovlari yopiq.
