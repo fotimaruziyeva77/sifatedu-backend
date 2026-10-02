@@ -51,9 +51,14 @@ dc exec -T -e ACTION=students backend python manage.py shell < $S
 dc exec -T -e ACTION=enroll backend python manage.py shell < $S
 ```
 
-Birinchisi ro'yxatni ko'rsatadi — o'z ro'yxatingiz bilan solishtiring. Begona kishi bo'lsa,
-`enroll` ga `-e EXCLUDE=ID` qo'shing (bir nechta bo'lsa, vergul bilan: `-e EXCLUDE=5,9`).
-Kech qolganlar uchun 4–5-qadamlarni qaytaring: `enroll` faqat yangilarni qo'shadi.
+Birinchisi ro'yxatni ko'rsatadi — o'z ro'yxatingiz bilan solishtiring. Kech qolganlar uchun
+4–5-qadamlarni qaytaring: `enroll` faqat yangilarni qo'shadi.
+
+**Begona kishini chiqarish** (guruh va imtihondan; akkaunt qoladi, `enroll` uni qayta qo'shmaydi):
+
+```bash
+dc exec -T -e ACTION=remove -e PHONES=+998901234567,+998907654321 backend python manage.py shell < $S
+```
 
 ## 6. Imtihonni ochish (bir marta)
 

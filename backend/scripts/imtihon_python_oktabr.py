@@ -9,6 +9,7 @@ Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yi
   dc exec -T -e ACTION=open     backend python manage.py shell < $S
   dc exec -T -e ACTION=status   backend python manage.py shell < $S
   dc exec -T -e ACTION=close    backend python manage.py shell < $S
+  dc exec -T -e ACTION=remove -e PHONES=+998901234567 backend python manage.py shell < $S
 
 setup    — kurs, savollar banki (32 ta, har o'quvchiga tasodifiy 20 tasi), imtihon (hali yopiq),
            4 ta amaliy topshiriq va "Python" guruhi. Qayta ishga tushirsa, mavjudini o'zgartirmaydi.
@@ -17,6 +18,8 @@ enroll   — guruhga hali qo'shilmagan hamma o'quvchini qo'shadi (EXCLUDE=5,9 �
 open     — imtihonni hozir ochadi (HOURS=3 soatga) va o'quvchilarga botda xabar yuboradi.
 status   — kim test ishladi, natija, nechta amaliy topshiriq yuborildi.
 close    — muddatidan oldin yopish (hamma tugatgan bo'lsa); natija baholangach boradi.
+remove   — PHONES=+998...,+998... — guruh va imtihondan chiqarish (akkaunt qoladi); `enroll`
+           ularni qayta qo'shmaydi.
 
 Savollar banki alohida modulda: offlayn guruhda "dars o'tildi" deb belgilanmagan darsning testi
 o'quvchiga yopiq, shuning uchun savollarni oldindan ko'rib bo'lmaydi; imtihon esa ularni oladi.
@@ -527,10 +530,8 @@ def enroll() -> None:
     skip = {int(value) for value in os.environ.get("EXCLUDE", "").split(",") if value.strip()}
     added = []
     for user in User.objects.filter(is_active=True, is_staff=False).exclude(pk__in=skip):
-        exists = Enrollment.objects.filter(
-            user=user, course=python, status=Enrollment.Status.ACTIVE
-        ).exists()
-        if exists:
+        # Guruhdagilar ham, `remove` bilan chiqarilganlar ham (bekor qilingan yozilish) o'tkaziladi.
+        if Enrollment.objects.filter(user=user, course=python).exists():
             continue
         Enrollment.objects.create(
             user=user,
@@ -585,6 +586,30 @@ def status() -> None:
     print(f"Qatnashchilar: {len(people)}")
 
 
+@transaction.atomic
+def remove() -> None:
+    """Guruh va imtihondan chiqarish (akkaunt qoladi): PHONES=+998901234567,+998..."""
+    python, team = course(), group()
+    phones = [value.strip() for value in os.environ.get("PHONES", "").split(",") if value.strip()]
+    if not phones:
+        raise SystemExit("Telefonlar kerak: -e PHONES=+998901234567,+998...")
+    for phone in phones:
+        user = User.objects.filter(phone=phone).first()
+        if user is None:
+            print(f"  ? {phone} — topilmadi")
+            continue
+        Enrollment.objects.update_or_create(
+            user=user,
+            course=python,
+            defaults={
+                "status": Enrollment.Status.CANCELLED,
+                "group": team,
+                "study_format": Enrollment.Format.OFFLINE,
+            },
+        )
+        print(f"  - {name_of(user)} ({phone}) — guruh va imtihondan chiqarildi")
+
+
 def close_exam() -> None:
     """Muddatidan oldin yopish: javob qabul qilinmaydi, tugatilmagan testlar yakunlanadi.
     Yakuniy natija o'quvchiga uning amaliy topshiriqlari baholangach boradi."""
@@ -607,6 +632,7 @@ ACTIONS = {
     "enroll": enroll,
     "open": open_exam,
     "close": close_exam,
+    "remove": remove,
     "status": status,
 }
 if ACTION not in ACTIONS:
