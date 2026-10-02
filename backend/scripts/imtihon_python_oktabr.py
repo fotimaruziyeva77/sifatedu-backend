@@ -22,6 +22,7 @@ remove   — PHONES=+998...,+998... — guruh va imtihondan chiqarish (akkaunt q
            ularni qayta qo'shmaydi.
 answers  — amaliy javoblar ro'yxati; STUDENT=ID bilan — o'sha o'quvchining kodlari.
 grade    — STUDENT=ID SCORES=90,80,70,100 — terminaldan baholash (saytdagi kabi natija yuboriladi).
+results  — natijalar jadvali: test, amaliy, jami, o'tdi/o'tmadi.
 
 Savollar banki alohida modulda: offlayn guruhda "dars o'tildi" deb belgilanmagan darsning testi
 o'quvchiga yopiq, shuning uchun savollarni oldindan ko'rib bo'lmaydi; imtihon esa ularni oladi.
@@ -588,6 +589,28 @@ def status() -> None:
     print(f"Qatnashchilar: {len(people)}")
 
 
+def results() -> None:
+    """Natijalar jadvali: jami ball bo'yicha, o'tgan-o'tmagani va o'quvchiga yuborilgani."""
+    test = exam()
+    rows = list(ExamResult.objects.filter(exam=test).select_related("student").order_by("-total"))
+    print(f"O'tish bali: {test.pass_percent}%. Jami = test {test.test_weight}% + amaliy.")
+    print(f"{'#':>2}  {'Ism':28} {'Test':>5} {'Amaliy':>7} {'Jami':>5}  Holat")
+    for place, row in enumerate(rows, start=1):
+        verdict = "o'tdi" if row.passed else "o'tmadi"
+        if row.final_at is None:
+            verdict += " (hali hammasi baholanmagan)"
+        print(
+            f"{place:>2}  {name_of(row.student)[:28]:28} {row.test_score:>4}% "
+            f"{row.practical_score:>6}% {row.total:>4}%  {verdict}"
+        )
+    counted = {row.student_id for row in rows}
+    missing = [user for user in exam_services.participants(test) if user.pk not in counted]
+    for user in missing:
+        print(f"{'':>2}  {name_of(user)[:28]:28} {'—':>5} {'—':>7} {'—':>5}  qatnashmagan")
+    passed = sum(1 for row in rows if row.passed and row.final_at)
+    print(f"O'tdi: {passed} / {len(rows) + len(missing)}")
+
+
 def answers() -> None:
     """Amaliy javoblar: STUDENT=ID bo'lsa — o'sha o'quvchining kodlari, aks holda ro'yxat."""
     test = exam()
@@ -705,6 +728,7 @@ ACTIONS = {
     "close": close_exam,
     "remove": remove,
     "answers": answers,
+    "results": results,
     "grade": grade,
     "status": status,
 }
