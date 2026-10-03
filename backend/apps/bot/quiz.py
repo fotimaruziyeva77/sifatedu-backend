@@ -10,7 +10,7 @@ bosilsa, "savol yopilgan" deyiladi.
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from django.db.models import Count
 
@@ -313,7 +313,14 @@ def finish(chat: BotChat, user: User, attempt: Attempt) -> None:
     send(chat.chat_id, messages[-1], [[target]])
 
 
-def review_blocks(attempt: Attempt, review: list[dict[str, Any]], locale: str) -> list[str]:
+class Shuffled(Protocol):
+    """Savollar va aralashtirish kaliti bor urinish (dars testi yoki kunlik test)."""
+
+    question_ids: Any
+    seed: int
+
+
+def review_blocks(attempt: Shuffled, review: list[dict[str, Any]], locale: str) -> list[str]:
     """Xatolar: savol, o'quvchi javobi, to'g'ri javob va izoh."""
     mistakes = [item for item in review if not item["correct"]]
     if not mistakes:

@@ -112,6 +112,24 @@ TEXTS: dict[str, dict[str, str]] = {
             "Sizga {percent}% chegirma kuponi berildi — {until} gacha amal qiladi (birinchi "
             "to'lovga). Menejerimiz siz bilan bog'lanadi; savolingiz bo'lsa — botga yozing."
         ),
+        "start_daily_test": "▶️ Testni boshlash",
+        "daily_test_title": "📝 Kunlik test ochildi",
+        "daily_test_body": (
+            "{count} savol, 23:00 gacha. Natija darhol; to'g'ri javoblar va izohlar — 23:00 dan "
+            "keyin. Har to'g'ri javobga XP va coin."
+        ),
+        "daily_test_yesterday": (
+            "Kecha: {correct}/{total}, guruhda {place}-o'rin ({people} kishidan)."
+        ),
+        "daily_test_remind_title": "⏳ Kunlik test 23:00 da yopiladi",
+        "daily_test_remind_body": (
+            "Bugungi testni hali ishlamadingiz. Jarima yo'q — har to'g'ri javobga XP va coin."
+        ),
+        "daily_test_short_title": "Kunlik test berilmadi: {group}",
+        "daily_test_short_body": (
+            "O'tilgan darslar testlarida {have} ta savol bor, kamida {need} ta kerak. Darslarga "
+            "test qo'shing va o'tilgan darslarni «Dars o'tildi» deb belgilang."
+        ),
         "coupon_first_title": "🎁 {percent}% chegirma kuponingiz kutyapti",
         "coupon_last_title": "⏳ {percent}% chegirma kuponi tugayapti",
         "coupon_body": (
@@ -226,6 +244,22 @@ TEXTS: dict[str, dict[str, str]] = {
             "Вам выдан купон на скидку {percent}% — действует до {until} (на первую оплату). "
             "Менеджер свяжется с вами; если есть вопрос — напишите в бот."
         ),
+        "start_daily_test": "▶️ Начать тест",
+        "daily_test_title": "📝 Ежедневный тест открыт",
+        "daily_test_body": (
+            "{count} вопросов, до 23:00. Результат сразу; правильные ответы и пояснения — после "
+            "23:00. За каждый верный ответ — XP и coin."
+        ),
+        "daily_test_yesterday": "Вчера: {correct}/{total}, {place}-е место в группе (из {people}).",
+        "daily_test_remind_title": "⏳ Ежедневный тест закроется в 23:00",
+        "daily_test_remind_body": (
+            "Сегодняшний тест вы ещё не прошли. Штрафов нет — за каждый верный ответ XP и coin."
+        ),
+        "daily_test_short_title": "Ежедневный тест не выдан: {group}",
+        "daily_test_short_body": (
+            "В тестах пройденных уроков {have} вопросов, нужно минимум {need}. Добавьте тесты к "
+            "урокам и отмечайте пройденные уроки кнопкой «Урок пройден»."
+        ),
         "coupon_first_title": "🎁 Ваш купон на скидку {percent}% ждёт вас",
         "coupon_last_title": "⏳ Купон на скидку {percent}% скоро сгорит",
         "coupon_body": (
@@ -338,6 +372,25 @@ TEXTS: dict[str, dict[str, str]] = {
         "placement_timeout_body": (
             "You got a {percent}% discount coupon — valid until {until} (for the first "
             "payment). Our manager will contact you; if you have a question, write to the bot."
+        ),
+        "start_daily_test": "▶️ Start the test",
+        "daily_test_title": "📝 The daily test is open",
+        "daily_test_body": (
+            "{count} questions, until 23:00. Result right away; correct answers and explanations "
+            "after 23:00. XP and coins for every correct answer."
+        ),
+        "daily_test_yesterday": (
+            "Yesterday: {correct}/{total}, place {place} of {people} in your group."
+        ),
+        "daily_test_remind_title": "⏳ The daily test closes at 23:00",
+        "daily_test_remind_body": (
+            "You haven't done today's test yet. No penalties — XP and coins for every correct "
+            "answer."
+        ),
+        "daily_test_short_title": "No daily test today: {group}",
+        "daily_test_short_body": (
+            "Covered lessons have {have} quiz questions, at least {need} are needed. Add quizzes "
+            "to lessons and mark covered lessons with “Lesson covered”."
         ),
         "coupon_first_title": "🎁 Your {percent}% discount coupon is waiting",
         "coupon_last_title": "⏳ Your {percent}% discount coupon is expiring",

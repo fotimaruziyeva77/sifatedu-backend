@@ -1283,7 +1283,7 @@ PDF va QR bilan tekshirish.
 | **19** ✅ | **Yangi kelganlar yo'li** (§7D): manba (Instagram va boshqalar), yo'nalish → daraja testi → 15% yoki 25% kupon (72 soat) → ariza menejerga → eslatmalar. Qo'llanma — `docs/yangi-kelganlar.md` | o'rta–katta |
 | **20** ✅ | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi. Qo'llanma — `docs/ai-maslahatchi.md` | o'rta–katta |
 | **21** ✅ | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
-| **22** | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
+| **22** ✅ | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
 | **23** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
 | **24** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
 | **25** | **SaaS ishlatish:** markaz domeni va avtomatik HTTPS, yangi markazni 10 daqiqada ulash, tarif cheklovlari va foydalanish hisobi, obuna to'lovlari, markazlar uchun qo'llanma | o'rta–katta |
@@ -1770,6 +1770,24 @@ testlaridan, bir xil savol ketma-ket kunlarda takrorlanmasin), 23:00 da yopiladi
 (to'g'ri / noto'g'ri soni) darhol; javoblar va izohlar 23:00 dan keyin. XP va coin, guruhning
 kunlik va haftalik reytingi (botda va saytda), o'qituvchi sahifasida kim bajarmagani. Savollar
 yetarli bo'lmasa (o'tgan darslarda 20 tadan kam) — test berilmaydi va o'qituvchiga eslatma.
+
+**Natija (2026-10-03):**
+- `apps/dailytest`: `DailyTest` (guruh va kun, OPEN / CLOSED / SKIPPED, 07:00–23:00),
+  `DailyAttempt` (har o'quvchiga o'z savollari va aralashtirish kaliti), `DailyAnswer`. Beat:
+  `daily-test-open` (07:00 va 07:30 — deploy paytida o'tib ketmasin), `daily-test-remind` (20:00),
+  `daily-test-close` (har 15 daqiqa, vaqti o'tganlarni yopadi).
+- Savollar banki — guruhda «Dars o'tildi» bo'lgan darslar testlari; har o'quvchiga tasodifiy,
+  kechagilari iloji boricha qaytarilmaydi. Bank kichik bo'lsa — SKIPPED va o'qituvchiga haftada bir
+  eslatma (`DAILY_TEST_TEACHER`).
+- Botda (`apps/bot/daily.py`, holat `"k": "daily"`): ertalabki xabar tugmasi `dq`, «📝 Testlar»
+  tepasida bugungi test, `?start=dt` havola; javobda baho yo'q, oxirida to'g'ri / noto'g'ri soni,
+  XP va coin (`Entry.Reason.DAILY_TEST`, sozlamalar `GameSettings.daily_test_*`), guruhdagi o'rin;
+  `dr` — kunlik va haftalik reyting, `dv` — xatolar, to'g'ri javob va izoh (faqat yopilgach).
+- Sayt: `/dashboard/daily-test` (bugungi holat, reytinglar, tarix), `/dashboard/daily-test/[id]`
+  (javoblar — yopilgach), menyuda «Kunlik test» (`me.in_group`); o'qituvchi guruh sahifasida kim
+  ishladi va kim ishlamadi (`?daily=YYYY-MM-DD`).
+- Test ishlash — faqat botda (talab bo'yicha); saytda — natija, reyting va javoblar.
+- Testlar: `apps/dailytest/tests` (servislar, API), `apps/bot/tests/test_daily_bot.py`.
 
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 

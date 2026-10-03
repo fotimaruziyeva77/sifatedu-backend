@@ -266,6 +266,41 @@ TEXTS: dict[str, dict[str, str]] = {
             "🎯 Daraja testi — hali kursga yozilmaganlar uchun. Siz allaqachon o'qiyapsiz, omad! 💪"
         ),
         "btn_my_coupon": "🎁 Kuponni saytda ko'rish",
+        "btn_daily": "📝 Kunlik testni boshlash",
+        "btn_daily_continue": "▶️ Kunlik testni davom ettirish",
+        "btn_daily_start": "▶️ Boshlash",
+        "btn_daily_rating": "🏆 Guruh reytingi",
+        "btn_daily_review": "📋 Javoblar va izohlar",
+        "btn_daily_site": "🌐 Saytda ko'rish",
+        "daily_none": (
+            "Bugun kunlik test yo'q. U har kuni 07:00 da guruhda o'tilgan darslar testlaridan "
+            "ochiladi."
+        ),
+        "daily_closed": "Bugungi kunlik test yopildi. Ertaga 07:00 da yangisi.",
+        "daily_intro": (
+            "📝 <b>Kunlik test</b> — {group}\n\n{count} savol, {until} gacha. Javob paytida "
+            "to'g'ri yoki noto'g'riligi aytilmaydi — natija oxirida. To'g'ri javoblar va izohlar "
+            "{until} dan keyin.\n\n🎁 Har to'g'ri javobga +{xp} XP va +{coins} coin."
+        ),
+        "daily_done": (
+            "✅ <b>Kunlik test tugadi</b>\n\nTo'g'ri: <b>{correct}</b> · Noto'g'ri: "
+            "<b>{wrong}</b>{reward}\nGuruhda hozircha {place}-o'rin ({people} "
+            "kishidan).\n\nTo'g'ri javoblar va izohlar — {until} dan keyin."
+        ),
+        "daily_reward": "\n🎁 +{xp} XP, +{coins} coin",
+        "daily_already": (
+            "Bugungi kunlik testni ishlagansiz: <b>{correct}/{total}</b>. Ertaga 07:00 da yangisi."
+        ),
+        "daily_rating_title": "🏆 <b>{group}</b> — kunlik test reytingi",
+        "daily_rating_day": "<b>Bugun</b>",
+        "daily_rating_week": "<b>Shu hafta</b>",
+        "daily_rating_empty": "Hali hech kim ishlamadi.",
+        "daily_rating_you": "Siz: {place}-o'rin",
+        "daily_review_wait": (
+            "To'g'ri javoblar va izohlar test yopilgach — {until} dan keyin ko'rinadi."
+        ),
+        "tests_daily": "📝 <b>Kunlik test</b>: {count} savol, {until} gacha",
+        "tests_daily_done": "📝 Kunlik test: <b>{correct}/{total}</b> ✅",
     },
     "ru": {
         "subscribe": (
@@ -518,6 +553,42 @@ TEXTS: dict[str, dict[str, str]] = {
             "🎯 Тест на уровень — для тех, кто ещё не записан на курс. Вы уже учитесь — успехов! 💪"
         ),
         "btn_my_coupon": "🎁 Купон на сайте",
+        "btn_daily": "📝 Начать ежедневный тест",
+        "btn_daily_continue": "▶️ Продолжить ежедневный тест",
+        "btn_daily_start": "▶️ Начать",
+        "btn_daily_rating": "🏆 Рейтинг группы",
+        "btn_daily_review": "📋 Ответы и пояснения",
+        "btn_daily_site": "🌐 Открыть на сайте",
+        "daily_none": (
+            "Сегодня ежедневного теста нет. Он открывается каждый день в 07:00 по урокам, "
+            "пройденным в группе."
+        ),
+        "daily_closed": "Сегодняшний тест закрыт. Новый — завтра в 07:00.",
+        "daily_intro": (
+            "📝 <b>Ежедневный тест</b> — {group}\n\n{count} вопросов, до {until}. Во время "
+            "теста не сообщаем, верен ли ответ — итог в конце. Правильные ответы и пояснения — "
+            "после "
+            "{until}.\n\n🎁 За каждый верный ответ +{xp} XP и +{coins} coin."
+        ),
+        "daily_done": (
+            "✅ <b>Ежедневный тест завершён</b>\n\nВерно: <b>{correct}</b> · Неверно: "
+            "<b>{wrong}</b>{reward}\nВ группе пока {place}-е место (из {people}).\n\nПравильные "
+            "ответы и пояснения — после {until}."
+        ),
+        "daily_reward": "\n🎁 +{xp} XP, +{coins} coin",
+        "daily_already": (
+            "Сегодняшний тест вы уже прошли: <b>{correct}/{total}</b>. Новый — завтра в 07:00."
+        ),
+        "daily_rating_title": "🏆 <b>{group}</b> — рейтинг ежедневного теста",
+        "daily_rating_day": "<b>Сегодня</b>",
+        "daily_rating_week": "<b>Эта неделя</b>",
+        "daily_rating_empty": "Пока никто не прошёл.",
+        "daily_rating_you": "Вы: {place}-е место",
+        "daily_review_wait": (
+            "Правильные ответы и пояснения откроются после закрытия теста — после {until}."
+        ),
+        "tests_daily": "📝 <b>Ежедневный тест</b>: {count} вопросов, до {until}",
+        "tests_daily_done": "📝 Ежедневный тест: <b>{correct}/{total}</b> ✅",
     },
     "en": {
         "subscribe": "To use the bot, join our channel and then tap «✅ I have joined».",
@@ -772,6 +843,42 @@ TEXTS: dict[str, dict[str, str]] = {
             "luck! 💪"
         ),
         "btn_my_coupon": "🎁 See the coupon on the website",
+        "btn_daily": "📝 Start the daily test",
+        "btn_daily_continue": "▶️ Continue the daily test",
+        "btn_daily_start": "▶️ Start",
+        "btn_daily_rating": "🏆 Group rating",
+        "btn_daily_review": "📋 Answers and explanations",
+        "btn_daily_site": "🌐 Open on the website",
+        "daily_none": (
+            "There is no daily test today. It opens every day at 07:00 from the lessons covered in "
+            "your group."
+        ),
+        "daily_closed": "Today's test is closed. A new one opens tomorrow at 07:00.",
+        "daily_intro": (
+            "📝 <b>Daily test</b> — {group}\n\n{count} questions, until {until}. We don't say "
+            "whether an answer is right while you go — the result comes at the end. Correct "
+            "answers and explanations — after {until}.\n\n🎁 Each correct answer: +{xp} XP and "
+            "+{coins} coins."
+        ),
+        "daily_done": (
+            "✅ <b>Daily test finished</b>\n\nCorrect: <b>{correct}</b> · Wrong: "
+            "<b>{wrong}</b>{reward}\nPlace in your group so far: {place} of {people}.\n\nCorrect "
+            "answers and explanations — after {until}."
+        ),
+        "daily_reward": "\n🎁 +{xp} XP, +{coins} coins",
+        "daily_already": (
+            "You've done today's test: <b>{correct}/{total}</b>. A new one opens tomorrow at 07:00."
+        ),
+        "daily_rating_title": "🏆 <b>{group}</b> — daily test rating",
+        "daily_rating_day": "<b>Today</b>",
+        "daily_rating_week": "<b>This week</b>",
+        "daily_rating_empty": "Nobody has done it yet.",
+        "daily_rating_you": "You: place {place}",
+        "daily_review_wait": (
+            "Correct answers and explanations appear after the test closes — after {until}."
+        ),
+        "tests_daily": "📝 <b>Daily test</b>: {count} questions, until {until}",
+        "tests_daily_done": "📝 Daily test: <b>{correct}/{total}</b> ✅",
     },
 }
 

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.rewards",
     "apps.shop",
     "apps.placement",
+    "apps.dailytest",
     "apps.bot",
     "apps.stats",
 ]
@@ -282,6 +283,9 @@ SPECTACULAR_SETTINGS = {
         "RatingScopeEnum": "apps.rewards.serializers.SCOPES",
         "DiscountReasonEnum": "apps.rewards.serializers.DISCOUNTS",
         "CouponKindEnum": "apps.rewards.models.Coupon.Kind",
+        "DailyTestStatusEnum": "apps.dailytest.models.DailyTest.Status",
+        "DailyStudentStatusEnum": "apps.dailytest.serializers.STUDENT_STATUSES",
+        "DailyDayStatusEnum": "apps.dailytest.serializers.DAY_STATUSES",
     },
 }
 
@@ -366,6 +370,20 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "weekly-winners": {
         "task": "apps.rewards.tasks.weekly_winners",
         "schedule": crontab(day_of_week=1, hour=10, minute=0),
+    },
+    # Guruhlarga kunlik test: 07:00 da ochiladi (07:30 da qayta — deploy paytida o'tib ketmasin),
+    # 20:00 da ishlamaganlarga eslatma, yopilishi — 23:00 dan keyin har 15 daqiqada tekshiriladi.
+    "daily-test-open": {
+        "task": "apps.dailytest.tasks.open_day",
+        "schedule": crontab(hour=7, minute="0,30"),
+    },
+    "daily-test-remind": {
+        "task": "apps.dailytest.tasks.remind",
+        "schedule": crontab(hour=20, minute=0),
+    },
+    "daily-test-close": {
+        "task": "apps.dailytest.tasks.close_day",
+        "schedule": crontab(minute="*/15"),
     },
     # Daraja testi: vaqti tugagan testlar (har 5 daqiqa) — natija, kupon va ariza; kupon
     # eslatmalari — 24 soatdan keyin va muddat tugashiga 12 soat qolganda.
@@ -653,6 +671,12 @@ UNFOLD = {
                         "icon": "fact_check",
                         "link": reverse_lazy("admin:exams_exam_changelist"),
                         "permission": _can("exams.view_exam"),
+                    },
+                    {
+                        "title": "Kunlik testlar",
+                        "icon": "today",
+                        "link": reverse_lazy("admin:dailytest_dailytest_changelist"),
+                        "permission": _can("dailytest.view_dailytest"),
                     },
                     {
                         "title": "Sertifikatlar",

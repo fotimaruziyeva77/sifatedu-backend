@@ -64,6 +64,19 @@ class GameSettingsAdmin(ModelAdmin):
                 )
             },
         ),
+        (
+            _("Kunlik test (guruhlar)"),
+            {
+                "fields": (
+                    ("daily_test", "daily_test_questions"),
+                    ("daily_test_xp", "daily_test_coins"),
+                ),
+                "description": _(
+                    "07:00 da ochiladi, 23:00 da yopiladi; savollar — guruhda o'tilgan darslar "
+                    "testlaridan."
+                ),
+            },
+        ),
         (_("Yoqish"), {"fields": ("daily_tasks", "announce_winners")}),
     )
 

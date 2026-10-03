@@ -7,7 +7,7 @@ coinda. Har o'zgarish — `Entry` (sababi bilan); bir harakat — bir marta (`ke
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -73,6 +73,26 @@ class GameSettings(models.Model):
         _("kunlik topshiriqlar"),
         default=True,
         help_text=_("Har kuni 09:00 da har bir faol o'quvchiga 3 ta topshiriq."),
+    )
+    daily_test = models.BooleanField(
+        _("guruhlarga kunlik test"),
+        default=True,
+        help_text=_(
+            "Har kuni 07:00 da guruhdagi har o'quvchiga botda test (guruhda o'tilgan darslar "
+            "testlaridan), 23:00 da yopiladi. Jarima yo'q."
+        ),
+    )
+    daily_test_questions = models.PositiveSmallIntegerField(
+        _("kunlik test: savollar soni"),
+        default=20,
+        validators=[MinValueValidator(20), MaxValueValidator(50)],
+        help_text=_("Kamida 20. O'tilgan darslarda shuncha savol bo'lmasa — test berilmaydi."),
+    )
+    daily_test_xp = models.PositiveSmallIntegerField(
+        _("kunlik test: har to'g'ri javobga XP"), default=2
+    )
+    daily_test_coins = models.PositiveSmallIntegerField(
+        _("kunlik test: har to'g'ri javobga coin"), default=1
     )
     announce_winners = models.BooleanField(
         _("haftalik g'oliblarni kanalga e'lon qilish"),
@@ -141,6 +161,7 @@ class Entry(models.Model):
         EXAM = "EXAM", _("Oylik imtihondan o'tildi")
         DAILY = "DAILY", _("Kunlik topshiriqlar bajarildi")
         DAILY_MISSED = "DAILY_MISSED", _("Kunlik topshiriqlar bajarilmadi")
+        DAILY_TEST = "DAILY_TEST", _("Kunlik test")
         ABSENT = "ABSENT", _("Darsga sababsiz kelmadi")
         LATE = "LATE", _("Darsga kechikdi")
         HOMEWORK_LATE = "HOMEWORK_LATE", _("Uy vazifasi muddatidan kechikdi")

@@ -129,3 +129,9 @@ def test_menu_knows_who_has_a_schedule(world: World) -> None:
         return flag
 
     assert (me(world.student), me(world.teacher), me(world.outsider)) == (True, True, False)
+    # «Kunlik test» menyusi — faqat guruhda o'qiydiganlarga (o'qituvchiga emas).
+    in_group = [
+        api(user).get("/api/v1/me/").json()["in_group"]
+        for user in (world.student, world.teacher, world.outsider)
+    ]
+    assert in_group == [True, False, False]

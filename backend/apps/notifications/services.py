@@ -173,6 +173,9 @@ def telegram_message(notification: Notification) -> tuple[str, dict[str, Any] | 
         rows.append(
             [{"text": text(locale, "start_quiz"), "callback_data": f"qs:{notification.quiz_id}"}]
         )
+    elif notification.kind == Notification.Kind.DAILY_TEST:
+        # Kunlik test ham botda: `dq` — bugungi test (shartlar yoki davomi).
+        rows.append([{"text": text(locale, "start_daily_test"), "callback_data": "dq"}])
     if notification.link:
         url = absolute_link(notification.link, locale)
         if url.startswith("https://"):

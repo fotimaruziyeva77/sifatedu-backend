@@ -19,7 +19,7 @@ from apps.rewards.models import GameSettings
 from apps.users import services as user_services
 from apps.users.models import User
 
-from . import exam, links
+from . import daily, exam, links
 from .models import BotChat
 from .quiz import available
 from .send import Rows, button, escape, link, send
@@ -101,7 +101,13 @@ def tests(chat: BotChat, user: User) -> None:
     found, passed = available(user)
     blocks = [t(locale, "tests_title")]
     rows: Rows = []
-    # Oylik imtihon ochiq bo'lsa — eng tepada.
+    # Bugungi kunlik test (guruh o'quvchisiga) — eng tepada.
+    today_test = daily.menu_block(user, locale)
+    if today_test is not None:
+        text, buttons = today_test
+        blocks.append(text)
+        rows += buttons
+    # Oylik imtihon ochiq bo'lsa — undan keyin.
     for opened in exam.open_exams(user):
         title = exam.course_title(opened, locale)
         blocks.append(t(locale, "tests_exam", course=escape(title)))

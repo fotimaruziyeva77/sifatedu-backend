@@ -17,6 +17,7 @@ from apps.bot.models import BotChat, RequiredChannel
 from apps.catalog.models import Course, Instructor, Lesson
 from apps.certificates.models import Certificate
 from apps.content import models as content_models
+from apps.dailytest.models import DailyAnswer, DailyAttempt, DailyTest
 from apps.exams.models import Exam, ExamResult, ExamTask
 from apps.homework.models import Assignment, Submission
 from apps.leads.models import Lead
@@ -88,6 +89,16 @@ def staff_client(db: Any) -> Client:
     )
     PlacementAnswer.objects.create(attempt=tried, question=question, correct=True)
     ScheduleSlot.objects.create(group=group, weekday=0, starts_at=time(18, 0))
+    today = DailyTest.objects.create(
+        group=group,
+        day=timezone.localdate(),
+        opens_at=timezone.now(),
+        closes_at=timezone.now() + timedelta(hours=8),
+    )
+    daily = DailyAttempt.objects.create(
+        test=today, student=student, question_ids=[question.pk], correct=1, total=1
+    )
+    DailyAnswer.objects.create(attempt=daily, question=question, correct=True)
     live = LiveLesson.objects.create(
         group=group,
         starts_at=timezone.now() + timedelta(days=1),

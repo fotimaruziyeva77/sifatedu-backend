@@ -430,6 +430,24 @@ API ishlatilmaydi — havola qo'lda qo'yiladi.
 * **Haftalik g'oliblar:** admin'da yoqilsa, dushanba 10:00 da o'tgan haftaning eng faol 3
   o'quvchisi majburiy kanalga e'lon qilinadi (standart — o'chiq).
 
+## Kunlik test (guruhlar)
+
+* **07:00** — har o'qiyotgan guruhdagi har o'quvchiga botda test: guruhda «Dars o'tildi» deb
+  belgilangan darslar testlaridan tasodifiy **20 savol** (kechagi savollar iloji boricha
+  takrorlanmaydi). Xabarda «▶️ Testni boshlash» tugmasi va kechagi natija.
+* **Javob paytida** to'g'ri/noto'g'ri aytilmaydi; oxirida — nechta to'g'ri va noto'g'ri, XP va
+  coin (har to'g'ri javobga +2 XP, +1 coin), guruhdagi o'rni. Jarima yo'q.
+* **20:00** — hali ishlamaganlarga eslatma. **23:00** — test yopiladi: boshlab, tugatmaganlar
+  javob bergan savollari bilan hisoblanadi; to'g'ri javoblar va izohlar shundan keyin ochiladi
+  (botda «📋 Javoblar va izohlar», saytda **Kunlik test** sahifasi).
+* **Reyting:** guruhning kunlik va haftalik reytingi — botda «🏆 Guruh reytingi», saytda.
+* **O'qituvchi:** guruh sahifasida «Kunlik test» — kim ishladi (natijasi bilan), kim boshlab
+  tugatmadi, kim ishlamadi (ular tepada); oxirgi kunlar bo'yicha. O'tilgan darslarda savollar 20
+  tadan kam bo'lsa — test berilmaydi va o'qituvchiga haftada bir eslatma boradi.
+* **Sozlamalar:** admin → **XP va coin → Sozlamalar** → «Kunlik test (guruhlar)»: yoqish, savollar
+  soni (kamida 20), XP va coin. Natijalar: admin → **O'qish → Kunlik testlar**. Eski 09:00 dagi
+  «Kunlik topshiriqlar»ni o'chirib qo'yish tavsiya etiladi — kunlik test ularning o'rnida.
+
 ## Coin do'koni
 
 1. **Sovg'alar:** admin → **XP va coin → Do'kon: sovg'alar** — nomi va tavsifi (3 tilda), rasm,

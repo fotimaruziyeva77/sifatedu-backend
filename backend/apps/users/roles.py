@@ -37,6 +37,7 @@ DIRECTOR_APPS = (
     "catalog",
     "certificates",
     "content",
+    "dailytest",
     "exams",
     "homework",
     "leads",
@@ -87,6 +88,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         *_perms("exams", "examtask", "view", "add", "change", "delete"),
         *_perms("exams", "examresult", "view"),
         *_perms("certificates", "certificate", "view"),
+        *_perms("dailytest", "dailytest", "view"),
+        *_perms("dailytest", "dailyattempt", "view"),
     ],
     Role.MANAGER: [
         *_perms("leads", "lead", "view", "add", "change"),
@@ -129,6 +132,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         *_perms("exams", "examtask", "view", "add", "change", "delete"),
         *_perms("exams", "examresult", "view"),
         *_perms("certificates", "certificate", "view", "change"),
+        *_perms("dailytest", "dailytest", "view"),
+        *_perms("dailytest", "dailyattempt", "view"),
         # XP va coin: tarix (qo'lda qo'shish, bekor qilish), hamyonlar, topshiriqlar, kuponlar.
         # Qiymatlar (sozlamalar) — faqat admin.
         *_perms("rewards", "entry", "view", "add", "change"),

@@ -203,6 +203,8 @@ class Notification(models.Model):
         REWARD = "REWARD", _("Mukofot")
         SHOP = "SHOP", _("Do'kon")
         COUPON = "COUPON", _("Chegirma kuponi")
+        DAILY_TEST = "DAILY_TEST", _("Kunlik test")
+        DAILY_TEST_TEACHER = "DAILY_TEST_TEACHER", _("Kunlik test: o'qituvchiga")
         TEST = "TEST", _("Sinov")
 
     user = models.ForeignKey(

@@ -21,6 +21,7 @@ from apps.users.models import User
 from . import (
     accounts,
     admin_panel,
+    daily,
     exam,
     links,
     menu,
@@ -47,6 +48,8 @@ COMMANDS = {
     "/admin": "admin",
 }
 QUIZ_BUTTONS = frozenset({"qa", "qt", "qd", "qo", "qm", "qr"})
+# Saytdan bugungi kunlik testga: t.me/<bot>?start=dt
+DAILY_START = "dt"
 # Reklama manbasi: /start ig, /start tg, /start ads1 … (boshqa prefikslar — o'z ishlari).
 SOURCE = re.compile(r"[a-z0-9_-]{1,32}")
 
@@ -163,6 +166,8 @@ def proceed(chat: BotChat, first_name: str) -> None:
     show_menu(chat, user)
     if pending.startswith("quiz:") and pending[5:].isdigit():
         quiz.start(chat, user, int(pending[5:]))
+    elif pending == DAILY_START:
+        daily.entry(chat, user)
 
 
 # --- /start ---
@@ -184,6 +189,10 @@ def start(chat: BotChat, sender: dict[str, Any], payload: str) -> None:
         send(chat.chat_id, escape(linking.reply(result, chat.language or "uz")))
     elif payload.startswith(links.QUIZ_PREFIX):
         user = start_quiz_link(chat, sender, payload, user)
+    elif payload == DAILY_START:
+        # Saytdagi «Botda ishlash»: menyudan keyin bugungi kunlik test ochiladi.
+        chat.state["start"] = DAILY_START
+        chat.save(update_fields=["state", "updated_at"])
     elif SOURCE.fullmatch(payload.lower()) and not chat.source:
         # Birinchi manba saqlanadi (keyingi havolalar uni almashtirmaydi).
         chat.source = payload.lower()
@@ -277,6 +286,7 @@ def handle_message(chat: BotChat, sender: dict[str, Any], message: dict[str, Any
             or exam.on_text(chat, user, text)
             or review.on_text(chat, user, text)
             or placement.on_text(chat, user, text)
+            or daily.on_text(chat, user, text)
         )
     ):
         return
@@ -446,6 +456,17 @@ def handle_callback(
         if subscribed(chat, user):
             (placement.intro if action == "pt" else placement.start)(chat, user, int(args[0]))
         return ""
+    if action in ("dq", "dg", "dr", "dv"):
+        # Kunlik test: "dq" — bugungi (shartlar yoki davomi), "dg" — boshlash, "dr" — guruh
+        # reytingi, "dv" — javoblar va izohlar (test yopilgach).
+        if not subscribed(chat, user):
+            return ""
+        number = int(args[0]) if args and args[0].isdigit() else None
+        if action == "dq":
+            daily.entry(chat, user)
+        elif number is not None:
+            {"dg": daily.start, "dr": daily.rating, "dv": daily.review}[action](chat, user, number)
+        return ""
     if action == "rv":
         # Kunlik topshiriq: o'tilgan testlardan 5 savol.
         if subscribed(chat, user):
@@ -456,6 +477,8 @@ def handle_callback(
             return exam.on_button(chat, user, action, args)
         if placement.is_placement(chat):
             return placement.on_button(chat, user, action, args)
+        if daily.is_daily(chat):
+            return daily.on_button(chat, user, action, args)
         if review.is_review(chat):
             return review.on_button(chat, user, action, args)
         return quiz.on_button(chat, user, action, args)

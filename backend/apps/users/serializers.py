@@ -139,6 +139,9 @@ class MeSerializer(serializers.ModelSerializer):
     has_schedule = serializers.SerializerMethodField(
         help_text="Jonli darslar jadvali bor: guruhda o'qiydi yoki guruhga dars beradi."
     )
+    in_group = serializers.SerializerMethodField(
+        help_text="O'quvchi sifatida guruhda o'qiydi (menyuda «Kunlik test»)."
+    )
 
     class Meta:
         model = User
@@ -157,6 +160,7 @@ class MeSerializer(serializers.ModelSerializer):
             "unread_notifications",
             "pending_reviews",
             "has_schedule",
+            "in_group",
         )
         read_only_fields = (
             "phone",
@@ -167,6 +171,7 @@ class MeSerializer(serializers.ModelSerializer):
             "unread_notifications",
             "pending_reviews",
             "has_schedule",
+            "in_group",
         )
         extra_kwargs = {
             "first_name": {"max_length": 150},
@@ -190,6 +195,11 @@ class MeSerializer(serializers.ModelSerializer):
         from apps.live.services import has_schedule
 
         return has_schedule(obj)
+
+    def get_in_group(self, obj: User) -> bool:
+        from apps.live.services import student_group_ids
+
+        return bool(student_group_ids(obj))
 
     def validate_first_name(self, value: str) -> str:
         if not value.strip():
