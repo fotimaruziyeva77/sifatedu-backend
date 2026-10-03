@@ -465,6 +465,10 @@ Bitta bot, oddiy tugmalar (Mini App yo'q). Video darslar — faqat saytda, qolga
   har xabar ostida "🔕 Yangiliklarni o'chirish".
 * **Do'stni taklif qilish:** shaxsiy havola — bot (`?start=r_KOD`) va sayt (`?ref=KOD`); kim taklif
   qilgani ro'yxatdan o'tishda yoziladi (admin → foydalanuvchi). Mukofotlar — 16-qadamda.
+* **Yangi kelganlar:** manba havolasi (`?start=ig`, `?start=tg` …) ro'yxatdan o'tganda akkauntga
+  yoziladi; hali kursga yozilmaganlarga **«🎯 Daraja testi»** — yo'nalish, vaqtli test, natija va
+  daraja, chegirma kuponi (70%+ — 25%, aks holda 15%, 72 soat; bir marta) va menejerga ariza;
+  kupon eslatmalari. Batafsil: [docs/yangi-kelganlar.md](docs/yangi-kelganlar.md).
 
 **Ulash:**
 

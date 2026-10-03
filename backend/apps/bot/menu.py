@@ -29,12 +29,16 @@ MAX_LESSONS = 8
 MAX_QUIZZES = 8
 
 
-def main_keyboard(locale: str, *, registered: bool, admin: bool = False) -> dict[str, Any]:
+def main_keyboard(
+    locale: str, *, registered: bool, admin: bool = False, newcomer: bool = False
+) -> dict[str, Any]:
     """Pastki menyu. Ro'yxatdan o'tmaganda — telefon yuborish tugmasi; statistikani ko'rish
-    huquqi borga — eng tepada «Admin panel»."""
+    huquqi borga — eng tepada «Admin panel»; hali kursga yozilmaganga — «Daraja testi»."""
     rows: list[list[dict[str, Any]]]
     if registered:
         rows = [[{"text": t(locale, "btn_admin")}]] if admin else []
+        if newcomer:
+            rows.append([{"text": t(locale, "btn_placement")}])
         rows += [
             [{"text": t(locale, "btn_today")}],
             [{"text": t(locale, "btn_courses")}, {"text": t(locale, "btn_tests")}],

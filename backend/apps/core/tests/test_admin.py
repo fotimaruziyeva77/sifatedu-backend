@@ -24,6 +24,7 @@ from apps.learning.models import Enrollment, LessonProgress, StudyGroup
 from apps.live.models import Attendance, LiveLesson, ScheduleSlot
 from apps.notifications.models import Broadcast, Notification
 from apps.payments.models import Order, PaymentLog, PaymentTransaction, Refund
+from apps.placement.models import PlacementAnswer, PlacementAttempt, PlacementTest
 from apps.quizzes.models import Answer, Attempt, Choice, Question, Quiz
 from apps.rewards.models import Coupon, DailyTask, Entry, GameSettings, Wallet
 from apps.shop.models import Product, Purchase
@@ -81,6 +82,11 @@ def staff_client(db: Any) -> Client:
         quiz=quiz, student=student, question_ids=[question.pk], score=100, stars=3, passed=True
     )
     Answer.objects.create(attempt=attempt, question=question, response={"choice": 1}, correct=True)
+    placement = PlacementTest.objects.create(course=course, title="Python", quiz=quiz)
+    tried = PlacementAttempt.objects.create(
+        test=placement, user=student, question_ids=[question.pk], deadline=timezone.now(), score=100
+    )
+    PlacementAnswer.objects.create(attempt=tried, question=question, correct=True)
     ScheduleSlot.objects.create(group=group, weekday=0, starts_at=time(18, 0))
     live = LiveLesson.objects.create(
         group=group,

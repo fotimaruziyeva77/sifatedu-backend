@@ -8,6 +8,7 @@ Yo'l: /start → til (bir marta) → majburiy obuna → "Telefonni yuborish" →
 (menyu tugmasi yoki yozma test javobi bo'lmasa) — AI maslahatchiga.
 """
 
+import re
 from typing import Any
 
 from django.db import transaction
@@ -17,7 +18,18 @@ from apps.core.phone import InvalidPhoneError, normalize_phone
 from apps.notifications import linking, telegram
 from apps.users.models import User
 
-from . import accounts, admin_panel, exam, links, menu, quiz, review, subscription, today
+from . import (
+    accounts,
+    admin_panel,
+    exam,
+    links,
+    menu,
+    placement,
+    quiz,
+    review,
+    subscription,
+    today,
+)
 from .models import BotChat
 from .send import Rows, button, edit, escape, link, send
 from .texts import CHOOSE_LANGUAGE, LANGUAGES, MENU_BY_LABEL, t
@@ -35,6 +47,8 @@ COMMANDS = {
     "/admin": "admin",
 }
 QUIZ_BUTTONS = frozenset({"qa", "qt", "qd", "qo", "qm", "qr"})
+# Reklama manbasi: /start ig, /start tg, /start ads1 … (boshqa prefikslar — o'z ishlari).
+SOURCE = re.compile(r"[a-z0-9_-]{1,32}")
 
 
 def handle_update(update: dict[str, Any]) -> None:
@@ -119,7 +133,10 @@ def show_menu(chat: BotChat, user: User) -> None:
         chat.chat_id,
         t(chat.language, "welcome_back", name=hello(user.first_name)),
         keyboard=menu.main_keyboard(
-            chat.language, registered=True, admin=admin_panel.allowed(user)
+            chat.language,
+            registered=True,
+            admin=admin_panel.allowed(user),
+            newcomer=placement.offered(user),
         ),
     )
 
@@ -156,7 +173,8 @@ def start(chat: BotChat, sender: dict[str, Any], payload: str) -> None:
     if payload.startswith(links.REFERRAL_PREFIX):
         if user is None:
             chat.referral_code = payload.removeprefix(links.REFERRAL_PREFIX)[:16]
-            chat.save(update_fields=["referral_code", "updated_at"])
+            chat.source = chat.source or "ref"  # manbalar statistikasida — do'st taklifi
+            chat.save(update_fields=["referral_code", "source", "updated_at"])
     elif linking.is_link_start(payload):
         # Kabinetdagi "Telegram'ni ulash": egalikni sayt (token) va Telegram (yozgan odam)
         # birga tasdiqlaydi.
@@ -166,6 +184,10 @@ def start(chat: BotChat, sender: dict[str, Any], payload: str) -> None:
         send(chat.chat_id, escape(linking.reply(result, chat.language or "uz")))
     elif payload.startswith(links.QUIZ_PREFIX):
         user = start_quiz_link(chat, sender, payload, user)
+    elif SOURCE.fullmatch(payload.lower()) and not chat.source:
+        # Birinchi manba saqlanadi (keyingi havolalar uni almashtirmaydi).
+        chat.source = payload.lower()
+        chat.save(update_fields=["source", "updated_at"])
     if not chat.language:
         ask_language(chat)
         return
@@ -254,6 +276,7 @@ def handle_message(chat: BotChat, sender: dict[str, Any], message: dict[str, Any
             quiz.on_text(chat, user, text)
             or exam.on_text(chat, user, text)
             or review.on_text(chat, user, text)
+            or placement.on_text(chat, user, text)
         )
     ):
         return
@@ -283,6 +306,8 @@ def run_menu(chat: BotChat, user: User | None, action: str) -> None:
         menu.tests(chat, user)
     elif action == "today":
         today.show(chat, user)
+    elif action == "placement":
+        placement.choose(chat, user)
     elif action == "schedule":
         menu.schedule(chat, user)
     elif action == "invite":
@@ -317,14 +342,22 @@ def on_contact(
     chat.referral_code = ""
     chat.verified_phone = phone
     chat.save(update_fields=["referral_code", "verified_phone", "updated_at"])
+    if outcome == accounts.Outcome.CREATED and chat.source and not account.signup_source:
+        account.signup_source = chat.source
+        account.save(update_fields=["signup_source"])
     text = (
         t(locale, "registered")
         if outcome == accounts.Outcome.CREATED
         else t(locale, "linked", name=hello(account.first_name))
     )
-    send(chat.chat_id, text, keyboard=menu.main_keyboard(locale, registered=True))
+    newcomer = placement.offered(account)
+    keyboard = menu.main_keyboard(locale, registered=True, newcomer=newcomer)
+    send(chat.chat_id, text, keyboard=keyboard)
     site = link(t(locale, "btn_site"), links.login_url(account, "/dashboard", chat))
     send(chat.chat_id, t(locale, "site_hint"), [[site]])
+    if newcomer:
+        # Yangi kelgan: darhol yo'nalish va bepul daraja testi (kupon bilan).
+        placement.choose(chat, account)
 
 
 def ask_ai(chat: BotChat, sender: dict[str, Any], text: str) -> None:
@@ -408,6 +441,11 @@ def handle_callback(
     if action == "dt":
         today.show(chat, user)
         return ""
+    if action in ("pt", "pg") and args and args[0].isdigit():
+        # Daraja testi: "pt" — shartlar va "Boshlash", "pg" — boshlash yoki davom ettirish.
+        if subscribed(chat, user):
+            (placement.intro if action == "pt" else placement.start)(chat, user, int(args[0]))
+        return ""
     if action == "rv":
         # Kunlik topshiriq: o'tilgan testlardan 5 savol.
         if subscribed(chat, user):
@@ -416,6 +454,8 @@ def handle_callback(
     if action in QUIZ_BUTTONS:
         if exam.is_exam(chat):
             return exam.on_button(chat, user, action, args)
+        if placement.is_placement(chat):
+            return placement.on_button(chat, user, action, args)
         if review.is_review(chat):
             return review.on_button(chat, user, action, args)
         return quiz.on_button(chat, user, action, args)

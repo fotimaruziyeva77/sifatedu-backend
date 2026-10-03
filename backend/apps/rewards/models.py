@@ -53,6 +53,22 @@ class GameSettings(models.Model):
     coupon_percent = models.PositiveSmallIntegerField(
         _("taklif qilganga kupon (%)"), default=10, validators=[MaxValueValidator(90)]
     )
+    # Botdagi daraja testi (yangi kelganlar): natijaga qarab kupon, muddati cheklangan.
+    placement_good_percent = models.PositiveSmallIntegerField(
+        _("daraja testi: yaxshi natija (%)"),
+        default=70,
+        validators=[MaxValueValidator(100)],
+        help_text=_("Shundan yuqori natija — katta chegirma."),
+    )
+    placement_high_coupon = models.PositiveSmallIntegerField(
+        _("daraja testi: yaxshi natijaga kupon (%)"), default=25, validators=[MaxValueValidator(90)]
+    )
+    placement_low_coupon = models.PositiveSmallIntegerField(
+        _("daraja testi: boshqa natijaga kupon (%)"), default=15, validators=[MaxValueValidator(90)]
+    )
+    placement_coupon_hours = models.PositiveSmallIntegerField(
+        _("daraja testi kuponi muddati (soat)"), default=72
+    )
     daily_tasks = models.BooleanField(
         _("kunlik topshiriqlar"),
         default=True,
@@ -267,7 +283,13 @@ class ReviewAttempt(models.Model):
 
 
 class Coupon(models.Model):
-    """Chegirma kuponi (taklif qilganga, do'st to'lagach). Bitta to'lovga bitta."""
+    """Chegirma kuponi: taklif qilganga (do'st to'lagach), daraja testi uchun yoki qo'lda.
+    Bitta to'lovga bitta; bir nechta bo'lsa — eng kattasi. Muddati o'tgani qo'llanmaydi."""
+
+    class Kind(models.TextChoices):
+        REFERRAL = "REFERRAL", _("Do'st taklifi")
+        PLACEMENT = "PLACEMENT", _("Daraja testi")
+        MANUAL = "MANUAL", _("Qo'lda")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -276,6 +298,12 @@ class Coupon(models.Model):
         related_name="coupons",
     )
     percent = models.PositiveSmallIntegerField(_("chegirma (%)"))
+    kind = models.CharField(
+        _("turi"), max_length=10, choices=Kind.choices, default=Kind.REFERRAL, db_index=True
+    )
+    expires_at = models.DateTimeField(
+        _("amal qiladi (gacha)"), null=True, blank=True, help_text=_("Bo'sh — muddatsiz.")
+    )
     friend = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         verbose_name=_("kim sababli"),

@@ -86,6 +86,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     referral_code = models.CharField(
         _("taklif kodi"), max_length=12, unique=True, null=True, blank=True, editable=False
     )
+    # Reklama manbasi (bot havolasi `?start=ig` va h.k.): qaysi kanal o'quvchi olib kelyapti.
+    signup_source = models.CharField(_("manba"), max_length=32, blank=True, db_index=True)
     referred_by = models.ForeignKey(
         "self",
         verbose_name=_("taklif qilgan"),

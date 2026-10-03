@@ -44,6 +44,7 @@ DIRECTOR_APPS = (
     "live",
     "notifications",
     "payments",
+    "placement",
     "quizzes",
     "rewards",
     "shop",
@@ -89,6 +90,9 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
     ],
     Role.MANAGER: [
         *_perms("leads", "lead", "view", "add", "change"),
+        # Daraja testlari (botga yangi kelganlar): savollar bankini tanlash, natijalarni ko'rish.
+        *_perms("placement", "placementtest", "view", "add", "change"),
+        *_perms("placement", "placementattempt", "view"),
         *_perms("assistant", "conversation", "view", "change"),
         *_perms("assistant", "assistantsettings", "view"),
         *_perms("users", "user", "view", "add", "change"),

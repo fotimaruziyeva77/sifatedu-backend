@@ -55,6 +55,15 @@ class GameSettingsAdmin(ModelAdmin):
                 )
             },
         ),
+        (
+            _("Daraja testi (botga yangi kelganlar)"),
+            {
+                "fields": (
+                    ("placement_good_percent", "placement_coupon_hours"),
+                    ("placement_high_coupon", "placement_low_coupon"),
+                )
+            },
+        ),
         (_("Yoqish"), {"fields": ("daily_tasks", "announce_winners")}),
     )
 
@@ -238,13 +247,17 @@ class DailyTaskAdmin(ActionsOnlyChangeMixin, ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(ModelAdmin):
-    list_display = ("user", "percent", "friend", "created_at", "used_at")
-    list_filter = (("used_at", admin.EmptyFieldListFilter),)
+    list_display = ("user", "percent", "kind", "expires_at", "friend", "created_at", "used_at")
+    list_filter = ("kind", ("used_at", admin.EmptyFieldListFilter))
     search_fields = ("user__phone", "user__first_name")
     list_select_related = ("user", "friend")
     autocomplete_fields = ("user",)
-    fields = ("user", "percent", "friend", "order", "created_at", "used_at")
+    fields = ("user", "percent", "kind", "expires_at", "friend", "order", "created_at", "used_at")
     readonly_fields = ("friend", "order", "created_at", "used_at")
+
+    def get_changeform_initial_data(self, request: HttpRequest) -> dict[str, Any]:
+        # Admin'da yaratilgan kupon — qo'lda berilgan.
+        return {**super().get_changeform_initial_data(request), "kind": Coupon.Kind.MANUAL}
 
     def has_delete_permission(self, request: HttpRequest, obj: Any = None) -> bool:
         return False

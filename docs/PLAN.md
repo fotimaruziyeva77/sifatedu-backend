@@ -1279,10 +1279,14 @@ PDF va QR bilan tekshirish.
 | **15** ✅ | **Oylik imtihon va sertifikat** | o'rta–katta |
 | **16** ✅ | **XP:** kunlik topshiriqlar, shtraflar, seriya; **reyting** (saytda); **referal mukofotlari** (coin + chegirma) | o'rta–katta |
 | **17** ✅ | **Coin do'koni:** sovg'alar, zaxira, buyurtma va topshirish | o'rta |
-| **18** | **Ishga tushirish:** server, domen, HTTPS, bot webhook, Click va Eskiz, zaxira nusxa, monitoring | o'rta |
-| **19** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
-| **20** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
-| **21** | **SaaS ishlatish:** markaz domeni va avtomatik HTTPS, yangi markazni 10 daqiqada ulash, tarif cheklovlari va foydalanish hisobi, obuna to'lovlari, markazlar uchun qo'llanma | o'rta–katta |
+| **18** | **Ishga tushirish:** server, domen, HTTPS, bot webhook, Click va Eskiz, zaxira nusxa, monitoring. Sayt va bot ishlayapti (Contabo, umumiy server rejimi); Click, Eskiz va `media.sifatedu.uz` — kutilmoqda | o'rta |
+| **19** ✅ | **Yangi kelganlar yo'li** (§7D): manba (Instagram va boshqalar), yo'nalish → daraja testi → 15% yoki 25% kupon (72 soat) → ariza menejerga → eslatmalar. Qo'llanma — `docs/yangi-kelganlar.md` | o'rta–katta |
+| **20** | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi | o'rta–katta |
+| **21** | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
+| **22** | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
+| **23** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
+| **24** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
+| **25** | **SaaS ishlatish:** markaz domeni va avtomatik HTTPS, yangi markazni 10 daqiqada ulash, tarif cheklovlari va foydalanish hisobi, obuna to'lovlari, markazlar uchun qo'llanma | o'rta–katta |
 | **Oxirida** | **SIFAT Kids** (yangi g'oyalar), ota-ona rejimi, o'yinlar, Kids ligasi — boshidan ko'p markazli | — |
 
 Mini App bo'lmagani uchun botni shu kompyuterda sinab bo'ladi (polling rejimi) — test server
@@ -1673,9 +1677,80 @@ buyurtmachi **o'zi qo'llanma bo'yicha** sozlaydi (`docs/DEPLOY.md`), yangilash �
 - Click va Eskiz ma'lumotlari, Anthropic krediti.
 - Ixtiyoriy: Sentry va UptimeRobot akkauntlari.
 
+## 7D. Ishga tushgandan keyin: o'quvchi yig'ish va o'qitish (2026-10-03)
+
+**Maqsad:** 1 oyda kamida 5 ta guruh (onlayn yoki offlayn). Onlayn darslar boshida Zoom orqali,
+videolar keyin yuklanadi. Odamlar asosan Instagram'dan keladi.
+
+**Qarorlar:**
+- **Kupon:** daraja testida 70% va undan yuqori — 25%, aks holda 15%; 72 soat amal qiladi; har
+  odamga bir marta; birinchi to'lovga. Bir nechta chegirma bo'lsa — eng kattasi (qo'shilmaydi).
+- **AI maslahatchi:** Google Gemini, Claude olib tashlanadi. Samimiy gaplashadi; bilim bazasi va
+  e'tirozlarga javoblar buyurtmachi bilan birga tuziladi. Kalit — Google AI Studio (pullik tarif:
+  bepul tarifda yozishmalar o'qitishga ishlatilishi mumkin). Gemini ilovasi obunasi API bermaydi.
+- **Kunlik test:** har kuni 07:00 → 23:00; kamida 20 savol guruhning o'tgan mavzularidan; o'quvchi
+  darhol nechta to'g'ri va noto'g'ri ekanini ko'radi, to'g'ri javoblar va izohlar 23:00 dan keyin;
+  jarima yo'q — XP va coin, guruhning kunlik va haftalik reytingi; o'qituvchi kim bajarmaganini
+  ko'radi. Eski 09:00 dagi "3 ta topshiriq" o'rniga.
+- **Onlayn guruhlar:** Zoom havolasi va jadval bilan; darslar o'qituvchi "Dars o'tildi" deganda
+  ochiladi (offlayndagi kabi), videolar keyin.
+
+### 19-qadam: yangi kelganlar yo'li
+
+| Qism | Vazifa |
+|---|---|
+| Manba | `t.me/<bot>?start=ig` (yoki `tg`, `ads1` …): botga birinchi kirishda yoziladi, ro'yxatdan o'tganda akkauntga o'tadi. Admin va bot admin panelida manbalar bo'yicha statistika |
+| Yo'nalish | Ro'yxatdan o'tgach (va kursga yozilmaganlar menyusida «🎯 Daraja testi») — faol daraja testi bor yo'nalishlar tugmalari |
+| Daraja testi | Botda, vaqtli (standart 10–15 savol, 15 daqiqa), har javobda to'g'ri/noto'g'ri aytilmaydi; oxirida natija va daraja (boshlang'ich / o'rta / yaxshi). Savollar «Daraja testlari» xizmat kursida (o'quvchilarga ko'rinmaydi), admin'da tez kiritish bilan |
+| Kupon | Birinchi tugatilgan testda: 70%+ → 25%, aks holda 15%, 72 soat. Kupon modeliga muddat va turi (taklif / daraja testi / qo'lda); chegirma — eng kattasi; muddati o'tgani qo'llanmaydi; kabinet va botda ko'rinadi |
+| Ariza | Test tugashi bilan ariza (manba «Botdagi daraja testi»: yo'nalish, natija, kupon) — arizalar guruhiga, menejer qo'ng'iroq qiladi |
+| Eslatmalar | 24 soatdan keyin — kupon va kurslar; muddat tugashiga 12 soat qolganda — oxirgi eslatma; kupon ishlatilgan yoki kursga yozilgan bo'lsa yuborilmaydi |
+| Kontent | Python daraja testi savollari (men tayyorlayman); boshqa yo'nalishlar — keyin, buyurtmachi bilan |
+
+**Natija (2026-10-03):**
+- Yangi `placement` ilovasi: daraja testi (yo'nalish → xizmat kursidagi dars testi, savollar soni,
+  vaqt), urinish va javoblar; admin'da «Sotuv → Daraja testlari / Daraja testi natijalari»
+  (menejer ko'radi va sozlaydi).
+- Kim ishlaydi: hali hech qaysi kursga yozilmaganlar (bosh admin — sinab ko'rish uchun). Kursda
+  o'qiyotganlarga tugma ko'rinmaydi, eski tugma yoki menyu matni bilan ham test va kupon yo'q —
+  aks holda keyingi oy to'loviga chegirma olib qo'yishardi.
+- Testni tashlab ketganlar: vaqti tugagan test har 5 daqiqada yopiladi — natija, kupon, botga xabar
+  va ariza (`placement-close-expired`); eslatmalar — har soatda (`placement-coupon-reminders`).
+- Kupon modeliga `kind` (taklif / daraja testi / qo'lda) va `expires_at`; chegirma — eng kattasi
+  (do'st chegirmasi yoki eng katta amal qiluvchi kupon), muddati o'tgani qo'llanmaydi. Kabinetdagi
+  «Yutuqlar» sahifasi tepasida kupon chiptalari (turi, muddati, «Kursni tanlash»).
+- Manba: `BotChat.source` → `User.signup_source`, do'st havolasi — `ref`; botdagi admin
+  panelda «📍 Manbalar»; arizada `utm_source`.
+- Python savollari — `backend/scripts/daraja_testi_python.py` (28 ta, har odamga 12 tasi,
+  15 daqiqa). Testlar: `apps/placement/tests`, `apps/bot/tests/test_placement_bot.py`, kupon va
+  chegirma — `apps/rewards/tests/test_referral.py`.
+
+### 20-qadam: AI maslahatchi — Gemini
+
+Claude (Anthropic SDK) o'rniga Google Gemini (`google-genai`): suhbat, vositalar (kurslarni
+qidirish, ariza qoldirish, daraja testi va kupon taklifi), xarajat hisobi va oylik budjet, AI
+sozlamalari admin'da, sinov to'plami (`assistant_eval`). Shaxsiyat — samimiy maslahatchi; bilim
+bazasi (kurslar, narxlar, jadval, FAQ) va e'tirozlarga javoblar buyurtmachi materiallaridan.
+Kalit bo'lmasa — oddiy (qoidaga asoslangan) javoblar, saytda chat yashirin.
+
+### 21-qadam: onlayn guruhlar Zoom orqali
+
+Guruhga «darslar o'qituvchi belgilagach ochiladi» sozlamasi: offlayn — doim, onlayn — tanlov
+(videosiz Zoom guruhlari uchun yoqiladi). Jadval, Zoom havolasi, eslatmalar, «Qo'shilish» va
+davomat — mavjud; dars yozuvi havolasi kelmaganlarga.
+
+### 22-qadam: guruhlarga kunlik test
+
+Har kuni 07:00 da guruhdagi har o'quvchiga botda kamida 20 savol (guruhning o'tgan darslari
+testlaridan, bir xil savol ketma-ket kunlarda takrorlanmasin), 23:00 da yopiladi. Natija
+(to'g'ri / noto'g'ri soni) darhol; javoblar va izohlar 23:00 dan keyin. XP va coin, guruhning
+kunlik va haftalik reytingi (botda va saytda), o'qituvchi sahifasida kim bajarmagani. Savollar
+yetarli bo'lmasa (o'tgan darslarda 20 tadan kam) — test berilmaydi va o'qituvchiga eslatma.
+
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 
-**Buyurtmachi qarori:** tizim boshqa **mustaqil o'quv markazlariga** (mijozlarga) oylik obuna
+**Buyurtmachi qarori (2026-10-03 yangilandi):** avval o'quvchi yig'ish va o'qitish (19–22-qadamlar, §7D), keyin 23–25-qadamlar.
+Tizim boshqa **mustaqil o'quv markazlariga** (mijozlarga) oylik obuna
 bilan beriladi. Har markazning o'z domeni, Telegram boti, Click hisobi va dizayni bo'ladi
 (to'liq o'z brendi ostida). Tartib: 18-qadam (Sifat Edu ishga tushadi) → 19–21-qadamlar →
 SIFAT Kids (boshidan ko'p markazli yoziladi). Talablar — TZ 4.22.

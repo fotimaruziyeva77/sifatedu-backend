@@ -178,6 +178,17 @@ def bot_joined(p: Period) -> int:
     return BotChat.objects.filter(**p.range("created_at")).count()
 
 
+def sources(p: Period, limit: int = 5) -> list[tuple[str, int]]:
+    """Davrda botga kelganlar manba bo'yicha (`/start ig` …), ko'pi birinchi; "" — to'g'ridan."""
+    rows = (
+        BotChat.objects.filter(**p.range("created_at"))
+        .values("source")
+        .annotate(count=Count("pk"))
+        .order_by("-count", "source")
+    )
+    return [(row["source"], row["count"]) for row in rows[:limit]]
+
+
 def audience(p: Period) -> Audience:
     chats = BotChat.objects.all()
     # Botdagi odam ro'yxatdan o'tgan: chat ID si biror akkauntning Telegram'i.

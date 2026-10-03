@@ -107,6 +107,17 @@ TEXTS: dict[str, dict[str, str]] = {
             "Imtihon {period} ochiladi. Admin'da 5 ta amaliy topshiriq va savollar modullarini "
             "kiriting, so'ng «Tayyor» qiling — tayyor bo'lmasa ochilmaydi."
         ),
+        "placement_timeout_title": "⏳ Daraja testi vaqti tugadi — natijangiz {score}%",
+        "placement_timeout_body": (
+            "Sizga {percent}% chegirma kuponi berildi — {until} gacha amal qiladi (birinchi "
+            "to'lovga). Menejerimiz siz bilan bog'lanadi; savolingiz bo'lsa — botga yozing."
+        ),
+        "coupon_first_title": "🎁 {percent}% chegirma kuponingiz kutyapti",
+        "coupon_last_title": "⏳ {percent}% chegirma kuponi tugayapti",
+        "coupon_body": (
+            "Kupon {until} gacha amal qiladi (birinchi to'lovga). Kursga yozilish uchun "
+            "menejerimiz bilan bog'laning yoki botda savolingizni yozing."
+        ),
         "exam_opened_title": "Oylik imtihon ochildi: {course}",
         "exam_opened_body": (
             "{period}. Test — {count} savol, {minutes} daqiqa, bitta urinish (saytda yoki botda); "
@@ -210,6 +221,17 @@ TEXTS: dict[str, dict[str, str]] = {
             "Экзамен откроется {period}. В админке добавьте 5 практических заданий и модули для "
             "вопросов, затем отметьте «Готов» — иначе он не откроется."
         ),
+        "placement_timeout_title": "⏳ Время теста на уровень вышло — ваш результат {score}%",
+        "placement_timeout_body": (
+            "Вам выдан купон на скидку {percent}% — действует до {until} (на первую оплату). "
+            "Менеджер свяжется с вами; если есть вопрос — напишите в бот."
+        ),
+        "coupon_first_title": "🎁 Ваш купон на скидку {percent}% ждёт вас",
+        "coupon_last_title": "⏳ Купон на скидку {percent}% скоро сгорит",
+        "coupon_body": (
+            "Купон действует до {until} (на первую оплату). Чтобы записаться на курс, свяжитесь с "
+            "менеджером или напишите вопрос в боте."
+        ),
         "exam_opened_title": "Ежемесячный экзамен открыт: {course}",
         "exam_opened_body": (
             "{period}. Тест — {count} вопросов, {minutes} минут, одна попытка (на сайте или в "
@@ -311,6 +333,17 @@ TEXTS: dict[str, dict[str, str]] = {
         "exam_draft_body": (
             "The exam opens {period}. In the admin, add 5 practical tasks and the modules for "
             "questions, then mark it «Ready» — otherwise it will not open."
+        ),
+        "placement_timeout_title": "⏳ Level test time is up — your result is {score}%",
+        "placement_timeout_body": (
+            "You got a {percent}% discount coupon — valid until {until} (for the first "
+            "payment). Our manager will contact you; if you have a question, write to the bot."
+        ),
+        "coupon_first_title": "🎁 Your {percent}% discount coupon is waiting",
+        "coupon_last_title": "⏳ Your {percent}% discount coupon is expiring",
+        "coupon_body": (
+            "The coupon is valid until {until} (for the first payment). To enrol, contact our "
+            "manager or ask your question in the bot."
         ),
         "exam_opened_title": "Monthly exam is open: {course}",
         "exam_opened_body": (

@@ -201,6 +201,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_bot_guests": "ro'yxatdan o'tmagan: {count}",
         "admin_bot_blocked": "botni bloklagan: {count}",
         "admin_bot_muted": "yangiliklarni o'chirgan: {count}",
+        "admin_sources": "📍 Manbalar: {items}",
+        "admin_source_direct": "to'g'ridan",
         "admin_site": "🌐 Sayt (o'quvchilar): <b>{total}</b> · yangi <b>+{new}</b>",
         "admin_site_telegram": "Telegram ulangan: {count}",
         "admin_site_kids": "SIFAT Kids: {count}",
@@ -225,6 +227,45 @@ TEXTS: dict[str, dict[str, str]] = {
         "period_yesterday": "Kecha",
         "period_7d": "7 kun",
         "period_30d": "30 kun",
+        "btn_placement": "🎯 Daraja testi",
+        "placement_choose": (
+            "🎯 <b>Bepul daraja testi</b>\n\nQaysi yo'nalish sizni qiziqtiradi? Qisqa test ishlang "
+            "— natijangizga qarab <b>{low}% yoki {high}% chegirma</b> kuponi olasiz ({hours} soat "
+            "amal qiladi)."
+        ),
+        "placement_choose_again": "🎯 Qaysi yo'nalish bo'yicha daraja testini ishlaysiz?",
+        "placement_coupon_active": (
+            "🎁 Sizda <b>{percent}% chegirma</b> kuponi bor — {until} gacha (birinchi to'lovga)."
+        ),
+        "placement_none": "Hozircha daraja testi yo'q. Savolingiz bo'lsa — shu yerga yozing.",
+        "placement_intro": (
+            "🎯 <b>{title}</b> — daraja testi\n\n{count} savol · {minutes} daqiqa. Javob paytida "
+            "to'g'ri yoki noto'g'riligi aytilmaydi — oxirida natija.\n\n🎁 Natija {good}% va undan "
+            "yuqori bo'lsa — <b>{high}%</b>, aks holda — <b>{low}%</b> chegirma kuponi."
+        ),
+        "placement_intro_again": (
+            "🎯 <b>{title}</b> — daraja testi\n\n{count} savol · {minutes} daqiqa. Kupon avval "
+            "berilgan — bu safar darajangizni bilib olasiz."
+        ),
+        "btn_placement_start": "▶️ Boshlash",
+        "placement_level_beginner": "boshlang'ich daraja — kursni noldan boshlaysiz, bu ham zo'r!",
+        "placement_level_middle": "o'rta daraja — asoslarni bilasiz",
+        "placement_level_good": "yaxshi daraja — tez rivojlanasiz",
+        "placement_done": (
+            "✅ <b>Natijangiz: {score}%</b> — {level}.\n\n🎁 Sizga <b>{percent}% chegirma</b> "
+            "kuponi! {until} gacha amal qiladi (birinchi to'lovga).\n\nMenejerimiz tez orada siz "
+            "bilan bog'lanadi va mos guruhni tanlashga yordam beradi. Savolingiz bo'lsa — shu "
+            "yerga yozing."
+        ),
+        "placement_done_plain": (
+            "✅ <b>Natijangiz: {score}%</b> — {level}.\n\nMenejerimiz siz bilan bog'lanadi. "
+            "Savolingiz bo'lsa — shu yerga yozing."
+        ),
+        "placement_closed": "Bu test hozir mavjud emas.",
+        "placement_not_for_you": (
+            "🎯 Daraja testi — hali kursga yozilmaganlar uchun. Siz allaqachon o'qiyapsiz, omad! 💪"
+        ),
+        "btn_my_coupon": "🎁 Kuponni saytda ko'rish",
     },
     "ru": {
         "subscribe": (
@@ -413,6 +454,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_bot_guests": "не зарегистрированы: {count}",
         "admin_bot_blocked": "заблокировали бота: {count}",
         "admin_bot_muted": "отключили новости: {count}",
+        "admin_sources": "📍 Источники: {items}",
+        "admin_source_direct": "напрямую",
         "admin_site": "🌐 Сайт (ученики): <b>{total}</b> · новых <b>+{new}</b>",
         "admin_site_telegram": "Telegram подключён: {count}",
         "admin_site_kids": "SIFAT Kids: {count}",
@@ -437,6 +480,44 @@ TEXTS: dict[str, dict[str, str]] = {
         "period_yesterday": "Вчера",
         "period_7d": "7 дней",
         "period_30d": "30 дней",
+        "btn_placement": "🎯 Тест на уровень",
+        "placement_choose": (
+            "🎯 <b>Бесплатный тест на уровень</b>\n\nКакое направление вам интересно? Пройдите "
+            "короткий тест — по результату получите купон на скидку <b>{low}% или {high}%</b> "
+            "(действует {hours} ч)."
+        ),
+        "placement_choose_again": "🎯 По какому направлению пройдёте тест на уровень?",
+        "placement_coupon_active": (
+            "🎁 У вас есть купон на <b>скидку {percent}%</b> — до {until} (на первую оплату)."
+        ),
+        "placement_none": "Пока тестов на уровень нет. Если есть вопрос — напишите здесь.",
+        "placement_intro": (
+            "🎯 <b>{title}</b> — тест на уровень\n\n{count} вопросов · {minutes} мин. Во время "
+            "теста правильность ответов не показывается — результат в конце.\n\n🎁 Результат "
+            "{good}% и выше — купон <b>{high}%</b>, иначе — <b>{low}%</b>."
+        ),
+        "placement_intro_again": (
+            "🎯 <b>{title}</b> — тест на уровень\n\n{count} вопросов · {minutes} мин. Купон уже "
+            "выдан — в этот раз узнаете свой уровень."
+        ),
+        "btn_placement_start": "▶️ Начать",
+        "placement_level_beginner": "начальный уровень — начнёте с нуля, это отлично!",
+        "placement_level_middle": "средний уровень — основы знаете",
+        "placement_level_good": "хороший уровень — будете расти быстро",
+        "placement_done": (
+            "✅ <b>Ваш результат: {score}%</b> — {level}.\n\n🎁 Вам купон на скидку "
+            "<b>{percent}%</b>! Действует до {until} (на первую оплату).\n\nМенеджер скоро "
+            "свяжется с вами и поможет выбрать группу. Если есть вопрос — напишите здесь."
+        ),
+        "placement_done_plain": (
+            "✅ <b>Ваш результат: {score}%</b> — {level}.\n\nМенеджер свяжется с вами. Если есть "
+            "вопрос — напишите здесь."
+        ),
+        "placement_closed": "Этот тест сейчас недоступен.",
+        "placement_not_for_you": (
+            "🎯 Тест на уровень — для тех, кто ещё не записан на курс. Вы уже учитесь — успехов! 💪"
+        ),
+        "btn_my_coupon": "🎁 Купон на сайте",
     },
     "en": {
         "subscribe": "To use the bot, join our channel and then tap «✅ I have joined».",
@@ -625,6 +706,8 @@ TEXTS: dict[str, dict[str, str]] = {
         "admin_bot_guests": "not signed up: {count}",
         "admin_bot_blocked": "blocked the bot: {count}",
         "admin_bot_muted": "news turned off: {count}",
+        "admin_sources": "📍 Sources: {items}",
+        "admin_source_direct": "direct",
         "admin_site": "🌐 Website (students): <b>{total}</b> · new <b>+{new}</b>",
         "admin_site_telegram": "Telegram connected: {count}",
         "admin_site_kids": "SIFAT Kids: {count}",
@@ -649,11 +732,61 @@ TEXTS: dict[str, dict[str, str]] = {
         "period_yesterday": "Yesterday",
         "period_7d": "7 days",
         "period_30d": "30 days",
+        "btn_placement": "🎯 Level test",
+        "placement_choose": (
+            "🎯 <b>Free level test</b>\n\nWhich direction interests you? Take a short test — "
+            "depending on your result you get a <b>{low}% or {high}% discount</b> coupon (valid "
+            "for {hours} hours)."
+        ),
+        "placement_choose_again": "🎯 Which direction would you like a level test for?",
+        "placement_coupon_active": (
+            "🎁 You have a <b>{percent}% discount</b> coupon — valid until {until} (for the first "
+            "payment)."
+        ),
+        "placement_none": "There are no level tests yet. If you have a question, write it here.",
+        "placement_intro": (
+            "🎯 <b>{title}</b> — level test\n\n{count} questions · {minutes} min. You won't see "
+            "whether answers are right during the test — the result comes at the end.\n\n🎁 "
+            "{good}% or more — a <b>{high}%</b> coupon, otherwise — <b>{low}%</b>."
+        ),
+        "placement_intro_again": (
+            "🎯 <b>{title}</b> — level test\n\n{count} questions · {minutes} min. Your coupon was "
+            "already issued — this time you'll find out your level."
+        ),
+        "btn_placement_start": "▶️ Start",
+        "placement_level_beginner": "beginner level — you'll start from scratch, that's great!",
+        "placement_level_middle": "intermediate level — you know the basics",
+        "placement_level_good": "good level — you'll grow fast",
+        "placement_done": (
+            "✅ <b>Your result: {score}%</b> — {level}.\n\n🎁 Here is your <b>{percent}% "
+            "discount</b> coupon! Valid until {until} (for the first payment).\n\nOur manager will "
+            "contact you soon and help you pick a group. Any questions — write here."
+        ),
+        "placement_done_plain": (
+            "✅ <b>Your result: {score}%</b> — {level}.\n\nOur manager will contact you. Any "
+            "questions — write here."
+        ),
+        "placement_closed": "This test is not available right now.",
+        "placement_not_for_you": (
+            "🎯 The level test is for those not enrolled yet. You're already studying — good "
+            "luck! 💪"
+        ),
+        "btn_my_coupon": "🎁 See the coupon on the website",
     },
 }
 
 # Menyu tugmalari: foydalanuvchi qaysi tilda bossa ham tanib olinadi.
-MENU_ACTIONS = ("today", "courses", "tests", "schedule", "invite", "ask", "settings", "admin")
+MENU_ACTIONS = (
+    "today",
+    "courses",
+    "tests",
+    "schedule",
+    "invite",
+    "ask",
+    "settings",
+    "admin",
+    "placement",
+)
 MENU_BY_LABEL = {
     TEXTS[locale][f"btn_{action}"]: action for locale in TEXTS for action in MENU_ACTIONS
 }

@@ -146,7 +146,15 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "is_active",
         "date_joined",
     )
-    list_filter = (RoleFilter, CourseFilter, TelegramFilter, "audience", "is_active", "is_staff")
+    list_filter = (
+        RoleFilter,
+        CourseFilter,
+        TelegramFilter,
+        "signup_source",
+        "audience",
+        "is_active",
+        "is_staff",
+    )
     search_fields = ("phone", "first_name", "last_name")
     ordering = ("-date_joined",)
     # Rozilikni faqat foydalanuvchining o'zi beradi yoki qaytarib oladi (kabinet sozlamalari).
@@ -159,6 +167,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "referral_code",
         "referred_by",
         "show_referrals",
+        "signup_source",
     )
 
     add_fieldsets = ((None, {"classes": ("wide",), "fields": ("phone", "password1", "password2")}),)
@@ -189,8 +198,8 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
             ),
             (_("Kirish va rollar"), {"fields": access}),
             (
-                _("Do'stni taklif qilish"),
-                {"fields": ("referral_code", "referred_by", "show_referrals")},
+                _("Do'stni taklif qilish va manba"),
+                {"fields": ("referral_code", "referred_by", "show_referrals", "signup_source")},
             ),
             (_("Sanalar"), {"fields": ("last_login", "date_joined")}),
         )

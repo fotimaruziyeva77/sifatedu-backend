@@ -1,5 +1,7 @@
 """Referal: do'st birinchi darsni tugatsa va to'lasa — coin va kupon; do'stga chegirma."""
 
+from datetime import timedelta
+
 import pytest
 from django.utils import timezone
 
@@ -96,3 +98,37 @@ def test_coupon_is_applied_once(world: World) -> None:
 def test_no_discount_without_invitation(world: World) -> None:
     assert referral.discount_for(world.student) is None
     assert referral.discount_for(world.teacher) is None
+
+
+def test_biggest_discount_wins_and_expired_coupons_are_ignored(world: World) -> None:
+    assert referral.discount_for(world.friend) == referral.Discount(10, "REFERRAL")
+    small = Coupon.objects.create(user=world.friend, percent=5, kind=Coupon.Kind.MANUAL)
+    assert referral.discount_for(world.friend) == referral.Discount(10, "REFERRAL")
+    big = Coupon.objects.create(
+        user=world.friend,
+        percent=25,
+        kind=Coupon.Kind.PLACEMENT,
+        expires_at=timezone.now() + timedelta(hours=72),
+    )
+    assert referral.discount_for(world.friend) == referral.Discount(25, "COUPON", big)
+    coupons = api(world.friend).get("/api/v1/rewards/").json()["coupons"]
+    assert [(item["percent"], item["kind"]) for item in coupons] == [
+        (25, "PLACEMENT"),
+        (5, "MANUAL"),
+    ]
+    assert coupons[0]["expires_at"] is not None and coupons[1]["expires_at"] is None
+
+    course = other_course(world)
+    api(world.friend).post(
+        "/api/v1/orders/", {"course": course.slug, "study_format": "ONLINE"}, format="json"
+    )
+    order = Order.objects.get(user=world.friend)
+    assert (order.amount, order.discount_percent, order.discount_reason) == (750_000, 25, "COUPON")
+    pay(order)
+    big.refresh_from_db()
+    assert big.order == order and big.used_at is not None
+
+    Coupon.objects.filter(pk=big.pk).update(used_at=None, order=None, percent=30)
+    Coupon.objects.filter(pk=big.pk).update(expires_at=timezone.now() - timedelta(minutes=1))
+    # Muddati o'tgan kupon qo'llanmaydi (do'st chegirmasi esa birinchi to'lovda ishlatildi).
+    assert referral.discount_for(world.friend) == referral.Discount(5, "COUPON", small)

@@ -8,6 +8,7 @@ bitta chegirma: do'stning birinchi to'lovi yoki eng eski kupon.
 from dataclasses import dataclass
 from typing import Any
 
+from django.db.models import Q, QuerySet
 from django.utils import timezone, translation
 
 from apps.notifications.models import Notification
@@ -32,22 +33,32 @@ class Discount:
         return max(0, amount - amount * self.percent // 100)
 
 
+def valid_coupons(user: Any) -> QuerySet[Coupon]:
+    """Ishlatilmagan, muddati o'tmagan kuponlar: eng kattasi birinchi."""
+    now = timezone.now()
+    return (
+        Coupon.objects.filter(user_id=user.pk, used_at__isnull=True)
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
+        .exclude(order__status=Order.Status.PAID)
+        .order_by("-percent", "created_at", "pk")
+    )
+
+
 def discount_for(user: Any) -> Discount | None:
+    """Buyurtmaga eng katta chegirma: do'st taklifi (birinchi to'lovga) yoki eng katta kupon.
+    Chegirmalar qo'shilmaydi."""
     if not getattr(user, "is_authenticated", False):
         return None
     config = services.settings()
     paid = Order.objects.filter(user_id=user.pk, status=Order.Status.PAID).exists()
+    found: list[Discount] = []
     if user.referred_by_id and config.referral_discount and not paid:
-        return Discount(config.referral_discount, "REFERRAL")
-    coupon = (
-        Coupon.objects.filter(user_id=user.pk, used_at__isnull=True)
-        .exclude(order__status=Order.Status.PAID)
-        .order_by("created_at", "pk")
-        .first()
-    )
+        found.append(Discount(config.referral_discount, "REFERRAL"))
+    coupon = valid_coupons(user).first()
     if coupon is not None:
-        return Discount(coupon.percent, "COUPON", coupon)
-    return None
+        found.append(Discount(coupon.percent, "COUPON", coupon))
+    # Teng bo'lsa — do'st chegirmasi (kupon keyingi to'lovga qoladi).
+    return max(found, key=lambda item: item.percent, default=None)
 
 
 def attach(order: Order, discount: Discount | None) -> None:
@@ -112,7 +123,12 @@ def order_paid(order: Order) -> None:
     if entry is None:
         return
     if config.coupon_percent:
-        Coupon.objects.create(user=friend.referred_by, percent=config.coupon_percent, friend=friend)
+        Coupon.objects.create(
+            user=friend.referred_by,
+            percent=config.coupon_percent,
+            kind=Coupon.Kind.REFERRAL,
+            friend=friend,
+        )
     tell(
         friend.referred_by,
         "referral_paid",

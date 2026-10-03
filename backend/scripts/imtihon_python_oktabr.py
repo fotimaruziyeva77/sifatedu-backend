@@ -638,21 +638,21 @@ def answers() -> None:
     print(f"===== {name_of(user)} (ID {user.pk}), test: {test_score} =====")
     by_task = {answer.task_id: answer for answer in given.filter(student=user)}
     for task in tasks:
-        answer = by_task.get(task.pk)
+        sent = by_task.get(task.pk)
         print(f"\n----- {task.title} -----")
-        if answer is None:
+        if sent is None:
             print("(yuborilmagan)")
             continue
-        if answer.text:
-            print(f"Izoh: {answer.text}")
-        if answer.code:
-            print(answer.code)
-        if answer.link:
-            print(f"Havola: {answer.link}")
-        files = [item.name for item in answer.files.all()]
+        if sent.text:
+            print(f"Izoh: {sent.text}")
+        if sent.code:
+            print(sent.code)
+        if sent.link:
+            print(f"Havola: {sent.link}")
+        files = [item.name for item in sent.files.all()]
         if files:
             print(f"Fayllar: {', '.join(files)}")
-        mark = "qo'yilmagan" if answer.score is None else answer.score
+        mark = "qo'yilmagan" if sent.score is None else sent.score
         print(f"[baho: {mark}]")
 
 

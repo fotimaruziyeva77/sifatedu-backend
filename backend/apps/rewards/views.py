@@ -20,7 +20,7 @@ from apps.users.models import User
 from apps.users.roles import sees_all
 
 from . import daily, rating, referral, services
-from .models import Coupon, DailyTask, Entry
+from .models import DailyTask, Entry
 from .serializers import (
     DiscountStateSerializer,
     PenaltyCancelSerializer,
@@ -117,7 +117,7 @@ class RewardsView(APIView):
         config = services.settings()
         code = user_services.referral_code(user)
         site = links.base_url()
-        coupons = Coupon.objects.filter(user=user, used_at__isnull=True).select_related("order")
+        coupons = referral.valid_coupons(user).select_related("order")
         items, _next = history(user, 1)
         return Response(
             {
@@ -131,7 +131,9 @@ class RewardsView(APIView):
                     {
                         "id": coupon.pk,
                         "percent": coupon.percent,
+                        "kind": coupon.kind,
                         "created_at": coupon.created_at,
+                        "expires_at": coupon.expires_at,
                         "reserved": coupon.order is not None,
                     }
                     for coupon in coupons

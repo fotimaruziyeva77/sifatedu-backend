@@ -61,6 +61,13 @@ def render(p: metrics.Period, locale: str) -> str:
             say("admin_bot_muted", count=number(people.bot_muted)),
         ]
     )
+    came = metrics.sources(p)
+    if came:
+        items = " · ".join(
+            f"{escape(source) or say('admin_source_direct')} {number(count)}"
+            for source, count in came
+        )
+        lines.append(say("admin_sources", items=items))
     lines.append(say("admin_site", total=number(people.students), new=number(people.students_new)))
     lines += branch(
         [

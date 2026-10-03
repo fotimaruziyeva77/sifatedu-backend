@@ -50,12 +50,13 @@ class BotChatAdmin(ModelAdmin):
         "__str__",
         "show_user",
         "language",
+        "source",
         "news",
         "show_blocked",
         "last_seen_at",
         "created_at",
     )
-    list_filter = (RegisteredFilter, "language", "news")
+    list_filter = (RegisteredFilter, "source", "language", "news")
     search_fields = ("chat_id", "first_name", "username")
     date_hierarchy = "created_at"
     fields = (
@@ -67,6 +68,7 @@ class BotChatAdmin(ModelAdmin):
         "news",
         "blocked_at",
         "referral_code",
+        "source",
         "last_seen_at",
         "created_at",
     )

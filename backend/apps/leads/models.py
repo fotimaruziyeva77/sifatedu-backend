@@ -20,6 +20,7 @@ class Lead(TimeStampedModel):
         FORM = "FORM", _("Sayt formasi")
         AI_WEB = "AI_WEB", _("AI chat (sayt)")
         AI_TELEGRAM = "AI_TELEGRAM", _("AI chat (Telegram)")
+        BOT_TEST = "BOT_TEST", _("Botdagi daraja testi")
 
     name = models.CharField(_("ism"), max_length=100)
     phone = models.CharField(

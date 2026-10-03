@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.certificates",
     "apps.rewards",
     "apps.shop",
+    "apps.placement",
     "apps.bot",
     "apps.stats",
 ]
@@ -280,6 +281,7 @@ SPECTACULAR_SETTINGS = {
         "RatingPeriodEnum": "apps.rewards.serializers.PERIODS",
         "RatingScopeEnum": "apps.rewards.serializers.SCOPES",
         "DiscountReasonEnum": "apps.rewards.serializers.DISCOUNTS",
+        "CouponKindEnum": "apps.rewards.models.Coupon.Kind",
     },
 }
 
@@ -364,6 +366,16 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "weekly-winners": {
         "task": "apps.rewards.tasks.weekly_winners",
         "schedule": crontab(day_of_week=1, hour=10, minute=0),
+    },
+    # Daraja testi: vaqti tugagan testlar (har 5 daqiqa) — natija, kupon va ariza; kupon
+    # eslatmalari — 24 soatdan keyin va muddat tugashiga 12 soat qolganda.
+    "placement-close-expired": {
+        "task": "apps.placement.tasks.close_expired",
+        "schedule": 300.0,
+    },
+    "placement-coupon-reminders": {
+        "task": "apps.placement.tasks.coupon_reminders",
+        "schedule": crontab(minute=20),
     },
     # Server diski va xotirasi: chegaradan oshsa — jamoaga Telegram ogohlantirish.
     "check-server-resources": {
@@ -493,6 +505,18 @@ UNFOLD = {
                         "link": reverse_lazy("admin:leads_lead_changelist"),
                         "permission": _can("leads.view_lead"),
                         "badge": "apps.core.admin_config.new_leads_badge",
+                    },
+                    {
+                        "title": "Daraja testlari",
+                        "icon": "quiz",
+                        "link": reverse_lazy("admin:placement_placementtest_changelist"),
+                        "permission": _can("placement.view_placementtest"),
+                    },
+                    {
+                        "title": "Daraja testi natijalari",
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:placement_placementattempt_changelist"),
+                        "permission": _can("placement.view_placementattempt"),
                     },
                 ],
             },

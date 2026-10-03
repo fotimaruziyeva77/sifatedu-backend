@@ -2,7 +2,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from .models import DailyTask, Entry
+from .models import Coupon, DailyTask, Entry
 
 # Tanlovlar (OpenAPI'da nomli enum: `ENUM_NAME_OVERRIDES`).
 PERIODS = [("week", "week"), ("month", "month"), ("all", "all")]
@@ -36,7 +36,9 @@ class RewardEntrySerializer(serializers.Serializer[dict[str, Any]]):
 class CouponSerializer(serializers.Serializer[dict[str, Any]]):
     id = serializers.IntegerField()
     percent = serializers.IntegerField()
+    kind = serializers.ChoiceField(choices=Coupon.Kind.choices)
     created_at = serializers.DateTimeField()
+    expires_at = serializers.DateTimeField(allow_null=True, help_text="Bo'sh — muddatsiz.")
     reserved = serializers.BooleanField(help_text="To'lov kutilayotgan buyurtmaga biriktirilgan.")
 
 

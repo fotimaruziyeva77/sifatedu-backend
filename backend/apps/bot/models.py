@@ -30,6 +30,9 @@ class BotChat(TimeStampedModel):
     verified_phone = models.CharField(_("tasdiqlangan telefon"), max_length=13, blank=True)
     # /start r_<kod>: ro'yxatdan o'tganda "kim taklif qildi" shu koddan yoziladi.
     referral_code = models.CharField(_("taklif kodi"), max_length=16, blank=True)
+    # Qayerdan kelgan: /start <manba> (masalan, Instagram bio — `?start=ig`). Birinchi kirishdagi
+    # manba yoziladi.
+    source = models.CharField(_("manba"), max_length=32, blank=True, db_index=True)
     # Test jarayoni va kutilayotgan javob: {"quiz": {...}, "await": "text", "start": "..."}.
     state: "models.JSONField[dict[str, Any], dict[str, Any]]" = models.JSONField(
         default=dict, blank=True, editable=False

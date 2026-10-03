@@ -202,6 +202,7 @@ class Notification(models.Model):
         CERTIFICATE = "CERTIFICATE", _("Sertifikat")
         REWARD = "REWARD", _("Mukofot")
         SHOP = "SHOP", _("Do'kon")
+        COUPON = "COUPON", _("Chegirma kuponi")
         TEST = "TEST", _("Sinov")
 
     user = models.ForeignKey(
