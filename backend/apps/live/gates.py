@@ -1,8 +1,9 @@
-"""Offlayn guruhda dars vazifalari (test, uy vazifasi) qachon ochiladi.
+"""O'qituvchi ochadigan guruhda dars vazifalari (test, uy vazifasi) qachon ochiladi.
 
-Ustoz "Dars o'tildi" deb belgilagan eng oxirgi dargacha hammasi ochiq: oldingi darslarni bittalab
-belgilash shart emas. Onlayn va guruhsiz o'quvchilarga bu cheklov yo'q (ularda — 14-qadamdagi
-test qoidasi). Video va materiallar cheklanmaydi.
+Bunday guruh — offlayn guruh yoki «darslarni o'qituvchi ochadi» yoqilgan onlayn (Zoom, videosiz)
+guruh. Ustoz "Dars o'tildi" deb belgilagan eng oxirgi dargacha hammasi ochiq: oldingi darslarni
+bittalab belgilash shart emas. Boshqa onlayn va guruhsiz o'quvchilarga bu cheklov yo'q (ularda —
+14-qadamdagi test qoidasi). Video va materiallar cheklanmaydi.
 """
 
 from typing import Any
@@ -16,8 +17,9 @@ from apps.learning.models import Enrollment, StudyGroup
 from .models import GroupLesson
 
 
-def offline_group(user: Any, course_id: int) -> StudyGroup | None:
-    """O'quvchining shu kursdagi offlayn guruhi (to'lov muddati o'tmagan yozilish bo'yicha)."""
+def paced_group(user: Any, course_id: int) -> StudyGroup | None:
+    """O'quvchining shu kursdagi o'qituvchi ochadigan guruhi: offlayn yoki «darslarni o'qituvchi
+    ochadi» yoqilgan onlayn (to'lov muddati o'tmagan yozilish bo'yicha)."""
     if not getattr(user, "is_authenticated", False):
         return None
     enrollment = (
@@ -26,8 +28,8 @@ def offline_group(user: Any, course_id: int) -> StudyGroup | None:
             user=user,
             course_id=course_id,
             status=Enrollment.Status.ACTIVE,
-            group__study_format="OFFLINE",
         )
+        .filter(Q(group__study_format="OFFLINE") | Q(group__teacher_paced=True))
         .select_related("group")
         .first()
     )
@@ -43,9 +45,10 @@ def lesson_order(course_id: int) -> list[int]:
 
 
 def closed_lessons(user: Any, course: Course | int) -> set[int]:
-    """Vazifalari hali yopiq darslar (offlayn guruh o'quvchisi uchun); boshqalarga — bo'sh."""
+    """Vazifalari hali yopiq darslar (o'qituvchi ochadigan guruh o'quvchisi uchun); boshqalarga —
+    bo'sh."""
     course_id = course if isinstance(course, int) else course.pk
-    group = offline_group(user, course_id)
+    group = paced_group(user, course_id)
     if group is None:
         return set()
     order = lesson_order(course_id)

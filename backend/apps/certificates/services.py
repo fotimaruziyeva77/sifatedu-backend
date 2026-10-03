@@ -19,7 +19,7 @@ from apps.catalog.models import Course, Lesson
 from apps.exams.models import ExamResult
 from apps.homework.models import Assignment, Submission
 from apps.learning.models import Enrollment, LessonProgress
-from apps.live.gates import closed_lessons, offline_group
+from apps.live.gates import closed_lessons, paced_group
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
 from apps.notifications.texts import locale_of, text
@@ -58,7 +58,7 @@ def course_quizzes(course: Course) -> dict[int, int]:
 
 def requirements(user: User, course: Course) -> list[Requirement]:
     lessons = list(Lesson.objects.filter(module__course=course).values_list("pk", flat=True))
-    if offline_group(user, course.pk) is not None:
+    if paced_group(user, course.pk) is not None:
         waiting = closed_lessons(user, course.pk)
         lessons_done = sum(1 for lesson in lessons if lesson not in waiting)
     else:

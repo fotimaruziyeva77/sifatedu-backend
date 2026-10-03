@@ -1,8 +1,9 @@
 """Darsga kirish huquqi. Bu qoida bitta joyda: barcha endpointlar shuni ishlatadi.
 
 Onlayn o'quvchida keyingi dars oldingi testli darslarning testi o'tilgach ochiladi (`quiz_gate`).
-Bepul (preview) darslar, xodimlar va offlayn guruh o'quvchilari bundan mustasno — offlaynda
-darslarni ustoz "Dars o'tildi" bilan ochadi (apps/live/gates.py).
+Bepul (preview) darslar, xodimlar va o'qituvchi ochadigan guruh (offlayn yoki «darslarni o'qituvchi
+ochadi» yoqilgan onlayn) o'quvchilari bundan mustasno — ularda darslarni ustoz "Dars o'tildi" bilan
+ochadi (apps/live/gates.py).
 """
 
 from typing import Any
@@ -54,11 +55,11 @@ def quiz_gate(user: Any, course_id: int) -> dict[int, int]:
     To'sib turgan dars — kurs tartibida testi (kamida bitta savol bilan) hali o'tilmagan birinchi
     dars; undan keyingi barcha darslar (preview'dan tashqari) yopiq.
     """
-    from apps.live.gates import offline_group
+    from apps.live.gates import paced_group
     from apps.quizzes.models import Attempt, Quiz
 
     person = student(user)
-    if person is None or person.is_staff or offline_group(person, course_id) is not None:
+    if person is None or person.is_staff or paced_group(person, course_id) is not None:
         return {}
     quizzes = dict(
         Quiz.objects.filter(lesson__module__course_id=course_id)

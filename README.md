@@ -372,7 +372,9 @@ keyin yozilmaydi; kursni boshlamagan, tugatgan va muddati o'tganlarga ham.
    test va uy vazifalari guruh o'quvchilariga ochiladi va ularga xabar boradi. Ustoz hali o'tmagan
    darsda o'quvchi "Test va uy vazifasi ustoz bu darsni guruhda o'tgach ochiladi" degan yozuvni
    ko'radi (video va materiallar ochiq). Menejer guruh sahifasidagi "O'tilgan darslar"da qo'lda ham
-   belgilay oladi. Onlayn va guruhsiz o'quvchilarga bu cheklov yo'q.
+   belgilay oladi. **Onlayn Zoom guruhi (videosiz):** admin → guruh → «darslarni o'qituvchi
+   ochadi» — offlayndagi kabi ishlaydi (testdan o'tish sharti yo'q), doimiy Zoom havolasi guruhda.
+   Boshqa onlayn va guruhsiz o'quvchilarga bu cheklov yo'q.
 
 Admin bosh sahifasida "Ketma-ket 2 marta darsga kelmagan o'quvchilar" muammosi chiqadi. Google Meet
 API ishlatilmaydi — havola qo'lda qo'yiladi.

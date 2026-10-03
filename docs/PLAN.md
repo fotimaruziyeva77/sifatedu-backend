@@ -1282,7 +1282,7 @@ PDF va QR bilan tekshirish.
 | **18** | **Ishga tushirish:** server, domen, HTTPS, bot webhook, Click va Eskiz, zaxira nusxa, monitoring. Sayt va bot ishlayapti (Contabo, umumiy server rejimi); Click, Eskiz va `media.sifatedu.uz` — kutilmoqda | o'rta |
 | **19** ✅ | **Yangi kelganlar yo'li** (§7D): manba (Instagram va boshqalar), yo'nalish → daraja testi → 15% yoki 25% kupon (72 soat) → ariza menejerga → eslatmalar. Qo'llanma — `docs/yangi-kelganlar.md` | o'rta–katta |
 | **20** ✅ | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi. Qo'llanma — `docs/ai-maslahatchi.md` | o'rta–katta |
-| **21** | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
+| **21** ✅ | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
 | **22** | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
 | **23** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
 | **24** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
@@ -1756,6 +1756,12 @@ Kalit bo'lmasa — oddiy (qoidaga asoslangan) javoblar, saytda chat yashirin.
 Guruhga «darslar o'qituvchi belgilagach ochiladi» sozlamasi: offlayn — doim, onlayn — tanlov
 (videosiz Zoom guruhlari uchun yoqiladi). Jadval, Zoom havolasi, eslatmalar, «Qo'shilish» va
 davomat — mavjud; dars yozuvi havolasi kelmaganlarga.
+
+**Natija (2026-10-03):** `StudyGroup.teacher_paced` («darslarni o'qituvchi ochadi», admin'da
+guruh sahifasi va filtr). `apps/live/gates.paced_group` — offlayn yoki shu belgi yoqilgan onlayn
+guruh: test va uy vazifalari o'qituvchi belgilagan darsgacha, testdan o'tish sharti (`quiz_gate`)
+o'chadi, sertifikat shartida — o'tilgan darslar. Zoom havolasi guruhda (`meet_url`), qolgani —
+13-qadamdagidek. Test: `apps/live/tests/test_covered.py::test_zoom_group_opens_lessons_by_the_teacher`.
 
 ### 22-qadam: guruhlarga kunlik test
 

@@ -49,6 +49,15 @@ class StudyGroup(TimeStampedModel):
     meet_url = models.URLField(
         _("doimiy Meet yoki Zoom havolasi"), blank=True, help_text=_("Onlayn guruh uchun.")
     )
+    teacher_paced = models.BooleanField(
+        _("darslarni o'qituvchi ochadi"),
+        default=False,
+        help_text=_(
+            "Onlayn (Zoom, videosiz) guruh uchun: test va uy vazifalari o'qituvchi «Dars o'tildi» "
+            "deb belgilagan darsgacha ochiladi, testdan o'tish sharti yo'q. Offlayn guruhda doim "
+            "shunday."
+        ),
+    )
     room = models.CharField(
         _("xona"), max_length=60, blank=True, help_text=_("Offlayn guruh uchun.")
     )

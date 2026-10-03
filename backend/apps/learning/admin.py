@@ -111,13 +111,13 @@ class StudyGroupAdmin(HttpsLinks, ModelAdmin):
         "show_status",
         "starts_on",
     )
-    list_filter = ("status", "study_format", "course", "teacher")
+    list_filter = ("status", "study_format", "teacher_paced", "course", "teacher")
     search_fields = ("name", "course__title", "teacher__first_name", "teacher__phone")
     autocomplete_fields = ("course",)
     inlines = [ScheduleSlotInline, GroupLessonInline]
     actions = ["sync_lessons"]
     fieldsets = [
-        (None, {"fields": [("name", "course"), ("teacher", "study_format")]}),
+        (None, {"fields": [("name", "course"), ("teacher", "study_format"), "teacher_paced"]}),
         (
             _("Jadval"),
             {

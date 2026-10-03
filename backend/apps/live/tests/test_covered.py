@@ -129,6 +129,28 @@ def test_online_groups_are_not_gated(world: World) -> None:
     assert page["tasks_locked"] is False and page["homework"] is not None
 
 
+def test_zoom_group_opens_lessons_by_the_teacher(world: World) -> None:
+    """Onlayn, videosiz (Zoom) guruh, «darslarni o'qituvchi ochadi» — offlayndagi kabi: testdan
+    o'tish sharti yo'q, vazifalar o'qituvchi belgilagan darsgacha ochiq."""
+    StudyGroup.objects.filter(pk=world.group.pk).update(teacher_paced=True)
+    for lesson in world.lessons:
+        quiz = Quiz.objects.create(lesson=lesson)
+        question = Question.objects.create(quiz=quiz, text="HTML nima?")
+        Choice.objects.create(question=question, text="Til", is_correct=True)
+        Choice.objects.create(question=question, text="Rang")
+    first, second = world.lessons
+
+    before = lesson_page(world.student, second)
+    response = cover(world.teacher, live(world, soon(-30)), first)
+    after = [lesson_page(world.student, lesson) for lesson in (first, second)]
+
+    assert response.status_code == 200
+    assert before["tasks_locked"] is True and before["quiz"] is None
+    assert after[0]["tasks_locked"] is False and after[0]["quiz"] is not None
+    assert after[1]["tasks_locked"] is True
+    assert {note.user for note in opened()} == {world.student, world.classmate}
+
+
 def test_manager_marks_lessons_in_group_admin(offline: World) -> None:
     admin = User.objects.create_superuser(phone="+998900000009", password="x")
     client = Client()
