@@ -23,13 +23,18 @@ remove   — PHONES=+998...,+998... — guruh va imtihondan chiqarish (akkaunt q
 answers  — amaliy javoblar ro'yxati; STUDENT=ID bilan — o'sha o'quvchining kodlari.
 grade    — STUDENT=ID SCORES=90,80,70,100 — terminaldan baholash (saytdagi kabi natija yuboriladi).
 results  — natijalar jadvali: test, amaliy, jami, o'tdi/o'tmadi.
+excel    — natijalar Excel'da (o'tganlar yashil, o'tmaganlar qizil): OUT=/tmp/....xlsx
 
 Savollar banki alohida modulda: offlayn guruhda "dars o'tildi" deb belgilanmagan darsning testi
 o'quvchiga yopiq, shuning uchun savollarni oldindan ko'rib bo'lmaydi; imtihon esa ularni oladi.
 """
 
 import os
+import re
+import tempfile
+import zipfile
 from datetime import date, timedelta
+from xml.sax.saxutils import escape as xml_escape
 
 from django.db import transaction
 from django.utils import timezone
@@ -720,6 +725,230 @@ def close_exam() -> None:
     status()
 
 
+# --- Excel (.xlsx) — kutubxonasiz: zip ichida XML qismlar ---
+
+XLSX_STYLES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="0&quot;%&quot;"/></numFmts>
+<fonts count="7">
+<font><sz val="11"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
+<font><b/><sz val="14"/><name val="Calibri"/></font>
+<font><sz val="11"/><color rgb="FF006100"/><name val="Calibri"/></font>
+<font><sz val="11"/><color rgb="FF9C0006"/><name val="Calibri"/></font>
+<font><sz val="11"/><color rgb="FF9C5700"/><name val="Calibri"/></font>
+<font><b/><sz val="11"/><name val="Calibri"/></font>
+</fonts>
+<fills count="6">
+<fill><patternFill patternType="none"/></fill>
+<fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid">
+<fgColor rgb="FF1F4E78"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid">
+<fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid">
+<fgColor rgb="FFFFC7CE"/><bgColor indexed="64"/></patternFill></fill>
+<fill><patternFill patternType="solid">
+<fgColor rgb="FFFFEB9C"/><bgColor indexed="64"/></patternFill></fill>
+</fills>
+<borders count="2">
+<border><left/><right/><top/><bottom/><diagonal/></border>
+<border>
+<left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right>
+<top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom>
+<diagonal/></border>
+</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="13">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1"
+applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/>
+</xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+{colors}
+</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>"""
+XLSX_COLOR = (
+    '<xf numFmtId="0" fontId="{font}" fillId="{fill}" borderId="1" xfId="0" applyFont="1" '
+    'applyFill="1" applyBorder="1"/>\n'
+    '<xf numFmtId="164" fontId="{font}" fillId="{fill}" borderId="1" xfId="0" '
+    'applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">'
+    '<alignment horizontal="center"/></xf>\n'
+    '<xf numFmtId="0" fontId="{font}" fillId="{fill}" borderId="1" xfId="0" applyFont="1" '
+    'applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>'
+)
+# Uslub raqamlari (cellXfs): yashil — 4..6, qizil — 7..9, sariq — 10..12 (matn, foiz, son).
+GREEN, RED, YELLOW = 4, 7, 10
+XLSX_PARTS = {
+    "[Content_Types].xml": (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" '
+        'ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/'
+        'vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/'
+        'vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        '<Override PartName="/xl/styles.xml" ContentType="application/'
+        'vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
+        "</Types>"
+    ),
+    "_rels/.rels": (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+        'relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'
+    ),
+    "xl/workbook.xml": (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheets><sheet name="Natijalar" sheetId="1" r:id="rId1"/></sheets></workbook>'
+    ),
+    "xl/_rels/workbook.xml.rels": (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+        'relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/'
+        'relationships/styles" Target="styles.xml"/></Relationships>'
+    ),
+}
+# XML 1.0 da ruxsat etilmagan belgilar (Telegram ismlarida uchrashi mumkin) tashlab yuboriladi.
+BAD_XML = re.compile("[^\t\n\r\x20-퟿-�\U00010000-\U0010ffff]")
+
+
+def column(index: int) -> str:
+    letters = ""
+    while index:
+        index, rest = divmod(index - 1, 26)
+        letters = chr(65 + rest) + letters
+    return letters
+
+
+def cell(ref: str, value: object, style: int) -> str:
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return f'<c r="{ref}" s="{style}"><v>{value}</v></c>'
+    text = xml_escape(BAD_XML.sub("", str(value)))
+    return f'<c r="{ref}" s="{style}" t="inlineStr"><is><t xml:space="preserve">{text}</t></is></c>'
+
+
+def excel() -> None:
+    """Natijalar Excel'da: o'tganlar yashil, o'tmaganlar qizil, baholash tugamaganlar sariq."""
+    test = exam()
+    tasks = list(test.tasks.order_by("order", "id"))
+    scores = {
+        (answer.student_id, answer.task_id): answer.score
+        for answer in TaskAnswer.objects.filter(task__exam=test)
+    }
+    results = list(
+        ExamResult.objects.filter(exam=test).select_related("student").order_by("-total")
+    )
+    counted = {row.student_id for row in results}
+    absent = [user for user in exam_services.participants(test) if user.pk not in counted]
+
+    headers = ["№", "Ism", "Telefon", "Test"]
+    headers += [f"{index}-topshiriq" for index in range(1, len(tasks) + 1)]
+    headers += ["Amaliy", "Jami", "Natija"]
+    widths = [5, 30, 16, 9] + [12] * len(tasks) + [10, 9, 24]
+    last = column(len(headers))
+    rows = [
+        f'<row r="1">{cell("A1", "Python — oktabr oylik imtihoni natijalari", 2)}</row>',
+        '<row r="2">'
+        + cell(
+            "A2",
+            f"O'tish bali {test.pass_percent}% · Jami = test {test.test_weight}% + amaliy "
+            f"{100 - test.test_weight}% · {timezone.localdate():%d.%m.%Y}",
+            0,
+        )
+        + "</row>",
+        '<row r="3" ht="30" customHeight="1">'
+        + "".join(cell(f"{column(i)}3", title, 1) for i, title in enumerate(headers, start=1))
+        + "</row>",
+    ]
+    number = 0
+    for row in results:
+        number += 1
+        if row.final_at is None:
+            color, verdict = YELLOW, "Baholash tugamagan"
+        elif row.passed:
+            color, verdict = GREEN, "O'tdi"
+        else:
+            color, verdict = RED, "O'tmadi"
+        task_cells = []
+        for task in tasks:
+            score = scores.get((row.student_id, task.pk))
+            task_cells.append((score if score is not None else "—", color + 2))
+        values = [
+            (number, color + 2),
+            (name_of(row.student), color),
+            (row.student.phone, color),
+            (row.test_score, color + 1),
+            *task_cells,
+            (row.practical_score, color + 1),
+            (row.total, color + 1),
+            (verdict, color),
+        ]
+        line = number + 3
+        rows.append(
+            f'<row r="{line}">'
+            + "".join(
+                cell(f"{column(i)}{line}", value, style)
+                for i, (value, style) in enumerate(values, start=1)
+            )
+            + "</row>"
+        )
+    for user in absent:
+        number += 1
+        line = number + 3
+        values = [(number, RED + 2), (name_of(user), RED), (user.phone, RED)]
+        values += [("—", RED + 2)] * (len(tasks) + 3) + [("Qatnashmagan", RED)]
+        rows.append(
+            f'<row r="{line}">'
+            + "".join(
+                cell(f"{column(i)}{line}", value, style)
+                for i, (value, style) in enumerate(values, start=1)
+            )
+            + "</row>"
+        )
+    passed = sum(1 for row in results if row.passed and row.final_at)
+    average = round(sum(row.total for row in results) / len(results)) if results else 0
+    summary = number + 5
+    passed_text = f"O'tdi: {passed} / {number}"
+    average_text = f"O'rtacha jami: {average}%"
+    rows.append(f'<row r="{summary}">{cell(f"B{summary}", passed_text, 3)}</row>')
+    rows.append(f'<row r="{summary + 1}">{cell(f"B{summary + 1}", average_text, 3)}</row>')
+    cols = "".join(
+        f'<col min="{i}" max="{i}" width="{width}" customWidth="1"/>'
+        for i, width in enumerate(widths, start=1)
+    )
+    sheet = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheetViews><sheetView workbookViewId="0">'
+        '<pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/>'
+        "</sheetView></sheetViews>"
+        '<sheetFormatPr defaultRowHeight="15"/>'
+        f"<cols>{cols}</cols><sheetData>{''.join(rows)}</sheetData>"
+        f'<mergeCells count="2"><mergeCell ref="A1:{last}1"/><mergeCell ref="A2:{last}2"/>'
+        "</mergeCells></worksheet>"
+    )
+    colors = "\n".join(
+        XLSX_COLOR.format(font=font, fill=fill) for font, fill in ((3, 3), (4, 4), (5, 5))
+    )
+    path = os.environ.get("OUT") or os.path.join(tempfile.gettempdir(), "python-natijalar.xlsx")
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in XLSX_PARTS.items():
+            archive.writestr(name, content)
+        archive.writestr("xl/styles.xml", XLSX_STYLES.replace("{colors}", colors))
+        archive.writestr("xl/worksheets/sheet1.xml", sheet)
+    print(f"Excel tayyor: {path} ({number} o'quvchi, o'tdi: {passed})")
+
+
 ACTIONS = {
     "setup": setup,
     "students": students,
@@ -729,6 +958,7 @@ ACTIONS = {
     "remove": remove,
     "answers": answers,
     "results": results,
+    "excel": excel,
     "grade": grade,
     "status": status,
 }

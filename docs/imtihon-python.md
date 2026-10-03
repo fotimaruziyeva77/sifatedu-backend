@@ -111,3 +111,18 @@ unga yakuniy natija o'zi boradi: test 50% + amaliy 50%, o'tish bali 60%.
 | «Amaliy topshiriqlar» kirish sahifasini ochdi | Havola eskirgan — botda tugmani yana bosish kerak |
 | Vaqt yetmayapti | `open` ni `-e HOURS=…` bilan qayta ishga tushiring (boshlangan testlar o'z vaqtini saqlaydi) |
 | Kelmagan o'quvchiga keyin topshirish kerak | Kabinetdagi imtihon sahifasida unga «alohida muddat» bering |
+
+## 11. Natijalar (terminalda va Excel'da)
+
+```bash
+dc exec -T -e ACTION=results backend python manage.py shell < $S
+dc exec -T -e ACTION=excel backend python manage.py shell < $S
+dc cp backend:/tmp/python-natijalar.xlsx /srv/sifatedu/python-natijalar.xlsx
+```
+
+Excel'da o'tganlar yashil, o'tmaganlar qizil, baholash tugamaganlar sariq. Faylni kompyuterga
+olish (PowerShell):
+
+```powershell
+scp root@100.42.190.208:/srv/sifatedu/python-natijalar.xlsx $env:USERPROFILE\Desktop\
+```
