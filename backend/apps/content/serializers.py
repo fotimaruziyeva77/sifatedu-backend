@@ -58,7 +58,7 @@ class SiteSettingsSerializer(ReadOnlyModelSerializer):
         return click.configured()
 
     def get_assistant_enabled(self, obj: SiteSettings) -> bool:
-        """AI chat saytda ko'rinadimi: admin'da yoqilgan va Claude kaliti (yoki test rejimi) bor."""
+        """AI chat saytda ko'rinadimi: admin'da yoqilgan va Gemini kaliti (yoki test rejimi) bor."""
         from apps.assistant.views import chat_enabled
 
         return chat_enabled()

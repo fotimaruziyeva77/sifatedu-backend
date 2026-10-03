@@ -1,10 +1,9 @@
-"""Agent vositalari (Claude tool use): kurs ma'lumoti, chatdagi kartochkalar va ariza.
+"""Agent vositalari (Gemini function calling): kurs ma'lumoti, chatdagi kartochkalar va ariza.
 
 Vositalar faqat ommaviy ma'lumotni o'qiydi va ariza yaratadi — AI hech qanday shaxsiy ma'lumotni
 o'qiy olmaydi. Natija modelga JSON matn bo'lib qaytadi; xatoda — nima qilish kerakligi yoziladi.
-
-`eager_input_streaming`: javob streaming bilan olinadi, shuning uchun API vosita kiritmasini
-tekshirmasdan uzatadi — har bir vosita kiritmani o'zi tekshiradi (turi, ruxsat etilgan qiymatlar).
+Model kiritmani sxemaga to'liq moslamasligi mumkin — har bir vosita kiritmani o'zi tekshiradi
+(turi, ruxsat etilgan qiymatlar).
 """
 
 import json
@@ -42,14 +41,13 @@ FORMATS = {"ONLINE": "onlayn", "OFFLINE": "offlayn"}
 TOOLS: list[dict[str, Any]] = [
     {
         "name": "get_course",
-        "eager_input_streaming": True,
         "description": (
             "Bitta kurs haqida to'liq ma'lumot: kimga mo'ljallangan, daraja, narxlar, davomiylik, "
             "modullar va darslar ro'yxati, ustozlar, tavsif. Mijoz kurs dasturi, nimalarni "
             "o'rganishi, ustozlar yoki davomiylik haqida so'raganda ishlat. Kurslar ro'yxati va "
             "asosiy narxlar tizim promptida bor — faqat shu uchun chaqirma."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "slug": {
@@ -63,14 +61,13 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "show_courses",
-        "eager_input_streaming": True,
         "description": (
             "Mijozga chat ichida kurs kartochkalarini ko'rsatadi: nomi, narxi va kurs sahifasiga "
             "havola. Kurs tavsiya qilganingda yoki mijoz kurslarni ko'rmoqchi bo'lganda ishlat — "
             "1 tadan 3 tagacha eng mos kurs. Kartochka chiqqach, matningda havola yozish "
             "shart emas."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "slugs": {
@@ -85,7 +82,6 @@ TOOLS: list[dict[str, Any]] = [
     },
     {
         "name": "create_lead",
-        "eager_input_streaming": True,
         "description": (
             "Menejerlarga ariza qoldiradi: menejer ish vaqtida mijozga qo'ng'iroq qiladi. Mijoz "
             "telefon raqamini bergandan keyingina chaqir. Mavzular: enrollment — kursga yozilish "
@@ -93,7 +89,7 @@ TOOLS: list[dict[str, Any]] = [
             "student_issue — mavjud o'quvchining muammosi (to'lov, kirish). Muvaffaqiyatli bo'lsa, "
             "mijozga ariza qabul qilinganini va menejer qachon qo'ng'iroq qilishini ayt."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "phone": {

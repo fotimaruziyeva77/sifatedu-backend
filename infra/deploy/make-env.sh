@@ -87,8 +87,8 @@ echo; echo "3/6 Eskiz (SMS)"
 ask ESKIZ_EMAIL "Eskiz e-pochtasi"
 secret ESKIZ_PASSWORD "Eskiz paroli"
 
-echo; echo "4/6 AI maslahatchi (Claude)"
-secret ANTHROPIC_KEY "Anthropic API kaliti"
+echo; echo "4/6 AI maslahatchi (Google Gemini)"
+secret GEMINI_KEY "Gemini API kaliti (aistudio.google.com, billing yoqilgan)"
 
 echo; echo "5/6 Google bilan kirish"
 ask GOOGLE_CLIENT_ID "Google OAuth Client ID"
@@ -183,12 +183,12 @@ TELEGRAM_REPORTS_CHAT_ID=
 DAILY_REPORT_HOUR=21
 TELEGRAM_WEBHOOK_SECRET=$(hex 24)
 
-# --- AI maslahatchi (Claude API) ---
-ANTHROPIC_API_KEY=$(quote "$ANTHROPIC_KEY")
-ASSISTANT_MODEL=claude-opus-5
-ASSISTANT_PRICE_INPUT=5
-ASSISTANT_PRICE_OUTPUT=25
-ASSISTANT_EFFORT=low
+# --- AI maslahatchi (Google Gemini API) ---
+GEMINI_API_KEY=$(quote "$GEMINI_KEY")
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_PRICE_INPUT=1.5
+GEMINI_PRICE_OUTPUT=7.5
+GEMINI_THINKING_LEVEL=low
 ASSISTANT_DRY_RUN=false
 
 # --- Monitoring ---
@@ -215,7 +215,7 @@ missing=()
 [ -n "$BOT_TOKEN" ] || missing+=("Telegram bot tokeni")
 [ -n "$CLICK_SECRET_KEY" ] || missing+=("Click (sotib olish tugmasi ko'rinmaydi)")
 [ "$SMS_DRY_RUN" = false ] || missing+=("Eskiz (SMS yuborilmaydi)")
-[ -n "$ANTHROPIC_KEY" ] || missing+=("Anthropic (saytda AI chat ko'rinmaydi)")
+[ -n "$GEMINI_KEY" ] || missing+=("Gemini (saytda AI chat ko'rinmaydi)")
 [ -n "$GOOGLE_CLIENT_ID" ] || missing+=("Google bilan kirish")
 [ "$FISCAL_DRY_RUN" = false ] || missing+=("STIR (fiskal chek yuborilmaydi)")
 if [ ${#missing[@]} -gt 0 ]; then

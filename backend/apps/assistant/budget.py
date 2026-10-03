@@ -29,7 +29,7 @@ def spent_since(moment: datetime) -> Decimal:
 
 
 def within_budget(config: AssistantSettings) -> bool:
-    """Claude'ni chaqirish mumkinmi. Budjet 0 bo'lsa — AI to'xtatilgan."""
+    """Gemini'ni chaqirish mumkinmi. Budjet 0 bo'lsa — AI to'xtatilgan."""
     if config.daily_budget_usd <= 0 or config.monthly_budget_usd <= 0:
         return False
     if spent_since(day_start()) >= config.daily_budget_usd:

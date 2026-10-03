@@ -341,10 +341,13 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
     )
     add(
         "warning",
-        _("AI Claude'siz, oddiy rejimda javob berdi"),
+        _("AI Gemini'siz, oddiy rejimda javob berdi"),
         ai_answers.filter(model="rules").count(),
         admin_link(viewer, "assistant.assistantsettings"),
-        _("Anthropic hisobidagi kredit, AI budjeti va AI yoqilganini tekshiring."),
+        _(
+            "Gemini kaliti va Google AI Studio'dagi to'lov (billing), AI budjeti va AI "
+            "yoqilganini tekshiring."
+        ),
     )
     codes = OneTimeCode.objects.filter(
         purpose=OneTimeCode.Purpose.REGISTER, **p.range("created_at")

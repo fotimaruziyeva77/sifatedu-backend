@@ -81,7 +81,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # AI javoblari (Claude API): tarmoqni kutadigan ish — bitta jarayonda 8 ta oqim (threads).
+  # AI javoblari (Gemini API): tarmoqni kutadigan ish — bitta jarayonda 8 ta oqim (threads).
   # Alohida navbat: AI band bo'lsa ham SMS kodlari va boshqa vazifalar kechikmaydi.
   worker-ai:
     <<: *backend

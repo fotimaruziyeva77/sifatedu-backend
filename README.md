@@ -144,25 +144,27 @@ bazadan oladi — admin'da o'zgartirsangiz, AI ham darhol shuni aytadi.
 
 **Ulash:**
 
-1. [platform.claude.com](https://platform.claude.com) → API keys → kalit yarating.
-2. `backend/.env`: `ANTHROPIC_API_KEY=...`, `ASSISTANT_DRY_RUN=false`. Model — `ASSISTANT_MODEL`,
+1. [Google AI Studio](https://aistudio.google.com) → **Get API key** → kalit yarating. Loyihada
+   **billing** (pullik tarif) yoqilsin: bepul tarifda yozishmalar Google mahsulotlarini
+   yaxshilashga ishlatilishi mumkin, limitlari ham kichik.
+2. `backend/.env`: `GEMINI_API_KEY=...`, `ASSISTANT_DRY_RUN=false`. Model — `GEMINI_MODEL`,
    narxi bilan birga o'zgartiriladi (1M token uchun, kiruvchi / chiquvchi):
 
-   | Model | `ASSISTANT_MODEL` | Narx |
+   | Model | `GEMINI_MODEL` | Narx |
    |---|---|---|
-   | Claude Opus 5 (standart, eng kuchli) | `claude-opus-5` | $5 / $25 |
-   | Claude Sonnet 5 | `claude-sonnet-5` | $2 / $10 |
-   | Claude Haiku 4.5 | `claude-haiku-4-5` | $1 / $5 |
+   | Gemini 3.8 Flash (standart, barqaror) | `gemini-3.8-flash` | $1.50 / $7.50 (2026 yil oxirigacha $0.75 / $3.75) |
+   | Gemini 3.1 Pro (kuchliroq, sinov holatida) | `gemini-3.1-pro-preview` | $2 / $12 |
 
-   `ASSISTANT_EFFORT=low` — fikrlash chuqurligi (chat uchun past: tez va arzon).
+   `GEMINI_THINKING_LEVEL=low` — fikrlash chuqurligi (chat uchun past: tez va arzon).
 3. `docker compose up -d --force-recreate backend worker worker-ai`.
 4. Admin → **AI yordamchi → AI sozlamalari**: kunlik va oylik budjet, "qo'shimcha ma'lumot"
    (chegirmalar, bo'lib to'lash, sertifikat, sinov darsi — AI faqat shu yerdagi va saytdagi
-   faktlarni aytadi).
-5. Sifatni tekshirish (haqiqiy Claude, ~$0,2–0,5): `docker compose exec backend python manage.py assistant_eval`.
+   faktlarni aytadi). E'tirozlarga javoblar — **Sayt kontenti → Xavotirlar**, savol-javoblar —
+   **FAQ**. Daraja testi bo'lsa, AI uni va kuponni o'zi taklif qiladi.
+5. Sifatni tekshirish (haqiqiy Gemini, ~$0,05–0,2): `docker compose exec backend python manage.py assistant_eval`.
 
 **Kalitsiz (local):** `ASSISTANT_DRY_RUN=true` — chat "test rejimi" belgisi bilan ishlaydi: kurslarni
-ko'rsatadi va raqam so'raydi, raqam yozilsa ariza yaratiladi. Budjet tugasa yoki Claude ishlamasa
+ko'rsatadi va raqam so'raydi, raqam yozilsa ariza yaratiladi. Budjet tugasa yoki Gemini ishlamasa
 ham shu oddiy rejim ishlaydi — mijoz javobsiz qolmaydi.
 
 **Xavfsizlik:** telefon raqamlari AI'ga yuborilmaydi (`‹telefon-1›` belgisi bilan almashtiriladi),

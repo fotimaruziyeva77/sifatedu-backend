@@ -1,7 +1,7 @@
-"""Claude'siz oddiy javob beruvchi: test rejimi va zaxira.
+"""Gemini'siz oddiy javob beruvchi: test rejimi va zaxira.
 
 Qachon ishlaydi: `ASSISTANT_DRY_RUN=true` (local, E2E), kunlik yoki oylik budjet tugaganda,
-suhbatdagi xabarlar limiti oshganda va Claude API xato berganda. U AI emas — faqat kurslarni
+suhbatdagi xabarlar limiti oshganda va Gemini API xato berganda. U AI emas — faqat kurslarni
 ko'rsatadi va raqam so'raydi; raqam yozilsa ariza baribir yaratiladi, ya'ni mijoz yo'qolmaydi.
 Agent bilan bir xil interfeys (`ChatModel`) va bir xil vositalardan foydalanadi.
 """

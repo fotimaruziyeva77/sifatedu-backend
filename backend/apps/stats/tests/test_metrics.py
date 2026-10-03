@@ -113,7 +113,7 @@ def test_problems_and_links() -> None:
 
     assert found["2 soatdan beri javobsiz arizalar"].count == 1
     assert found["AI javob bera olmadi (xato)"].level == "danger"
-    assert found["AI Claude'siz, oddiy rejimda javob berdi"].count == 1
+    assert found["AI Gemini'siz, oddiy rejimda javob berdi"].count == 1
     assert found["SMS kod kiritilmadi"].level == "warning"
     assert found["Server xatolari (500)"].count == 1
     # Menejer videolarni ko'rmaydi — havola berilmaydi (403 bo'lardi).

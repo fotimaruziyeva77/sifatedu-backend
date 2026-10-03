@@ -476,7 +476,7 @@ ommaviy portfolio.
 **Til:** AI foydalanuvchi yozgan tilda javob beradi (o'zbek lotin/kirill, rus, ingliz).
 
 **Texnik talablar:**
-- **Model:** Anthropic Claude API. Model nomi `.env` orqali sozlanadi. Taklif: murakkab vazifalar (chat, review) uchun Claude Sonnet, oddiy va ommaviy vazifalar (tasniflash, qisqa tushuntirish) uchun Claude Haiku.
+- **Model:** Google Gemini API (2026-10-03 dan; avval Anthropic Claude). Model nomi `.env` orqali sozlanadi (`GEMINI_MODEL`, standart — Gemini 3.8 Flash). Kalit — Google AI Studio, pullik tarif (bepul tarifda yozishmalar Google mahsulotlarini yaxshilashga ishlatilishi mumkin).
 - **RAG:** darslar transkripti va materiallari bo'laklarga bo'linib, vektor bazada saqlanadi (PostgreSQL + `pgvector`).
 - **Javoblar streaming** orqali chiqadi.
 - **Limitlar:**
@@ -874,7 +874,7 @@ Admin panel — **Django Admin** (Unfold temasi), manzili `/admin/`. Faqat xodim
   - Admin ham faqat umumiy (agregat) statistikani ko'radi.
   - Instruktorga ko'rsatilmaydi.
 
-### 4.22. Ko'p markazli platforma (SaaS) (3-bosqich, 19–21-qadamlar)
+### 4.22. Ko'p markazli platforma (SaaS) (3-bosqich, 23–25-qadamlar)
 
 Platforma boshqa o'quv markazlariga oylik obuna bilan beriladi. Har bir markaz — alohida
 **mijoz**: o'z o'quvchilari, kurslari, xodimlari va puli bor, markazlar bir-birining
@@ -1059,7 +1059,7 @@ Loyiha **ikkita mustaqil ilovadan** iborat: `frontend/` (Next.js) va `backend/` 
 | Loglar | JSON loglar | |
 | Paket menejer | **uv** (`pyproject.toml`, `uv.lock`) | |
 | Kodni ishga tushirish | **Judge0** (self-hosted, B2) | |
-| AI | **Anthropic Claude API** (B2) | |
+| AI | **Google Gemini API** (B2) | |
 | Real vaqt | SSE (AI streaming, B2), WebSocket — Django Channels (jonli chat, B3) | |
 
 ### 6.2. Tizim komponentlari
@@ -1086,7 +1086,7 @@ Loyiha **ikkita mustaqil ilovadan** iborat: `frontend/` (Next.js) va `backend/` 
                                                    └──────┬───────┘
                                                           ▼
           ┌──────────┬──────────┬──────────┬──────────┬──────────┐
-          │ Object   │ Click /  │ Eskiz    │ Telegram │ Anthropic│
+          │ Object   │ Click /  │ Eskiz    │ Telegram │ Gemini   │
           │ storage  │ Payme    │ (SMS)    │ Bot API  │ API (B2) │
           └──────────┴──────────┴──────────┴──────────┴──────────┘
                                          + Judge0 (B2, izolyatsiya qilingan server)
@@ -1263,7 +1263,7 @@ sifatedu/
 | **Uzum** | To'lov | Rasmiy hujjat bo'yicha | B2 |
 | **Eskiz.uz** | SMS | SMS shablonlarini oldindan tasdiqlatish, token yangilash | B1 |
 | **Telegram Bot API** | Arizalar, ogohlantirishlar, foydalanuvchi boti, login, jonli support | Webhook, bot foydalanuvchini akkauntga bog'lash (deep link) | B1 / B2 / B3 |
-| **Anthropic API** | AI | Streaming, prompt caching, limitlar, xatolarda qayta urinish | B2 |
+| **Google Gemini API** | AI | Streaming, vositalar (function calling), fikrlash imzolari, limitlar, xatolarda qayta urinish | B2 |
 | **Judge0** (self-hosted) | Kodni ishga tushirish | Alohida serverda, tarmoqsiz; CPU/xotira/vaqt limitlari | B2 |
 | **ClamAV** | Fayllarni antivirus tekshiruvi | Barcha yuklangan talaba fayllari | B2 |
 | **Object storage** | Fayllar | Presigned URL, versiyalash, lifecycle (raw videolarni arxivlash) | B1 |
@@ -1346,7 +1346,7 @@ sifatedu/
 - Oferta, maxfiylik siyosati va marketing uchun alohida rozilik; versiya va sana saqlanadi.
 - Accessibility ma'lumotlari uchun alohida rozilik.
 
-**Xorijga uzatish:** AI (Anthropic) va boshqa xorijiy xizmatlarga faqat anonimlashtirilgan o'quv kontenti va talaba savollari yuboriladi. Bu maxfiylik siyosatida yoziladi.
+**Xorijga uzatish:** AI (Google Gemini) va boshqa xorijiy xizmatlarga faqat anonimlashtirilgan o'quv kontenti va talaba savollari yuboriladi. Bu maxfiylik siyosatida yoziladi.
 
 **Fiskalizatsiya:** har bir to'lov uchun fiskal chek, har bir kurs uchun MXIK kodi.
 
@@ -1679,9 +1679,9 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
 # AI (B2)
-ANTHROPIC_API_KEY=
-AI_MODEL_MAIN=              # murakkab vazifalar (chat, review)
-AI_MODEL_FAST=              # oddiy vazifalar
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_THINKING_LEVEL=low
 AI_DAILY_MESSAGE_LIMIT=50
 AI_MONTHLY_BUDGET_USD=
 

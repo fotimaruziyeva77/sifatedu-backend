@@ -429,19 +429,21 @@ TELEGRAM_REPORTS_CHAT_ID = env("TELEGRAM_REPORTS_CHAT_ID", default="")
 # Bot webhook'i: Telegram har so'rovda shu kalitni header'da yuboradi (`telegram_webhook set`).
 TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", default="")
 
-# --- AI maslahatchi (Claude API) ---
-# Kalit bo'lmasa va DRY_RUN o'chiq bo'lsa, saytda chat ko'rinmaydi.
-ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
-# Standart — Claude Opus 5 (eng kuchli). Arzonroq: claude-sonnet-5 (narxlar 2 / 10).
-ASSISTANT_MODEL = env("ASSISTANT_MODEL", default="claude-opus-5")
+# --- AI maslahatchi (Google Gemini API) ---
+# Kalit: aistudio.google.com → API keys (pullik tarif: bepulida yozishmalar Google mahsulotlarini
+# yaxshilashga ishlatilishi mumkin). Kalit bo'lmasa va DRY_RUN o'chiq bo'lsa, saytda chat yo'q.
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+# Standart — Gemini 3.8 Flash (barqaror, tez). Model va narx birga o'zgartiriladi.
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-3.8-flash")
+# Fikrlash chuqurligi: minimal | low | medium | high. Chat uchun past — tezroq va arzonroq.
+GEMINI_THINKING_LEVEL = env("GEMINI_THINKING_LEVEL", default="low")
+# Narxlar, $ / 1M token: ai.google.dev/gemini-api/docs/pricing. 3.8 Flash: 1.50 / 7.50 (2026 yil
+# oxirigacha aksiya — 0.75 / 3.75; budjet zaxira bilan hisoblanadi).
+GEMINI_PRICE_INPUT = env.float("GEMINI_PRICE_INPUT", default=1.5)
+GEMINI_PRICE_OUTPUT = env.float("GEMINI_PRICE_OUTPUT", default=7.5)
 # Javob chegarasi (fikrlash tokenlari ham kiradi). Odatdagi javob bundan ancha qisqa.
 ASSISTANT_MAX_TOKENS = env.int("ASSISTANT_MAX_TOKENS", default=16000)
-# Fikrlash chuqurligi: low | medium | high. Chat uchun past — tezroq va arzonroq.
-ASSISTANT_EFFORT = env("ASSISTANT_EFFORT", default="low")
-# Narxlar, $ / 1M token: platform.claude.com/docs/en/about-claude/pricing (Opus 5: 5 / 25).
-ASSISTANT_PRICE_INPUT = env.float("ASSISTANT_PRICE_INPUT", default=5.0)
-ASSISTANT_PRICE_OUTPUT = env.float("ASSISTANT_PRICE_OUTPUT", default=25.0)
-# DRY_RUN: Claude chaqirilmaydi (kalit bo'lsa ham) — oddiy rejim "test rejimi" belgisi bilan
+# DRY_RUN: Gemini chaqirilmaydi (kalit bo'lsa ham) — oddiy rejim "test rejimi" belgisi bilan
 # (E2E va pulsiz sinov uchun). `assistant_eval` bunga qaramaydi.
 ASSISTANT_DRY_RUN = env.bool("ASSISTANT_DRY_RUN", default=False)
 ASSISTANT_RETENTION_DAYS = env.int("ASSISTANT_RETENTION_DAYS", default=90)

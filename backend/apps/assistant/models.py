@@ -137,8 +137,8 @@ class Conversation(TimeStampedModel):
 
 
 class Message(models.Model):
-    """Suhbatdagi xabar. `content` — Claude API'ga aynan qanday yuborilgan bo'lsa (raqamlar
-    belgi bilan); `text` — mijoz va admin ko'radigan matn."""
+    """Suhbatdagi xabar. `content` — modelga aynan qanday yuborilgan bo'lsa (raqamlar belgi
+    bilan, Gemini imzolari bilan); `text` — mijoz va admin ko'radigan matn."""
 
     class Role(models.TextChoices):
         USER = "USER", _("Mijoz")

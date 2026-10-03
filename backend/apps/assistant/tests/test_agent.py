@@ -4,14 +4,13 @@ from decimal import Decimal
 from typing import Any
 from unittest import mock
 
-import anthropic
-import httpx2
 import pytest
 from django.core.cache import cache
+from google.genai import errors as gemini_errors
 
 from apps.assistant import agent
 from apps.assistant.agent import api_history, choose_model, partial_key, respond
-from apps.assistant.llm import AnthropicModel, Turn, Usage, cost_usd, with_cache_breakpoint
+from apps.assistant.llm import GeminiModel, Turn, Usage, cost_usd
 from apps.assistant.models import AssistantSettings, Conversation, Message
 from apps.assistant.rules import RuleModel
 from apps.assistant.service import add_user_message
@@ -63,6 +62,7 @@ def test_tool_loop_shows_cards_on_final_answer(
     tool_result = model.calls[1]["messages"][-1]["content"][0]
     assert tool_result["type"] == "tool_result"
     assert tool_result["tool_use_id"] == "toolu_1"
+    assert tool_result["name"] == "show_courses"  # Gemini natijani vosita nomi bilan kutadi
     assert "yoq-kurs" in tool_result["content"]
     assert Message.objects.filter(conversation=conversation, role=Message.Role.TOOL).count() == 1
 
@@ -143,9 +143,9 @@ def test_last_step_forbids_tools(conversation: Conversation, courses: list[Cours
 
 def test_api_error_falls_back_to_rules(conversation: Conversation) -> None:
     add_user_message(conversation, "Salom")
-    failing = mock.Mock(name="claude")
-    failing.respond.side_effect = anthropic.APIConnectionError(
-        request=httpx2.Request("POST", "https://api.anthropic.com")
+    failing = mock.Mock(name="gemini")
+    failing.respond.side_effect = gemini_errors.ServerError(
+        503, {"error": {"code": 503, "message": "overloaded", "status": "UNAVAILABLE"}}
     )
 
     with (
@@ -161,7 +161,7 @@ def test_api_error_falls_back_to_rules(conversation: Conversation) -> None:
 
 def test_unexpected_error_still_answers(conversation: Conversation) -> None:
     add_user_message(conversation, "Salom")
-    broken = mock.Mock(name="claude")
+    broken = mock.Mock(name="gemini")
     broken.respond.side_effect = RuntimeError("boom")
 
     with (
@@ -179,16 +179,17 @@ def test_choose_model(settings: Any, conversation: Conversation) -> None:
     assert isinstance(choose_model(conversation, config), RuleModel)
 
     # Test rejimi kalit bo'lsa ham ustun.
-    settings.ANTHROPIC_API_KEY = "sk-test"
+    settings.GEMINI_API_KEY = "test-key"
     settings.ASSISTANT_DRY_RUN = True
     dry = choose_model(conversation, config)
     assert isinstance(dry, RuleModel) and dry.dry_run
     settings.ASSISTANT_DRY_RUN = False
 
-    settings.ANTHROPIC_API_KEY = "sk-test"
-    settings.ASSISTANT_EFFORT = "medium"
-    claude = choose_model(conversation, config)
-    assert isinstance(claude, AnthropicModel) and claude.effort == "medium"
+    settings.GEMINI_MODEL = "gemini-3.8-flash"
+    settings.GEMINI_THINKING_LEVEL = "medium"
+    gemini = choose_model(conversation, config)
+    assert isinstance(gemini, GeminiModel)
+    assert (gemini.name, gemini.thinking) == ("gemini-3.8-flash", "medium")
 
     config.daily_budget_usd = Decimal("0.01")
     Message.objects.create(conversation=conversation, role="ASSISTANT", cost_usd=Decimal("0.02"))
@@ -202,19 +203,11 @@ def test_choose_model(settings: Any, conversation: Conversation) -> None:
     assert isinstance(choose_model(conversation, config), RuleModel)
 
 
-def test_cost_and_cache_breakpoint() -> None:
+def test_cost() -> None:
     usage = Usage(input_tokens=1000, output_tokens=200, cache_read_tokens=0, cache_write_tokens=0)
     assert cost_usd(usage) == Decimal("0.004000")
-
-    messages: list[dict[str, Any]] = [
-        {"role": "user", "content": [{"type": "text", "text": "a"}]},
-        {"role": "assistant", "content": [{"type": "text", "text": "b"}]},
-        {"role": "user", "content": [{"type": "text", "text": "c"}, {"type": "text", "text": "d"}]},
-    ]
-    marked = with_cache_breakpoint(messages)
-    assert marked[-1]["content"][-1]["cache_control"] == {"type": "ephemeral"}
-    # Asl tarix o'zgarmaydi: belgi saqlansa, keyingi so'rovlarda 4 tadan oshib ketadi.
-    assert "cache_control" not in messages[-1]["content"][-1]
+    # Keshdan o'qilgan tokenlar — kiruvchi narxning 10 foizi: 1000×2×0.1 / 1M.
+    assert cost_usd(Usage(cache_read_tokens=1000)) == Decimal("0.000200")
 
 
 def test_refusal_without_text_still_answers(conversation: Conversation) -> None:
@@ -227,10 +220,10 @@ def test_refusal_without_text_still_answers(conversation: Conversation) -> None:
     assert "telefon" in created[-1].text
 
 
-def test_unreadable_tool_input_falls_back_to_rules(conversation: Conversation) -> None:
+def test_unreadable_answer_falls_back_to_rules(conversation: Conversation) -> None:
     add_user_message(conversation, "Salom")
-    broken = mock.Mock(name="claude")
-    broken.respond.side_effect = ValueError("tool input is not valid JSON")
+    broken = mock.Mock(name="gemini")
+    broken.respond.side_effect = ValueError("response is not valid")
 
     with (
         mock.patch.object(agent, "choose_model", return_value=broken),
@@ -242,6 +235,7 @@ def test_unreadable_tool_input_falls_back_to_rules(conversation: Conversation) -
 
 
 def test_thinking_only_answer_is_not_replayed(conversation: Conversation) -> None:
+    # Claude davridan qolgan, faqat fikrlashdan iborat javob tarixga qo'shilmaydi.
     add_user_message(conversation, "Savol")
     Message.objects.create(
         conversation=conversation,
@@ -253,14 +247,17 @@ def test_thinking_only_answer_is_not_replayed(conversation: Conversation) -> Non
     assert [item["role"] for item in api_history(conversation)] == ["user"]
 
 
-def test_thinking_travels_with_tool_call(conversation: Conversation, courses: list[Course]) -> None:
+def test_signature_travels_with_tool_call(
+    conversation: Conversation, courses: list[Course]
+) -> None:
     add_user_message(conversation, "Kurslar")
-    first = tool_turn("show_courses", {"slugs": ["frontend"]})
-    first.content.insert(0, {"type": "thinking", "thinking": "", "signature": "sig"})
+    first = tool_turn("show_courses", {"slugs": ["frontend"]}, "fc-1")
+    first.content[0].update(call_id="fc-1", signature="c2ln")
     model = ScriptedModel([first, text_turn("Mana")])
 
     run_with(model, conversation)
 
     replayed = model.calls[1]["messages"][-2]
     assert replayed["role"] == "assistant"
-    assert replayed["content"][0] == {"type": "thinking", "thinking": "", "signature": "sig"}
+    assert replayed["content"][0]["signature"] == "c2ln"
+    assert replayed["content"][0]["call_id"] == "fc-1"

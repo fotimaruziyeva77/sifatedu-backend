@@ -9,16 +9,17 @@ import logging
 import time
 from typing import Any
 
-import anthropic
+import httpx
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
+from google.genai import errors as gemini_errors
 
 from apps.notifications.alerts import alert
 
 from . import budget
-from .llm import AnthropicModel, ChatModel, Turn, cost_usd
+from .llm import ChatModel, GeminiModel, Turn, cost_usd
 from .models import AssistantSettings, Conversation, Message
 from .phones import unmask
 from .prompt import build_system_prompt
@@ -29,13 +30,8 @@ logger = logging.getLogger(__name__)
 
 MAX_STEPS = 4
 PARTIAL_TTL_SECONDS = 120
-# Qayta urinish foyda bermaydigan xatolar: kalit, ruxsat, model nomi yoki so'rov shakli noto'g'ri.
-NOT_RETRYABLE = (
-    anthropic.BadRequestError,
-    anthropic.AuthenticationError,
-    anthropic.PermissionDeniedError,
-    anthropic.NotFoundError,
-)
+# Qayta urinish foyda bermaydigan xatolar: so'rov shakli, kalit, ruxsat yoki model nomi noto'g'ri.
+NOT_RETRYABLE = (400, 401, 403, 404)
 PARTIAL_INTERVAL_SECONDS = 0.15
 
 
@@ -67,13 +63,13 @@ class PartialText:
 
 
 def ai_configured() -> bool:
-    """Saytdagi chat ko'rsatiladimi: Claude kaliti bor yoki test rejimi yoqilgan."""
-    return bool(settings.ANTHROPIC_API_KEY) or settings.ASSISTANT_DRY_RUN
+    """Saytdagi chat ko'rsatiladimi: Gemini kaliti bor yoki test rejimi yoqilgan."""
+    return bool(settings.GEMINI_API_KEY) or settings.ASSISTANT_DRY_RUN
 
 
 def choose_model(conversation: Conversation, config: AssistantSettings) -> ChatModel:
     # Test rejimi kalitdan ustun: kalit `.env`da tursa ham E2E va local sinov pul sarflamaydi.
-    if settings.ASSISTANT_DRY_RUN or not settings.ANTHROPIC_API_KEY:
+    if settings.ASSISTANT_DRY_RUN or not settings.GEMINI_API_KEY:
         return RuleModel(locale=conversation.locale, dry_run=settings.ASSISTANT_DRY_RUN)
     if (
         not config.enabled
@@ -82,16 +78,16 @@ def choose_model(conversation: Conversation, config: AssistantSettings) -> ChatM
     ):
         # AI to'xtatilgan, limit yoki budjet tugagan: mijoz baribir raqam qoldira oladi.
         return RuleModel(locale=conversation.locale, dry_run=False)
-    return AnthropicModel(
-        api_key=settings.ANTHROPIC_API_KEY,
-        model=settings.ASSISTANT_MODEL,
+    return GeminiModel(
+        api_key=settings.GEMINI_API_KEY,
+        model=settings.GEMINI_MODEL,
         max_tokens=settings.ASSISTANT_MAX_TOKENS,
-        effort=settings.ASSISTANT_EFFORT,
+        thinking=settings.GEMINI_THINKING_LEVEL,
     )
 
 
 def api_history(conversation: Conversation) -> list[dict[str, Any]]:
-    """Saqlangan xabarlardan Claude API tarixi. Buzilgan joylar (javobsiz vosita chaqiruvi,
+    """Saqlangan xabarlardan model tarixi. Buzilgan joylar (javobsiz vosita chaqiruvi,
     ketma-ket bir xil rol) API qabul qiladigan ko'rinishga keltiriladi."""
     items = list(conversation.messages.order_by("id").values_list("role", "content"))
     history: list[dict[str, Any]] = []
@@ -154,14 +150,14 @@ def _run(
                 allow_tools=allow_tools,
                 on_text=partial.add,
             )
-        except (anthropic.APIError, ValueError) as exc:
-            # ValueError — stream'da vosita kiritmasi JSON sifatida o'qilmadi (eager streaming).
-            # Sozlama yoki kod xatosi (kalit, model nomi, so'rov shakli) Sentry'ga tushadi;
-            # tarmoq, limit va server xatolari SDK qayta urinishlaridan keyin ham — ogohlantirish.
-            level = logging.ERROR if isinstance(exc, NOT_RETRYABLE) else logging.WARNING
-            logger.log(level, "Claude API xatosi: %s", exc)
+        except (gemini_errors.APIError, httpx.HTTPError, ValueError) as exc:
+            # ValueError — javob o'qilmadi (SDK tekshiruvi). Sozlama yoki kod xatosi (kalit,
+            # model nomi, so'rov shakli) Sentry'ga tushadi; tarmoq, limit va server xatolari
+            # SDK qayta urinishlaridan keyin ham — ogohlantirish.
+            fatal = isinstance(exc, gemini_errors.APIError) and exc.code in NOT_RETRYABLE
+            logger.log(logging.ERROR if fatal else logging.WARNING, "Gemini API xatosi: %s", exc)
             alert(
-                "assistant:api", f"Claude API xatosi: {type(exc).__name__}. Oddiy rejim ishlayapti."
+                "assistant:api", f"Gemini API xatosi: {type(exc).__name__}. Oddiy rejim ishlayapti."
             )
             model = RuleModel(locale=conversation.locale, dry_run=False)
             turn = model.respond(
@@ -179,7 +175,7 @@ def _run(
         # `refusal` bilan kesilgan javobdagi chaqiruv to'liq bo'lmasligi mumkin.
         if turn.stop_reason != "tool_use" or not calls:
             if turn.stop_reason == "refusal":
-                logger.info("Claude javobni rad etdi: suhbat #%s", conversation.pk)
+                logger.info("Gemini javobni rad etdi: suhbat #%s", conversation.pk)
             break
         results = []
         for call in calls:
@@ -188,6 +184,7 @@ def _run(
             block: dict[str, Any] = {
                 "type": "tool_result",
                 "tool_use_id": call.id,
+                "name": call.name,
                 "content": outcome.content,
             }
             if outcome.is_error:
@@ -237,6 +234,6 @@ def respond(conversation: Conversation) -> list[Message]:
         target.attachments = list(unique.values())[:MAX_CARDS]
         target.save(update_fields=["attachments"])
     Conversation.objects.filter(pk=conversation.pk).update(last_message_at=timezone.now())
-    if isinstance(model, AnthropicModel):
+    if isinstance(model, GeminiModel):
         budget.check_warning(config)
     return created

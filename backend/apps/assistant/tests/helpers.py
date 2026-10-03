@@ -38,7 +38,7 @@ def tool_turn(name: str, data: dict[str, Any], call_id: str = "toolu_1") -> Turn
 
 
 class ScriptedModel:
-    """Soxta Claude: oldindan yozilgan javoblarni qaytaradi va unga nima yuborilganini eslaydi."""
+    """Soxta model: oldindan yozilgan javoblarni qaytaradi va unga nima yuborilganini eslaydi."""
 
     name = "fake"
 

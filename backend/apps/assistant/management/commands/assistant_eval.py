@@ -1,4 +1,4 @@
-"""AI maslahatchi sifatini haqiqiy Claude bilan tekshirish (pul sarflaydi: ~$0,2–0,5).
+"""AI maslahatchi sifatini haqiqiy Gemini bilan tekshirish (pul sarflaydi: ~$0,05–0,2).
 
     docker compose exec backend python manage.py assistant_eval
     docker compose exec backend python manage.py assistant_eval --only uz --show
@@ -29,13 +29,13 @@ class Command(BaseCommand):
         parser.add_argument("--show", action="store_true", help="Javoblarni to'liq chiqarish")
 
     def handle(self, *args: Any, **options: Any) -> None:
-        if not settings.ANTHROPIC_API_KEY:
-            raise CommandError("ANTHROPIC_API_KEY kerak: eval haqiqiy Claude bilan ishlaydi.")
+        if not settings.GEMINI_API_KEY:
+            raise CommandError("GEMINI_API_KEY kerak: eval haqiqiy Gemini bilan ishlaydi.")
         prefix = options.get("only") or ""
         scenarios = [scenario for scenario in SCENARIOS if scenario.id.startswith(prefix)]
         passed, total_cost = 0, Decimal(0)
         for scenario in scenarios:
-            # Eval har doim haqiqiy Claude bilan: test rejimi yoqilgan bo'lsa ham.
+            # Eval har doim haqiqiy Gemini bilan: test rejimi yoqilgan bo'lsa ham.
             with override_settings(ASSISTANT_DRY_RUN=False), transaction.atomic():
                 conversation = Conversation.objects.create(locale=scenario.locale)
                 for text in scenario.turns:

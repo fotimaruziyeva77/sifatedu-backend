@@ -7,8 +7,12 @@ from django.utils import timezone
 
 from apps.assistant.models import AssistantSettings, Conversation
 from apps.assistant.prompt import build_system_prompt, context_block
-from apps.catalog.models import Course
+from apps.catalog.models import Course, Lesson, Module
 from apps.content.models import FAQItem, SiteSettings
+from apps.placement.models import PlacementTest
+from apps.quizzes.models import Quiz
+from apps.quizzes.parser import parse
+from apps.quizzes.services import import_questions
 
 
 def test_prompt_has_published_courses_prices_and_facts(courses: list[Course]) -> None:
@@ -65,3 +69,25 @@ def test_context_block(conversation: Conversation, db: Any) -> None:
     assert "mijoz: saytga kirgan, ismi Aziz, raqami ‹telefon-akkaunt›" in block
     assert "kasb testi natijasi: track — Frontend" in block
     assert "+998" not in block
+
+
+def test_prompt_offers_level_test_and_coupon(courses: list[Course], settings: Any) -> None:
+    settings.TELEGRAM_BOT_USERNAME = "sifat_test_bot"
+    assert "## Bepul daraja testi" not in build_system_prompt("ru")  # faol test yo'q
+
+    module = Module.objects.create(course=courses[0], title_uz="Daraja testi")
+    lesson = Lesson.objects.create(module=module, title_uz="Frontend: daraja testi")
+    quiz = Quiz.objects.create(lesson=lesson, title="Frontend: daraja testi")
+    import_questions(quiz, parse("? HTML nima?\n+ Belgilash tili\n- Dasturlash tili\n"))
+    PlacementTest.objects.create(
+        course=courses[0], title="Frontend", quiz=quiz, questions_count=12, duration_min=15
+    )
+
+    prompt = build_system_prompt("ru")
+
+    assert "## Bepul daraja testi va chegirma kuponi" in prompt
+    assert "Frontend — 12 savol, 15 daqiqa" in prompt
+    assert "25% chegirma kuponi, aks holda — 15%. Kupon 72 soat amal qiladi" in prompt
+    assert "https://t.me/sifat_test_bot?start=ai" in prompt
+    # Botdagi tugma nomlari — suhbat tilida.
+    assert "«🎯 Тест на уровень»" in prompt and "«📱" in prompt

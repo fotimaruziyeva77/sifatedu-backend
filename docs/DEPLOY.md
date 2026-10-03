@@ -42,7 +42,7 @@ kunlik zaxira. Shaxsiy ma'lumotlar va ularning zaxirasi O'zbekistondagi serverda
 | Arizalar guruhi ID | kompyuterdagi `backend/.env` → `TELEGRAM_LEADS_CHAT_ID` |
 | Click: `SERVICE_ID`, `MERCHANT_ID`, `MERCHANT_USER_ID`, `SECRET_KEY`, STIR | Click merchant kabineti |
 | Eskiz: e-pochta va parol | my.eskiz.uz |
-| Anthropic API kaliti (va hisobda kredit) | platform.claude.com → API keys |
+| Gemini API kaliti (loyihada billing yoqilgan) | aistudio.google.com → Get API key |
 | Google OAuth Client ID | Google Cloud Console → Credentials |
 | Ixtiyoriy: Sentry DSN, UptimeRobot akkaunti | sentry.io, uptimerobot.com |
 

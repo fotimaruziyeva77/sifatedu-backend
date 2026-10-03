@@ -1281,7 +1281,7 @@ PDF va QR bilan tekshirish.
 | **17** ✅ | **Coin do'koni:** sovg'alar, zaxira, buyurtma va topshirish | o'rta |
 | **18** | **Ishga tushirish:** server, domen, HTTPS, bot webhook, Click va Eskiz, zaxira nusxa, monitoring. Sayt va bot ishlayapti (Contabo, umumiy server rejimi); Click, Eskiz va `media.sifatedu.uz` — kutilmoqda | o'rta |
 | **19** ✅ | **Yangi kelganlar yo'li** (§7D): manba (Instagram va boshqalar), yo'nalish → daraja testi → 15% yoki 25% kupon (72 soat) → ariza menejerga → eslatmalar. Qo'llanma — `docs/yangi-kelganlar.md` | o'rta–katta |
-| **20** | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi | o'rta–katta |
+| **20** ✅ | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi. Qo'llanma — `docs/ai-maslahatchi.md` | o'rta–katta |
 | **21** | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
 | **22** | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
 | **23** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
@@ -1733,6 +1733,24 @@ sozlamalari admin'da, sinov to'plami (`assistant_eval`). Shaxsiyat — samimiy m
 bazasi (kurslar, narxlar, jadval, FAQ) va e'tirozlarga javoblar buyurtmachi materiallaridan.
 Kalit bo'lmasa — oddiy (qoidaga asoslangan) javoblar, saytda chat yashirin.
 
+**Natija (2026-10-03):**
+- Anthropic SDK olib tashlandi, o'rniga `google-genai` (`generate_content` stream; Interactions
+  API ham bor, lekin tarix bazada bizda — oddiy, to'liq qo'llab-quvvatlanadigan yo'l tanlandi).
+  Model — `gemini-3.8-flash` (barqaror), fikrlash `low`; sozlamalar `GEMINI_*` (serverdagi eski
+  `ASSISTANT_MODEL=claude-…` qatorlari endi o'qilmaydi).
+- Tarix model-neytral bloklarda (`text`, `tool_use`, `tool_result`); Gemini 3 fikrlash imzolari
+  (`signature`, base64) va chaqiruv ID si (`call_id`) saqlanib, keyingi so'rovda aynan qaytariladi —
+  imzosiz vosita chaqiruvini Gemini 400 bilan rad etadi. Eski (Claude) suhbatlar ham davom etadi.
+- Shaxsiyat: samimiy, odamdek; halol ishontirish va e'tirozlarga javob tartibi; bepul daraja testi
+  va kupon bo'limi prompt'ga o'yin sozlamalari va faol testlardan o'zi yoziladi (saytdagi mijozga
+  `t.me/<bot>?start=ai` — manba «ai»). Kurs qatorida sertifikat.
+- Xarajat: keshdan o'qilgan tokenlar 10 foiz narxda, fikrlash — chiqish narxida; budjet aksiyasiz
+  narxda (1.50 / 7.50).
+- Bilim bazasi va e'tirozlar — buyurtmachi bilan: `docs/ai-maslahatchi.md` (savolnoma va javoblar
+  qoralamasi). Kalit — Google AI Studio, pullik tarif.
+- Testlar: `apps/assistant/tests/test_llm.py` (soxta SDK: contents, stream, imzolar, sozlamalar,
+  to'xtash sabablari), agent va prompt testlari.
+
 ### 21-qadam: onlayn guruhlar Zoom orqali
 
 Guruhga «darslar o'qituvchi belgilagach ochiladi» sozlamasi: offlayn — doim, onlayn — tanlov
@@ -1961,3 +1979,12 @@ Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) r
 |---|---|
 | Yangi 4.22: platforma boshqa o'quv markazlariga obuna bilan beriladi; har markazning o'z domeni, boti, Click hisobi va dizayni | Buyurtmachi g'oyasi: har markazga alohida nusxa qilish o'rniga bitta tizim |
 | Yo'l xaritasiga 19–21-qadamlar (ko'p markazli asos, brend va integratsiyalar, SaaS ishlatish); SIFAT Kids ulardan keyin | Kids boshidan ko'p markazli yozilsin, ikki marta ish qilinmasin |
+
+### v3.4 → v3.5 (o'quvchi yig'ish: 19–22-qadamlar)
+
+| O'zgarish | Sabab |
+|---|---|
+| Yangi kelganlar yo'li: manba havolalari, botda daraja testi, 15% / 25% kupon (72 soat, bir marta), menejerga ariza va eslatmalar | Buyurtmachi maqsadi: oyiga kamida 5 guruh, odamlar asosan Instagram'dan keladi |
+| Kupon — muddat va turi bilan; bir nechta chegirma qo'shilmaydi, eng kattasi qo'llanadi | Chegirmalar tasodifan 40–50% ga yetib qolmasin |
+| AI: Anthropic Claude → Google Gemini (Gemini 3.8 Flash, AI Studio pullik tarifi) | Buyurtmachi tanlovi; arzonroq. Bepul tarif yozishmalarni o'qitishga ishlatishi mumkin — pullik shart |
+| Yo'l xaritasi: 19–22 — o'quvchi yig'ish va o'qitish (yangi kelganlar, Gemini, Zoom guruhlari, kunlik test); SaaS — 23–25 | Avval o'z markazini to'ldirish, keyin platformani sotish |
