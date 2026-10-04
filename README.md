@@ -447,6 +447,9 @@ API ishlatilmaydi — havola qo'lda qo'yiladi.
 * **Sozlamalar:** admin → **XP va coin → Sozlamalar** → «Kunlik test (guruhlar)»: yoqish, savollar
   soni (kamida 20), XP va coin. Natijalar: admin → **O'qish → Kunlik testlar**. Eski 09:00 dagi
   «Kunlik topshiriqlar»ni o'chirib qo'yish tavsiya etiladi — kunlik test ularning o'rnida.
+* **Python guruhi uchun tayyor bank:** `backend/scripts/python_dars_testlari.py` — o'tilgan 6 ta
+  mavzuga dars testlari (84 savol), darslarni guruh uchun o'tilgan deb belgilaydi va guruhni
+  «O'qiyapti» qiladi (serverda: `dc exec -T -e ACTION=setup backend python manage.py shell < …`).
 
 ## Coin do'koni
 
