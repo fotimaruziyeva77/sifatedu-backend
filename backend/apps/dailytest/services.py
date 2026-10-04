@@ -470,6 +470,43 @@ def review(attempt: DailyAttempt) -> list[dict[str, Any]]:
     return items
 
 
+def attempt_payload(attempt: DailyAttempt, *, now: datetime | None = None) -> dict[str, Any]:
+    """Saytda ishlash uchun: savollar (javobsiz) va berilgan javoblar (to'g'ri/noto'g'risiz) —
+    botda boshlangan urinish ham shu yerda davom etadi."""
+    now = now or timezone.now()
+    questions = load_questions(attempt.question_ids)
+    answers = {item.question_id: item for item in attempt.answers.all()}
+    items, done = [], []
+    for question_id in attempt.question_ids:
+        question = questions.get(question_id)
+        if question is None:
+            continue
+        layout = Layout.build(question, attempt.seed)
+        items.append(layout.payload())
+        given = answers.get(question_id)
+        if given is not None:
+            done.append({"question": question_id, "response": layout.to_public(given.response)})
+    test = attempt.test
+    return {
+        "id": attempt.pk,
+        "test_id": test.pk,
+        "total": len(items),
+        "closes_at": test.closes_at,
+        "seconds_left": max(0, int((test.closes_at - now).total_seconds())),
+        "finished": attempt.finished_at is not None,
+        "questions": items,
+        "answers": done,
+    }
+
+
+def saved(attempt: DailyAttempt, question_id: int) -> dict[str, Any]:
+    """Saqlangan javob (o'quvchi ko'rgan o'rinlar bilan), bahosiz."""
+    given = attempt.answers.select_related("question").get(question_id=question_id)
+    question = Question.objects.prefetch_related("choices").get(pk=question_id)
+    layout = Layout.build(question, attempt.seed)
+    return {"question": question_id, "response": layout.to_public(given.response)}
+
+
 def can_review(attempt: DailyAttempt, *, now: datetime | None = None) -> bool:
     """To'g'ri javoblar faqat test yopilgach (23:00) — aks holda kun ichida tarqalib ketardi."""
     now = now or timezone.now()

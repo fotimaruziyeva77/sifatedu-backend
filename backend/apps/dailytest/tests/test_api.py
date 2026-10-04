@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from apps.dailytest import services
 from apps.dailytest.models import DailyAttempt, DailyTest
+from apps.quizzes.models import Question
+from apps.quizzes.services import Layout
 from apps.users.roles import Role
 
 from .conftest import DAY, World, api, at, make_user
@@ -110,3 +112,77 @@ def test_teacher_view_is_limited_to_own_groups(world: World) -> None:
     empty = api(world.teacher).get(url).json()
     assert (empty["status"], empty["pool_size"], empty["done"]) == ("NONE", 24, 0)
     assert [row["status"] for row in empty["students"]] == ["NONE", "NONE", "NONE"]
+
+
+def problem(response: Any) -> str:
+    """Frontend o'qiydigan xato matni (`non_field_errors`)."""
+    return str(response.json()["error"]["fields"]["non_field_errors"][0])
+
+
+def right_position(attempt: DailyAttempt, question_id: int) -> int:
+    question = Question.objects.prefetch_related("choices").get(pk=question_id)
+    layout = Layout.build(question, attempt.seed)
+    return [choice.is_correct for choice in layout.shown].index(True) + 1
+
+
+def test_daily_test_on_the_site(world: World) -> None:
+    test = opened(world)
+    client = api(world.students[0])
+    start = f"/api/v1/daily-test/{test.pk}/start/"
+
+    with frozen(at(9)):
+        started = client.post(start).json()
+    attempt = DailyAttempt.objects.get(pk=started["id"])
+    first = started["questions"][0]["id"]
+    position = right_position(attempt, first)
+    answer_url = f"/api/v1/daily-test/attempts/{attempt.pk}/answers/"
+    body = {"question": first, "response": {"choice": position}}
+    with frozen(at(9, 5)):
+        saved = client.post(answer_url, body, format="json")
+        again = client.post(answer_url, body, format="json")
+        resumed = client.post(start).json()
+
+    assert (started["total"], started["finished"], started["answers"]) == (20, False, [])
+    assert started["seconds_left"] == 14 * 3600  # 09:00 → 23:00
+    # Javobdan keyin baho yo'q — natija oxirida (soni), javoblar 23:00 dan keyin.
+    assert saved.status_code == 200 and saved.json() == body
+    assert again.status_code == 400 and "javob berilgan" in problem(again)
+    assert resumed["id"] == attempt.pk and resumed["answers"] == [body]
+
+    for index, question_id in enumerate(attempt.question_ids[1:]):
+        good = right_position(attempt, question_id)
+        services.answer(
+            attempt, question_id, {"choice": good if index < 16 else 3 - good}, now=at(9, 30)
+        )
+    with frozen(at(10)):
+        result = client.post(f"/api/v1/daily-test/attempts/{attempt.pk}/finish/").json()
+
+    assert result == {
+        "correct": 17,
+        "wrong": 3,
+        "total": 20,
+        "xp": 34,
+        "coins": 17,
+        "place": 1,
+        "people": 1,
+    }
+
+
+def test_site_test_access_rules(world: World) -> None:
+    test = opened(world)
+    outsider = make_user("+998901000088", name="Begona")
+    mine = services.start(test, world.students[0], now=at(8))
+
+    with frozen(at(9)):
+        stranger = api(outsider).post(f"/api/v1/daily-test/{test.pk}/start/")
+        foreign = api(world.students[1]).post(
+            f"/api/v1/daily-test/attempts/{mine.pk}/answers/",
+            {"question": mine.question_ids[0], "response": {"choice": 1}},
+            format="json",
+        )
+    with frozen(at(23, 5)):
+        late = api(world.students[2]).post(f"/api/v1/daily-test/{test.pk}/start/")
+
+    assert stranger.status_code == 404
+    assert foreign.status_code == 404
+    assert late.status_code == 400 and "yopilgan" in problem(late)

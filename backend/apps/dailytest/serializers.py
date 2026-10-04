@@ -1,8 +1,13 @@
+import json
 from typing import Any
 
 from rest_framework import serializers
 
-from apps.quizzes.serializers import QuizQuestionSerializer, QuizResultSerializer
+from apps.quizzes.serializers import (
+    MAX_RESPONSE_CHARS,
+    QuizQuestionSerializer,
+    QuizResultSerializer,
+)
 
 from .models import DailyTest
 
@@ -70,6 +75,46 @@ class DailyReviewSerializer(serializers.Serializer[dict[str, Any]]):
     total = serializers.IntegerField()
     review = QuizResultSerializer(many=True)
     review_questions = QuizQuestionSerializer(many=True)
+
+
+class DailySavedSerializer(serializers.Serializer[dict[str, Any]]):
+    """Saqlangan javob — bahosiz (to'g'ri javoblar test yopilgach)."""
+
+    question = serializers.IntegerField()
+    response = serializers.DictField()
+
+
+class DailyAttemptSerializer(serializers.Serializer[dict[str, Any]]):
+    """Saytda ishlash: savollar (javobsiz) va berilgan javoblar (bahosiz)."""
+
+    id = serializers.IntegerField()
+    test_id = serializers.IntegerField()
+    total = serializers.IntegerField()
+    closes_at = serializers.DateTimeField()
+    seconds_left = serializers.IntegerField(help_text="Test yopilishiga (23:00) qolgan soniyalar.")
+    finished = serializers.BooleanField()
+    questions = QuizQuestionSerializer(many=True)
+    answers = DailySavedSerializer(many=True)
+
+
+class DailyAnswerSerializer(serializers.Serializer[dict[str, Any]]):
+    question = serializers.IntegerField()
+    response = serializers.DictField()
+
+    def validate_response(self, value: dict[str, Any]) -> dict[str, Any]:
+        if len(json.dumps(value, ensure_ascii=False)) > MAX_RESPONSE_CHARS:
+            raise serializers.ValidationError("Javob juda uzun.")
+        return value
+
+
+class DailyResultSerializer(serializers.Serializer[dict[str, Any]]):
+    correct = serializers.IntegerField()
+    wrong = serializers.IntegerField()
+    total = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    coins = serializers.IntegerField()
+    place = serializers.IntegerField(help_text="Guruhdagi o'rni (hozircha).")
+    people = serializers.IntegerField(help_text="Shu paytgacha tugatganlar soni.")
 
 
 class TeacherDailyRowSerializer(serializers.Serializer[dict[str, Any]]):

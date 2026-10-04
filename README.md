@@ -432,9 +432,13 @@ API ishlatilmaydi — havola qo'lda qo'yiladi.
 
 ## Kunlik test (guruhlar)
 
-* **07:00** — har o'qiyotgan guruhdagi har o'quvchiga botda test: guruhda «Dars o'tildi» deb
+* **07:00** — har o'qiyotgan guruhdagi har o'quvchiga test: guruhda «Dars o'tildi» deb
   belgilangan darslar testlaridan tasodifiy **20 savol** (kechagi savollar iloji boricha
-  takrorlanmaydi). Xabarda «▶️ Testni boshlash» tugmasi va kechagi natija.
+  takrorlanmaydi). Xabarda «▶️ Testni boshlash» tugmasi va kechagi natija. Test **botda yoki
+  saytda** ishlanadi — urinish bitta: botda boshlab saytda davom ettirish mumkin va aksincha.
+* **Baholash avtomatik:** har javob bazadagi to'g'ri javob bilan solishtiriladi; yozma javobda
+  faqat katta-kichik harf, ortiqcha bo'shliq va oxirgi nuqta farq qilmaydi (`14`, ` 14.` —
+  to'g'ri; `14.0`, `o'n to'rt` — noto'g'ri). Qo'lda tekshirish kerak emas.
 * **Javob paytida** to'g'ri/noto'g'ri aytilmaydi; oxirida — nechta to'g'ri va noto'g'ri, XP va
   coin (har to'g'ri javobga +2 XP, +1 coin), guruhdagi o'rni. Jarima yo'q.
 * **20:00** — hali ishlamaganlarga eslatma. **23:00** — test yopiladi: boshlab, tugatmaganlar

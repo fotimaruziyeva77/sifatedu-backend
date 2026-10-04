@@ -132,3 +132,23 @@ def test_without_a_test_today(tg: FakeTelegram, world: World) -> None:
     handle_update(press("dq"))
 
     assert "Bugun kunlik test yo'q" in tg.last["text"]
+
+
+def test_question_answered_on_the_site_moves_the_bot_on(
+    tg: FakeTelegram, world: World, daily: DailyTest
+) -> None:
+    connect(world.student)
+    handle_update(press(f"dg:{daily.pk}"))
+    shown = state()
+    attempt = DailyAttempt.objects.get(pk=shown["a"])
+    question = Question.objects.prefetch_related("choices").get(pk=shown["q"])
+    layout = Layout.build(question, attempt.seed)
+    services.answer(attempt, question.pk, {"choice": 1})  # o'quvchi saytda javob berdi
+
+    handle_update(press(f"qa:{attempt.pk}:{question.pk}:2"))
+
+    attempt.refresh_from_db()
+    assert attempt.finished_at is None  # test yakunlanmadi
+    assert "javob berilgan" in tg.texts[-2]
+    assert state()["q"] != question.pk and state()["i"] == 2
+    assert len(layout.shown) == 2

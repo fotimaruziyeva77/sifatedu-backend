@@ -11,10 +11,11 @@ from django.utils.dateparse import parse_date
 from django.utils.translation import gettext as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.bot import links
@@ -28,7 +29,15 @@ from apps.users.models import User
 
 from . import services
 from .models import DailyAttempt, DailyTest
-from .serializers import DailyOverviewSerializer, DailyReviewSerializer, TeacherDailySerializer
+from .serializers import (
+    DailyAnswerSerializer,
+    DailyAttemptSerializer,
+    DailyOverviewSerializer,
+    DailyResultSerializer,
+    DailyReviewSerializer,
+    DailySavedSerializer,
+    TeacherDailySerializer,
+)
 
 HISTORY = 14
 RECENT_DAYS = 7
@@ -116,6 +125,78 @@ class DailyOverviewView(APIView):
                 "enabled": rewards.settings().daily_test,
                 "bot_url": links.bot_url("dt") or "",
                 "groups": [group_overview(group, user, now) for group in groups],
+            }
+        )
+
+
+def daily_error(exc: services.DailyTestError) -> ValidationError:
+    return ValidationError({"non_field_errors": [str(exc)]})
+
+
+class DailyStartView(APIView):
+    """Saytda boshlash yoki davom ettirish — botdagi bilan bitta urinish."""
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "quiz"
+
+    @extend_schema(request=None, responses={200: DailyAttemptSerializer}, tags=["daily-test"])
+    def post(self, request: Request, pk: int) -> Response:
+        user: User = request.user  # type: ignore[assignment]
+        test = get_object_or_404(
+            DailyTest.objects.select_related("group"), pk=pk, group_id__in=student_group_ids(user)
+        )
+        try:
+            attempt = services.start(test, user)
+        except services.DailyTestError as exc:
+            raise daily_error(exc) from exc
+        return Response(services.attempt_payload(attempt))
+
+
+class DailyAttemptView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "quiz"
+
+    def attempt(self, request: Request, pk: int) -> DailyAttempt:
+        return get_object_or_404(
+            DailyAttempt.objects.select_related("test__group"), pk=pk, student_id=request.user.pk
+        )
+
+
+class DailyAnswerView(DailyAttemptView):
+    """Javob saqlanadi; to'g'ri yoki noto'g'riligi oxirida (soni), javoblar — 23:00 dan keyin."""
+
+    @extend_schema(
+        request=DailyAnswerSerializer, responses={200: DailySavedSerializer}, tags=["daily-test"]
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        attempt = self.attempt(request, pk)
+        serializer = DailyAnswerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data: dict[str, Any] = serializer.validated_data
+        try:
+            services.answer(attempt, data["question"], data["response"])
+        except services.DailyTestError as exc:
+            raise daily_error(exc) from exc
+        return Response(services.saved(attempt, data["question"]))
+
+
+class DailyFinishView(DailyAttemptView):
+    """Yakun: to'g'ri va noto'g'ri soni, XP va coin, guruhdagi o'rin."""
+
+    @extend_schema(request=None, responses={200: DailyResultSerializer}, tags=["daily-test"])
+    def post(self, request: Request, pk: int) -> Response:
+        result = services.finish(self.attempt(request, pk))
+        return Response(
+            {
+                "correct": result.correct,
+                "wrong": result.wrong,
+                "total": result.attempt.total,
+                "xp": result.xp,
+                "coins": result.coins,
+                "place": result.place,
+                "people": result.people,
             }
         )
 

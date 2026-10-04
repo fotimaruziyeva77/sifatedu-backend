@@ -1786,7 +1786,10 @@ yetarli bo'lmasa (o'tgan darslarda 20 tadan kam) — test berilmaydi va o'qituvc
 - Sayt: `/dashboard/daily-test` (bugungi holat, reytinglar, tarix), `/dashboard/daily-test/[id]`
   (javoblar — yopilgach), menyuda «Kunlik test» (`me.in_group`); o'qituvchi guruh sahifasida kim
   ishladi va kim ishlamadi (`?daily=YYYY-MM-DD`).
-- Test ishlash — faqat botda (talab bo'yicha); saytda — natija, reyting va javoblar.
+- Test botda ham, saytda ham ishlanadi (2026-10-04, buyurtmachi so'rovi): urinish bitta —
+  `POST /daily-test/{id}/start/`, `/attempts/{id}/answers/`, `/attempts/{id}/finish/`; saytda
+  `QuizStep blind="daily"` (baho yo'q). Botda savolga saytda javob berilgan bo'lsa — bot keyingi
+  savolga o'tadi. Baholash avtomatik (yozma javob — `grading.normalize` bilan aniq moslik).
 - Testlar: `apps/dailytest/tests` (servislar, API), `apps/bot/tests/test_daily_bot.py`.
 
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)

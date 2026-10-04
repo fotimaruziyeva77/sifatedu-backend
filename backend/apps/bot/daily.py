@@ -1,5 +1,6 @@
 """Kunlik test botda: 07:00 dagi xabardagi tugma yoki «📝 Testlar» → savollar → oxirida nechta
 to'g'ri va noto'g'ri, XP va coin, guruhdagi o'rin. To'g'ri javoblar va izohlar 23:00 dan keyin.
+Urinish sayt bilan bitta: saytda boshlangan test botda davom etadi va aksincha.
 
 Tugmalar dars testiniki (qa/qt/qd/qo/qm/qr); holat — `BotChat.state["quiz"]` (`"k": "daily"`).
 Javobdan keyin to'g'ri/noto'g'ri aytilmaydi — natija oxirida.
@@ -132,7 +133,8 @@ def submit(
         forget(chat)
         save_state(chat)
         send(chat.chat_id, escape(str(exc)))
-        finish(chat, user, attempt)
+        # Saytda javob berilgan yoki test yopilgan: keyingi javobsiz savol (yoki natija).
+        advance(chat, user, attempt)
         return
     body, _hint, _rows = render(layout, {**state, "sel": []}, locale)
     yours = t(locale, "q_your", answer=short_answer(layout, response))
