@@ -454,6 +454,10 @@ API ishlatilmaydi — havola qo'lda qo'yiladi.
 * **Python guruhi uchun tayyor bank:** `backend/scripts/python_dars_testlari.py` — o'tilgan 6 ta
   mavzuga dars testlari (84 savol), darslarni guruh uchun o'tilgan deb belgilaydi va guruhni
   «O'qiyapti» qiladi (serverda: `dc exec -T -e ACTION=setup backend python manage.py shell < …`).
+* **Bugunoq yuborish** (07:00 o'tib ketgan bo'lsa, masalan bank kunduzi qo'shilganda):
+  `backend/scripts/kunlik_test.py` — `ACTION=send` bugungi testni hozir ochadi va o'quvchilarga
+  xabar yuboradi (ertalab savol yetmay berilmagan test ham ochiladi; xabar hech kimga ikki marta
+  bormaydi, 23:00 dan keyin ishlamaydi); `ACTION=status` — guruhlar bo'yicha bugungi holat.
 
 ## Coin do'koni
 

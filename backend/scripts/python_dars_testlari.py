@@ -9,8 +9,9 @@ Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yi
 setup  — «Python asoslari» moduli: 6 ta dars (mavzu), har birida 14 ta savol (jami 84 ta,
          oktabr imtihonidagilardan boshqa). Darslar «Python» guruhi uchun o'tilgan deb
          belgilanadi (o'quvchilarga xabar yuborilmaydi), guruh holati «O'qiyapti» bo'ladi —
-         ertangi 07:00 dan kunlik test shu savollardan beriladi. Qayta ishga tushirsa,
-         mavjudini o'zgartirmaydi. EXAM=1 — oktabr imtihoni savollarini ham bankka qo'shadi
+         ertangi 07:00 dan kunlik test shu savollardan beriladi (bugunoq kerak bo'lsa —
+         kunlik_test.py, ACTION=send). Qayta ishga tushirsa, mavjudini o'zgartirmaydi.
+         EXAM=1 — oktabr imtihoni savollarini ham bankka qo'shadi
          (imtihon tugagan; ular o'quvchilarga dars testi sifatida ham ochiladi).
 status — guruh holati, o'tilgan darslar, kunlik test uchun savollar soni va bugungi test.
 
