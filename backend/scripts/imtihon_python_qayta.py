@@ -1,19 +1,26 @@
 """Python — qayta imtihon (bir necha o'quvchi uchun): test oktabr imtihonining savollar bankidan,
 amaliy topshiriqlar yangi. Guruhning qolganlariga ochilmaydi va xabar bormaydi.
 
+O'quvchilar raqamini yozish shart emas: ularga havola yuboring —
+  https://t.me/sifat_edubot?start=qayta
+Botda shu havola orqali ro'yxatdan o'tganlar (telefon Telegram'dan olinadi) «qayta» manbasi bilan
+yoziladi va skript ularni o'zi topadi.
+
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/imtihon_python_qayta.py
-  P=+998901234567,+998931112233
-  dc exec -T -e ACTION=open -e PHONES=$P -e HOURS=3 backend python manage.py shell < $S
+  dc exec -T -e ACTION=open -e SOURCE=qayta -e HOURS=3 backend python manage.py shell < $S
+  dc exec -T -e ACTION=add -e SOURCE=qayta backend python manage.py shell < $S
   dc exec -T -e ACTION=add -e PHONES=+998901112233 backend python manage.py shell < $S
   dc exec -T -e ACTION=status backend python manage.py shell < $S
 
 open   — bugungi qayta imtihonni yaratadi (bor bo'lsa — o'shani oladi): sozlamalar va savollar
-         modullari oktabr imtihonidan, 4 ta yangi amaliy topshiriq. PHONES dagi o'quvchilarga
+         modullari oktabr imtihonidan, 4 ta yangi amaliy topshiriq. SOURCE havolasi orqali
+         ro'yxatdan o'tganlar va PHONES dagilar Python guruhiga qo'shiladi (bo'lmasa), ularga
          hozirdan HOURS soat (standart 3) alohida muddat va botga xabar.
-add    — yana o'quvchi qo'shish: muddati avval qo'shilganlarniki bilan bir xil.
-status — kim test ishladi, natija, nechta amaliy topshiriq yuborildi.
+add    — keyin kelganlarni qo'shish: muddati avval qo'shilganlarniki bilan bir xil.
+status — kim test ishladi, natija, nechta amaliy topshiriq yuborildi; bugun botga kirgan, lekin
+         ro'yxatda yo'qlar (boshqa havola bilan kirgan bo'lsa — PHONES bilan qo'shing).
 
 Imtihonning umumiy oynasi ochilgan zahoti yopiladi, shuning uchun uni faqat alohida muddat
 berilganlar ishlaydi. Guruhning boshqalari saytdagi «Imtihonlar» sahifasida bu imtihonni
@@ -30,12 +37,14 @@ from django.utils import timezone
 
 from apps.catalog.models import Course
 from apps.exams.models import Exam, ExamAttempt, ExamExtension, ExamTask, TaskAnswer
+from apps.learning.models import Enrollment, StudyGroup
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
 from apps.users.models import User
 
 ACTION = os.environ.get("ACTION", "status")
 COURSE_SLUG = "python"
+GROUP_NAME = "Python"
 TEMPLATE_MONTH = date(2026, 10, 1)
 
 TASKS = [
@@ -146,19 +155,48 @@ def name_of(user: User) -> str:
 
 
 def students() -> list[User]:
-    """PHONES dagi o'quvchilar; topilmaganlar haqida ogohlantiradi."""
+    """SOURCE havolasi orqali botda ro'yxatdan o'tganlar va PHONES dagilar."""
     numbers = []
     for raw in os.environ.get("PHONES", "").split(","):
         digits = "".join(char for char in raw if char.isdigit())
         if digits:
             numbers.append("+" + (digits if digits.startswith("998") else "998" + digits))
-    if not numbers:
-        raise SystemExit("PHONES bo'sh: -e PHONES=+998901234567,+998931112233")
+    source = os.environ.get("SOURCE", "").strip()
+    if not numbers and not source:
+        raise SystemExit("Kim uchun? -e SOURCE=qayta yoki -e PHONES=+998901234567,+998931112233")
+    people: dict[int, User] = {}
+    if source:
+        joined = User.objects.filter(signup_source=source, is_active=True, is_staff=False)
+        people.update((user.pk, user) for user in joined.order_by("date_joined"))
+        if not people:
+            print(f"  ! «{source}» havolasi orqali hali hech kim ro'yxatdan o'tmagan")
     found = {user.phone: user for user in User.objects.filter(phone__in=numbers, is_active=True)}
     for number in numbers:
-        if number not in found:
+        if number in found:
+            people[found[number].pk] = found[number]
+        else:
             print(f"  ! {number} — bunday o'quvchi topilmadi (botda ro'yxatdan o'tganmi?)")
-    return [found[number] for number in numbers if number in found]
+    return list(people.values())
+
+
+def enroll(user: User) -> str:
+    """Python guruhida (faol) bo'lmasa — qo'shadi. Qaytadi: chop etish uchun izoh."""
+    python = course()
+    if Enrollment.objects.filter(
+        user=user, course=python, status=Enrollment.Status.ACTIVE
+    ).exists():
+        return ""
+    Enrollment.objects.update_or_create(
+        user=user,
+        course=python,
+        defaults={
+            "status": Enrollment.Status.ACTIVE,
+            "group": StudyGroup.objects.filter(course=python, name=GROUP_NAME).first(),
+            "source": Enrollment.Source.MANUAL,
+            "study_format": Enrollment.Format.OFFLINE,
+        },
+    )
+    return ", Python guruhiga qo'shildi"
 
 
 @transaction.atomic
@@ -191,6 +229,7 @@ def grant(exam: Exam, people: list[User], until: datetime) -> None:
     by = admin()
     finish = timezone.localtime(until)
     for user in people:
+        joined = enroll(user)
         ExamExtension.objects.update_or_create(
             exam=exam, student=user, defaults={"until": until, "granted_by": by}
         )
@@ -207,7 +246,7 @@ def grant(exam: Exam, people: list[User], until: datetime) -> None:
             dedupe_key=f"exam-retake:{exam.pk}:{user.pk}",
         )
         note = "xabar yuborildi" if sent is not None else "xabar avval yuborilgan"
-        print(f"  + {name_of(user)} ({user.phone}) — {finish:%d.%m %H:%M} gacha, {note}")
+        print(f"  + {name_of(user)} ({user.phone}) — {finish:%d.%m %H:%M} gacha, {note}{joined}")
 
 
 def deadline(exam: Exam, now: datetime) -> datetime:
@@ -258,6 +297,14 @@ def status() -> None:
         sent = TaskAnswer.objects.filter(task__exam=exam, student=user).count()
         until = timezone.localtime(extension.until)
         print(f"  {name_of(user)[:26]:26} {test:12} amaliy {sent}/{tasks}  ({until:%H:%M} gacha)")
+    listed = set(exam.extensions.values_list("student_id", flat=True))
+    today = User.objects.filter(
+        date_joined__date=timezone.localdate(), is_staff=False, is_active=True
+    ).exclude(pk__in=listed)
+    if today:
+        print("Bugun botga kirgan, lekin ro'yxatda yo'q (kerak bo'lsa — ACTION=add, PHONES=...):")
+        for user in today.order_by("date_joined"):
+            print(f"  {name_of(user)[:26]:26} {user.phone}  manba: {user.signup_source or '—'}")
 
 
 ACTIONS = {"open": open_retake, "add": add, "status": status}

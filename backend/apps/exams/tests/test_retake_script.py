@@ -16,7 +16,7 @@ from apps.bot.exam import open_exams
 from apps.catalog.models import Category, Course, Lesson, Module
 from apps.exams import services
 from apps.exams.models import Exam, ExamExtension, ExamTask
-from apps.learning.models import Enrollment
+from apps.learning.models import Enrollment, StudyGroup
 from apps.notifications.models import Notification
 from apps.quizzes.models import Quiz
 from apps.quizzes.parser import parse
@@ -108,3 +108,28 @@ def test_retake_opens_only_for_the_listed_students(october: Exam, capsys: Any) -
     assert added.until == at(22)  # muddat birinchilarniki bilan bir xil
     run("status", at(20, 30))
     assert "Dilshod" in capsys.readouterr().out
+
+
+def test_students_from_the_bot_link_join_the_group_and_get_the_exam(
+    october: Exam, capsys: Any
+) -> None:
+    teacher = make_user("+998901000009", "TEACHER", name="Ustoz")
+    team = StudyGroup.objects.create(course=october.course, name="Python", teacher=teacher)
+    newcomer = make_user("+998901000003", name="Sardor")
+    User.objects.filter(pk=newcomer.pk).update(signup_source="qayta")
+    other = make_user("+998901000004", name="Kamola")  # bugun Instagram havolasi bilan kirgan
+    User.objects.filter(pk=other.pk).update(signup_source="ig", date_joined=at(18))
+
+    run("open", at(19), SOURCE="qayta", HOURS="3")
+
+    retake = Exam.objects.get(month=date(2026, 10, 12))
+    enrollment = Enrollment.objects.get(user=newcomer, course=october.course)
+    assert (enrollment.status, enrollment.group) == (Enrollment.Status.ACTIVE, team)
+    extension = ExamExtension.objects.get(exam=retake)
+    assert (extension.student, extension.until) == (newcomer, at(22))
+    assert "Python guruhiga qo'shildi" in capsys.readouterr().out
+    assert not Enrollment.objects.filter(user=other).exists()
+
+    run("status", at(19, 30))
+    report = capsys.readouterr().out
+    assert "Sardor" in report and "Kamola" in report and "manba: ig" in report
