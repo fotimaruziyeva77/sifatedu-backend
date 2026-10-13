@@ -11,8 +11,9 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext as _
 
 from apps.users.models import User
+from apps.users.roles import manages_groups
 
-from . import metrics
+from . import metrics, study
 
 PERMISSION = "stats.view_statistics"
 
@@ -159,6 +160,13 @@ def build(viewer: User, key: str) -> dict[str, Any]:
         ),
         "can_open_users": viewer.has_perm("users.view_user"),
         "index_url": reverse("admin:index"),
+        # O'quv jarayoni — hozirgi holat, davrga bog'liq emas.
+        "lessons": study.lessons_today(viewer),
+        "groups": study.groups_overview(viewer),
+        "exams": study.exams_overview(viewer),
+        "groups_url": metrics.site_link(viewer, "/dashboard/teaching")
+        if manages_groups(viewer)
+        else "",
     }
 
 

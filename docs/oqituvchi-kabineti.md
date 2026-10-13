@@ -2,6 +2,27 @@
 
 Saytda: **Kabinet → «Guruhlarim»** → guruhni oching. O'qituvchi faqat o'z guruhlarini ko'radi.
 
+**Admin va menejer** — **Kabinet → «Guruhlar»**: markazdagi barcha guruhlar (kartada o'qituvchi
+ismi), har birida o'qituvchi qila oladigan hamma narsa — o'quvchi qo'shish va chiqarish, jadval,
+yo'qlama, imtihonni ochish va baholash. Admin paneldan ham o'tsa bo'ladi: chap menyuda
+«O'qish» → **«Kabinet: guruhlar»** (yangi oynada ochiladi). Direktor kabinetga kirmaydi — unga
+admin panel bosh sahifasidagi statistika.
+
+## Admin panel bosh sahifasi: o'quv jarayoni
+
+Statistika ostidagi **«O'quv jarayoni»** bo'limi (hozirgi holat, davr tanloviga bog'liq emas):
+
+- **Bugungi darslar** — soat, guruh, o'qituvchi va davomat: «Keldi · kechikdi · kelmadi»,
+  «Yo'qlama qilinmagan» (dars tugagan, o'qituvchi belgilamagan), «Dars ketmoqda», «Kutilmoqda».
+- **Imtihonlar** — ochiq va oxirgi 2 haftada yopilganlari: nechta o'quvchi test ishladi,
+  nechta javob baholanmagan, nechtasi o'tdi. «Baholash →» saytdagi baholash sahifasini ochadi.
+- **Guruhlar** — o'quvchilar soni, davomat (30 kun), bugungi kunlik testni ishlaganlar va
+  tekshirilmagan ishlar (uy vazifalari va imtihon javoblari).
+
+«Muammolar»da: «Baholanmagan imtihon topshiriqlari», «Tekshirilmagan uy vazifalari» va
+«Yo'qlama qilinmagan darslar» bosilsa — saytdagi kerakli sahifa ochiladi. Saytdagi
+**«Oylik imtihonlar»** sahifasida ham xodimga «Guruhlar imtihonlari» ro'yxati chiqadi.
+
 ## O'quvchi qo'shish
 
 1. «O'quvchilar» bo'limida **«O'quvchi qo'shish»** tugmasini bosing.

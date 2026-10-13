@@ -29,6 +29,9 @@ class Role(models.TextChoices):
 STAFF_ROLES = frozenset({Role.TEACHER, Role.MANAGER, Role.DIRECTOR, Role.ADMIN})
 # Barcha kurslar, guruhlar va o'quvchilarni ko'radiganlar (o'qituvchi — faqat o'zinikini).
 SEES_ALL_ROLES = (Role.ADMIN, Role.MANAGER, Role.DIRECTOR)
+# Saytdagi kabinetda har qanday guruhni o'qituvchi kabi boshqaradiganlar: o'quvchilar, jadval,
+# davomat. Direktor — faqat ko'radi (admin paneldagi statistika).
+GROUP_MANAGER_ROLES = (Role.ADMIN, Role.MANAGER)
 # Direktor ko'radigan bo'limlar (faqat o'qish).
 DIRECTOR_APPS = (
     "assistant",
@@ -199,6 +202,11 @@ def has_role(user: Any, *roles: str) -> bool:
 def sees_all(user: Any) -> bool:
     """Barcha kurslarni ko'radimi (aks holda — faqat o'qituvchi sifatida biriktirilganlarini)."""
     return has_role(user, *SEES_ALL_ROLES)
+
+
+def manages_groups(user: Any) -> bool:
+    """Har qanday guruhni boshqaradimi (aks holda — faqat o'qituvchi sifatida o'zinikini)."""
+    return has_role(user, *GROUP_MANAGER_ROLES)
 
 
 def set_roles(user: "User", roles: Iterable[str]) -> None:

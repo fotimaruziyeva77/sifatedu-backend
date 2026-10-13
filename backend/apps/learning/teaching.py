@@ -1,8 +1,8 @@
 """O'qituvchi kabineti: o'z guruhlari va o'quvchilarining progressi.
 
-O'qituvchi faqat o'ziga biriktirilgan guruhlarni ko'radi. O'quvchi haqida — ismi, telefoni va
-o'qish holati (TZ 3.2: "o'z guruhlari, cheklangan"). Guruhga o'quvchi qo'shadi va chiqaradi,
-haftalik dars jadvalini kiritadi (`roster`).
+O'qituvchi faqat o'ziga biriktirilgan guruhlarni ko'radi, admin va menejer — hammasini
+(`manages_groups`). O'quvchi haqida — ismi, telefoni va o'qish holati (TZ 3.2: "o'z guruhlari,
+cheklangan"). Guruhga o'quvchi qo'shadi va chiqaradi, haftalik dars jadvalini kiritadi (`roster`).
 """
 
 from datetime import timedelta
@@ -24,7 +24,7 @@ from apps.catalog.models import Lesson
 from apps.live.models import Attendance, LiveLesson, ScheduleSlot
 from apps.live.services import attendance_rates
 from apps.quizzes.services import group_quiz_stats
-from apps.users.roles import Role, has_role
+from apps.users.roles import Role, has_role, manages_groups
 
 from . import roster
 from .models import Enrollment, LessonProgress, StudyGroup
@@ -34,10 +34,10 @@ INACTIVE_AFTER = timedelta(days=7)
 
 
 class IsTeacher(BasePermission):
-    message = "Bu bo'lim faqat o'qituvchilar uchun."
+    message = "Bu bo'lim o'qituvchi, menejer va admin uchun."
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        return has_role(request.user, Role.TEACHER)
+        return has_role(request.user, Role.TEACHER) or manages_groups(request.user)
 
 
 class TeacherStudentSerializer(serializers.Serializer[dict[str, Any]]):
@@ -77,6 +77,7 @@ class TeacherGroupSerializer(serializers.Serializer[dict[str, Any]]):
     schedule = serializers.CharField(allow_blank=True)
     starts_on = serializers.DateField(allow_null=True)
     status = serializers.ChoiceField(choices=StudyGroup.Status.choices)
+    teacher_name = serializers.CharField(help_text="Guruh o'qituvchisi.")
     students_count = serializers.IntegerField()
     average_percent = serializers.IntegerField()
 
@@ -218,6 +219,7 @@ def group_card(group: StudyGroup, students: list[dict[str, Any]]) -> dict[str, A
         "schedule": group.schedule,
         "starts_on": group.starts_on,
         "status": group.status,
+        "teacher_name": group.teacher.get_full_name() or group.teacher.phone,
         "students_count": len(students),
         "average_percent": (
             round(sum(student["percent"] for student in students) / len(students))
@@ -228,6 +230,7 @@ def group_card(group: StudyGroup, students: list[dict[str, Any]]) -> dict[str, A
 
 
 def teacher_groups(user: Any) -> Any:
+    """O'qituvchiga — o'z guruhlari, admin va menejerga — hammasi."""
     # Avval o'qiyotgan guruhlar, keyin yig'ilayotganlar, oxirida tugaganlar.
     stage = Case(
         When(status=StudyGroup.Status.ACTIVE, then=Value(0)),
@@ -235,15 +238,17 @@ def teacher_groups(user: Any) -> Any:
         default=Value(2),
         output_field=IntegerField(),
     )
-    return (
-        StudyGroup.objects.filter(teacher=user)
-        .select_related("course")
-        .order_by(stage, "-starts_on", "name")
+    groups = (
+        StudyGroup.objects.all()
+        if manages_groups(user)
+        else StudyGroup.objects.filter(teacher=user)
     )
+    return groups.select_related("course", "teacher").order_by(stage, "-starts_on", "name")
 
 
 class TeacherGroupsView(APIView):
-    """O'qituvchining guruhlari: holati, o'quvchilar soni va o'rtacha progress."""
+    """O'qituvchining guruhlari (admin va menejerga — hammasi): holati, o'quvchilar soni va
+    o'rtacha progress."""
 
     permission_classes = [IsAuthenticated, IsTeacher]
 
@@ -254,7 +259,7 @@ class TeacherGroupsView(APIView):
 
 
 def my_group(user: Any, pk: int) -> StudyGroup:
-    # Boshqa o'qituvchining guruhi — 404: bunday guruh borligini ham ochib bermaydi.
+    # O'qituvchiga boshqa o'qituvchining guruhi — 404: bunday guruh borligini ham ochib bermaydi.
     return get_object_or_404(teacher_groups(user), pk=pk)
 
 

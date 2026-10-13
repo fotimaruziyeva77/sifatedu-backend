@@ -10,6 +10,10 @@
   --sd-danger: var(--color-primary-600);
   --sd-warning: oklch(66.6% 0.179 58.318);
   --sd-good: oklch(62.7% 0.194 149.214);
+  /* Kichik matn uchun to'qroq (oq fonda kontrast 4.5:1 dan yuqori). */
+  --sd-pill-text: var(--color-base-600);
+  --sd-good-text: oklch(52.7% 0.154 150.069);
+  --sd-warning-text: oklch(55.5% 0.163 48.998);
   display: grid;
   gap: 1.25rem;
   color: var(--sd-text);
@@ -20,6 +24,9 @@
   --sd-line: var(--color-base-800);
   --sd-text: #fff;
   --sd-muted: var(--color-base-400);
+  --sd-pill-text: var(--color-base-300);
+  --sd-good-text: oklch(79.2% 0.209 151.711);
+  --sd-warning-text: oklch(82.8% 0.189 84.429);
 }
 
 /* --- Sarlavha va davr --- */
@@ -341,6 +348,112 @@ a.sd-problem__title:hover {
 
 .sd-more:hover {
   text-decoration: underline;
+}
+
+/* --- O'quv jarayoni: bo'lim sarlavhasi, holat belgilari --- */
+
+.sd-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  margin: 0.75rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sd-section__note {
+  color: var(--sd-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.sd-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.sd-panel__head .sd-more {
+  margin-top: 0;
+}
+
+.sd-panel > .sd-scroll {
+  margin-top: 1rem;
+}
+
+/* Keng jadval telefonda gorizontal suriladi, sahifa emas. */
+.sd-scroll {
+  overflow-x: auto;
+}
+
+.sd-scroll .sd-table {
+  min-width: 26rem;
+}
+
+.sd-sub-line {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--sd-muted);
+  font-size: 0.8125rem;
+}
+
+.sd-time {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sd-table .sd-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sd-table .sd-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sd-action .sd-more {
+  margin-top: 0;
+}
+
+.sd-pill {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--sd-muted) 12%, transparent);
+  color: var(--sd-pill-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sd-pill--good {
+  background: color-mix(in oklab, var(--sd-good) 12%, transparent);
+  color: var(--sd-good-text);
+}
+
+.sd-pill--warning {
+  background: color-mix(in oklab, var(--sd-warning) 14%, transparent);
+  color: var(--sd-warning-text);
+}
+
+.sd-pill--live {
+  background: var(--color-primary-600);
+  color: #fff;
+}
+
+.sd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {

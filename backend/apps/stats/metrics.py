@@ -24,11 +24,13 @@ from apps.homework.models import Submission
 from apps.leads.models import Lead
 from apps.learning.models import Enrollment, LessonProgress
 from apps.live.models import Attendance
-from apps.live.services import repeated_absences
+from apps.live.services import repeated_absences, unmarked_lessons
 from apps.notifications.models import Delivery, Notification
+from apps.notifications.texts import locale_of
 from apps.payments.models import Order, PaymentTransaction, Refund
 from apps.quizzes.models import Attempt
 from apps.users.models import OneTimeCode, SocialAccount, User
+from apps.users.roles import Role, has_role, manages_groups, sees_all
 from apps.videos.models import VideoAsset
 
 from .errors import error_counts
@@ -301,6 +303,36 @@ def admin_link(user: User | None, model: str, perm: str | None = None, **filters
     return f"{url}?{urlencode(filters)}" if filters else url
 
 
+def site_link(user: User | None, path: str) -> str:
+    """Saytdagi kabinet sahifasi (`/dashboard/...`): admin bilan bir domen, til prefiksi bilan."""
+    return f"/{locale_of(user.locale)}{path}" if user is not None else ""
+
+
+def reviews_link(viewer: User | None) -> str:
+    """Uy vazifalarini tekshirish saytda (admin va o'qituvchi); menejerga — admin ro'yxati."""
+    if viewer is not None and has_role(viewer, Role.ADMIN, Role.TEACHER):
+        return site_link(viewer, "/dashboard/reviews")
+    return admin_link(viewer, "homework.submission", status__exact=Submission.Status.SUBMITTED)
+
+
+def grading_link(viewer: User | None, exam_ids: set[int]) -> str:
+    """Baholash saytda: bitta imtihon bo'lsa — shu imtihon, bir nechta bo'lsa — ro'yxat."""
+    if viewer is None or not sees_all(viewer):
+        return admin_link(viewer, "exams.exam")
+    if len(exam_ids) == 1:
+        return site_link(viewer, f"/dashboard/teaching/exams/{next(iter(exam_ids))}")
+    return site_link(viewer, "/dashboard/exams")
+
+
+def attendance_link(viewer: User | None, lessons: list[Any]) -> str:
+    """Davomat dars sahifasida (kabinet): bitta dars bo'lsa — shu dars, aks holda guruhlar."""
+    if viewer is None or not manages_groups(viewer):
+        return admin_link(viewer, "live.livelesson")
+    if len(lessons) == 1:
+        return site_link(viewer, f"/dashboard/teaching/live/{lessons[0].pk}")
+    return site_link(viewer, "/dashboard/teaching")
+
+
 @dataclass(frozen=True)
 class Problem:
     level: str  # danger | warning | info
@@ -389,7 +421,15 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         Submission.objects.filter(
             status=Submission.Status.SUBMITTED, created_at__lt=now - REVIEW_AFTER
         ).count(),
-        admin_link(viewer, "homework.submission", status__exact=Submission.Status.SUBMITTED),
+        reviews_link(viewer),
+    )
+    unmarked = unmarked_lessons(now=now)
+    add(
+        "warning",
+        _("Yo'qlama qilinmagan darslar"),
+        len(unmarked),
+        attendance_link(viewer, unmarked),
+        _("Dars tugaganiga 2 soatdan oshdi — o'qituvchi davomatni belgilasin."),
     )
     add(
         "warning",
@@ -425,12 +465,13 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         admin_link(viewer, "exams.exam", status__exact="DRAFT"),
         _("Ochilishiga 5 kundan kam qoldi: amaliy topshiriqlarni kiriting va «Tayyor» qiling."),
     )
+    stale = exams.pending_grading().filter(updated_at__lt=now - REVIEW_AFTER)
     add(
         "warning",
         _("Baholanmagan imtihon topshiriqlari"),
-        exams.pending_grading().filter(updated_at__lt=now - REVIEW_AFTER).count(),
-        admin_link(viewer, "exams.exam"),
-        _("48 soatdan beri: o'qituvchi kabinetda baholasin."),
+        stale.count(),
+        grading_link(viewer, set(stale.values_list("task__exam_id", flat=True))),
+        _("48 soatdan beri kutmoqda. Bosing — saytda baholash sahifasi ochiladi."),
     )
     add(
         "warning",

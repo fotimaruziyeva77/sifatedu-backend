@@ -14,7 +14,7 @@ from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 
@@ -686,6 +686,20 @@ def finalize(*, now: datetime | None = None) -> int:
 def pending_grading() -> QuerySet[TaskAnswer]:
     """Baholanmagan amaliy javoblar (admin muammolari uchun)."""
     return TaskAnswer.objects.filter(score__isnull=True)
+
+
+def pending_for(user: Any) -> QuerySet[TaskAnswer]:
+    """Shu xodim baholaydigan baholanmagan javoblar: admin, menejer, direktor — hammasi; kurs
+    ustozi — kursiniki; guruh o'qituvchisi — o'z guruhi o'quvchilariniki (`students_of` kabi)."""
+    answers = pending_grading()
+    if sees_all(user):
+        return answers
+    own_group = Enrollment.objects.filter(
+        user=OuterRef("student_id"), course=OuterRef("task__exam__course_id"), group__teacher=user
+    )
+    return answers.filter(
+        Q(task__exam__course__in=teacher_courses(user).values("pk")) | Exists(own_group)
+    )
 
 
 def unready(

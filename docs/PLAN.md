@@ -1856,6 +1856,53 @@ uchun skript bor: `scripts/imtihon_python_qayta.py`).
 - Testlar: `apps/learning/tests/test_roster.py` (yangi o'quvchi botga kirganda ulanishi ham),
   `apps/exams/tests/test_open_for.py`.
 
+### 22c-qadam: admin panel — guruhlar va imtihonlar, o'quv jarayoni, menyu (2026-10-13, buyurtmachi so'rovi)
+
+Buyurtmachi: «admin panelni yaxshila». Skrinshotlarda: admin bosh sahifasida «4 — Baholanmagan
+imtihon topshiriqlari: o'qituvchi kabinetda baholasin», saytdagi «Oylik imtihonlar» esa adminga
+«Hozircha imtihon yo'q» deydi.
+
+Hozir: guruh sahifalari (o'quvchi qo'shish, jadval, yo'qlama, imtihonni ochish va baholash) faqat
+o'qituvchiga va faqat o'z guruhiga. Imtihon API admin va menejerga ochiq, lekin saytda unga yo'l
+yo'q. Bosh sahifa faqat sotuvni ko'rsatadi. Unfold'ning ba'zi yozuvlari inglizcha.
+
+**Tanlov:** guruhlar va imtihonlar; o'quv jarayoni; menyu va o'zbekcha matnlar. Sotuv bloki
+(javobsiz arizalar ro'yxati, manbalar) tanlanmadi.
+
+| Qism | Vazifa |
+|---|---|
+| Guruhlar admin va menejerga | Saytdagi kabinetda «Guruhlar»: admin va menejer barcha guruhlarni ko'radi va o'qituvchi kabi boshqaradi: o'quvchi qo'shish va chiqarish, dars jadvali, yo'qlama (jonli dars sahifasi ularga avval ham ochiq edi), imtihonni ochish va baholash. Guruh kartasida o'qituvchi ismi. O'qituvchi — avvalgidek faqat o'z guruhlari. Direktor kabinetga kirmaydi: unga admin paneldagi statistika |
+| «Oylik imtihonlar» sahifasi | Imtihonni boshqaradiganlarga «Guruhlar imtihonlari» bo'limi: topshirganlar, baholanmaganlar, baholash sahifasiga havola. O'zi imtihon topshirmaydigan xodimga «imtihon yo'q» o'rniga shu ro'yxat |
+| Muammolardan kerakli sahifaga | «Baholanmagan imtihon topshiriqlari» → saytdagi baholash sahifasi (bitta imtihon bo'lsa — shu imtihon, bir nechta bo'lsa — ro'yxat). «Tekshirilmagan uy vazifalari» → saytdagi «Tekshirish». Yangi muammo: «Yo'qlama qilinmagan darslar» (dars tugaganiga 2 soatdan oshgan, oxirgi 7 kun) |
+| Bosh sahifa: o'quv jarayoni | Uch blok, davrga bog'liq emas (hozirgi holat). **Bugungi darslar:** soat, guruh, o'qituvchi, holat (kutilmoqda / ketmoqda / keldi-kelmadi soni / yo'qlama qilinmagan / bekor qilingan). **Guruhlar:** o'quvchilar, davomat (30 kun), bugungi kunlik test (ishladi / jami), tekshirilmagan ishlar (uy vazifasi va imtihon). **Imtihonlar:** ochiq va yaqinda yopilganlari — topshirdi / jami, baholanmagan, «Baholash →». Statistikani ko'radiganlarga (admin, direktor, menejer); guruh va dars havolalari — kabinetga kira oladiganlarga |
+| Menyu | «O'qish» bo'limi «Sotuv»dan keyin, unda «Guruhlar (saytda)» havolasi. Kam ishlatiladigan bo'limlar yig'iladigan. Sonlar: tekshirilmagan uy vazifalari, baholanmagan imtihon topshiriqlari, yangi do'kon buyurtmalari, pul qaytarish so'rovlari |
+| O'zbekcha matnlar | Unfold'ning inglizcha yozuvlari («Search apps and models…», «All applications», filtrlar, tema va h.k.) — `backend/locale/uz/LC_MESSAGES/django.po`. Serverda gettext yo'q: `.mo` ni `manage.py compile_po` (Python) yig'adi, `.mo` repoda; test ikkalasi mosligini tekshiradi |
+
+Qilinmaydi: admin panelning o'zida baholash va yo'qlama (saytdagi kabinet bor, ikki joyda bir xil
+ish bo'lmasin); direktorga kabinetda o'zgartirish huquqi; sotuv bloki.
+
+**Natija (2026-10-13):**
+- Rollar: `roles.GROUP_MANAGER_ROLES` (admin, menejer) va `manages_groups()`. Kabinet API
+  (`learning/teaching.py`: guruhlar, o'quvchilar, jadval, kunlik test) va jonli dars
+  (`live.services.can_manage`) shunga tayanadi; guruh kartasida `teacher_name`. Sayt menyusida
+  admin va menejerga «Guruhlar» (o'qituvchiga — «Guruhlarim»), sahifa sarlavhasi va kartada
+  o'qituvchi ismi rolga qarab. «Oylik imtihonlar» sahifasida «Guruhlar imtihonlari»
+  (`features/exams/teacher-exam-list.tsx` — «Guruhlar» sahifasi bilan umumiy).
+- Bosh sahifa: `apps/stats/study.py` (`lessons_today`, `groups_overview`, `exams_overview`),
+  shablonda «O'quv jarayoni». Muammolar: `metrics.grading_link` / `reviews_link` /
+  `attendance_link` (saytga), yangi «Yo'qlama qilinmagan darslar» — `live.services.unmarked_lessons`
+  (2 soat, 7 kun, o'quvchisi bor guruh).
+- Menyu (`UNFOLD.SIDEBAR`): «Sotuv», «O'qish» (ochiq; «Kabinet: guruhlar» — yangi oynada), qolgani
+  yig'iladigan; «Testlar» va «Videolar» — «Katalog»da. Sonlar `apps/core/admin_config.py`:
+  `homework_badge` (`homework.services.reviewable`), `exam_grading_badge`
+  (`exams.services.pending_for`), `shop_badge`, `refunds_badge`; yig'ilgan bo'lim nomida ham.
+- O'zbekcha: `backend/locale/uz/LC_MESSAGES/django.po` (182 ta: Unfold + Django tarjimasidagi
+  xatolar — «Aniq» → «Tozalash», «%(name)sqo'shish» → «%(name)s qo'shish»), `.mo` repoda,
+  `manage.py compile_po [--check]` (`apps/core/po.py`). `apps/core/middleware.py`: `/admin/` doim
+  o'zbekcha (avval brauzer tiliga qarab inglizcha/ruscha tugmalar chiqardi).
+- Testlar: `stats/tests/test_study.py`, `learning/tests/test_group_managers.py`,
+  `core/tests/test_locale.py`, `core/tests/test_sidebar.py`; vitest — `nav.test.ts`.
+
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 
 **Buyurtmachi qarori (2026-10-03 yangilandi):** avval o'quvchi yig'ish va o'qitish (19–22-qadamlar, §7D), keyin 23–25-qadamlar.

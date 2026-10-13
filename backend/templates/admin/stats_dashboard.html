@@ -77,6 +77,171 @@
         </section>
     </div>
 
+    <h2 class="sd-section">
+        {% translate "O'quv jarayoni" %}
+        <span class="sd-section__note">{% translate "hozirgi holat, davrga bog'liq emas" %}</span>
+    </h2>
+
+    <div class="sd-grid">
+        <section class="sd-panel" aria-labelledby="sd-lessons">
+            <h2 id="sd-lessons" class="sd-panel__title">{% translate "Bugungi darslar" %}</h2>
+            <p class="sd-panel__hint">{% translate "Jonli darslar va o'qituvchi belgilagan davomat." %}</p>
+            {% if stats.lessons %}
+                <div class="sd-scroll">
+                    <table class="sd-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{% translate "Soat" %}</th>
+                                <th scope="col">{% translate "Guruh" %}</th>
+                                <th scope="col">{% translate "Davomat" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in stats.lessons %}
+                                <tr>
+                                    <td class="sd-time">{{ row.lesson.starts_at|time:"H:i" }}</td>
+                                    <td>
+                                        {% if row.url %}
+                                            <a href="{{ row.url }}">{{ row.lesson.group.name }}</a>
+                                        {% else %}
+                                            {{ row.lesson.group.name }}
+                                        {% endif %}
+                                        <span class="sd-sub-line">{{ row.lesson.group.teacher.get_full_name|default:row.lesson.group.teacher.phone }}</span>
+                                    </td>
+                                    <td>
+                                        {% if row.state == "marked" %}
+                                            <span class="sd-pill sd-pill--good">
+                                                {% blocktranslate with came=row.came late=row.late absent=row.absent %}Keldi {{ came }} · kechikdi {{ late }} · kelmadi {{ absent }}{% endblocktranslate %}
+                                            </span>
+                                        {% elif row.state == "unmarked" %}
+                                            <span class="sd-pill sd-pill--warning">{% translate "Yo'qlama qilinmagan" %}</span>
+                                        {% elif row.state == "live" %}
+                                            <span class="sd-pill sd-pill--live">{% translate "Dars ketmoqda" %}</span>
+                                        {% elif row.state == "canceled" %}
+                                            <span class="sd-pill">{% translate "Bekor qilingan" %}</span>
+                                        {% else %}
+                                            <span class="sd-pill">{% translate "Kutilmoqda" %}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="sd-empty">{% translate "Bugun jonli dars yo'q." %}</p>
+            {% endif %}
+        </section>
+
+        <section class="sd-panel" aria-labelledby="sd-exams">
+            <h2 id="sd-exams" class="sd-panel__title">{% translate "Imtihonlar" %}</h2>
+            <p class="sd-panel__hint">{% translate "Ochiq va oxirgi 2 haftada yopilganlari: kim topshirdi, nima baholanmagan." %}</p>
+            {% if stats.exams %}
+                <div class="sd-scroll">
+                    <table class="sd-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">{% translate "Imtihon" %}</th>
+                                <th scope="col" class="sd-num">{% translate "Topshirdi" %}</th>
+                                <th scope="col" class="sd-num">{% translate "Baholanmagan" %}</th>
+                                <th scope="col" class="sd-num">{% translate "O'tdi" %}</th>
+                                <th scope="col"><span class="sd-sr">{% translate "Havola" %}</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in stats.exams %}
+                                <tr>
+                                    <td>
+                                        {{ row.exam.course.title }}
+                                        <span class="sd-sub-line">
+                                            {{ row.exam.month|date:"F Y" }} ·
+                                            {% if row.state == "open" %}
+                                                {% blocktranslate with until=row.exam.closes_at|date:"d.m H:i" %}ochiq, {{ until }} gacha{% endblocktranslate %}
+                                            {% elif row.state == "extended" %}
+                                                {% translate "alohida muddat bilan ochiq" %}
+                                            {% else %}
+                                                {% translate "yopilgan" %}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="sd-num">{{ row.tested }} / {{ row.students }}</td>
+                                    <td class="sd-num">
+                                        {% if row.to_grade %}
+                                            <span class="sd-pill sd-pill--warning">{{ row.to_grade }}</span>
+                                        {% else %}
+                                            0
+                                        {% endif %}
+                                    </td>
+                                    <td class="sd-num">{{ row.passed }}</td>
+                                    <td class="sd-action">
+                                        {% if row.url %}
+                                            <a href="{{ row.url }}" class="sd-more">{% if row.to_grade %}{% translate "Baholash →" %}{% else %}{% translate "Natijalar →" %}{% endif %}</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="sd-empty">{% translate "Hozir ochiq imtihon yo'q." %}</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="sd-panel" aria-labelledby="sd-groups">
+        <div class="sd-panel__head">
+            <h2 id="sd-groups" class="sd-panel__title">{% translate "Guruhlar" %}</h2>
+            {% if stats.groups_url %}
+                <a href="{{ stats.groups_url }}" class="sd-more">{% translate "Saytdagi kabinetda ochish →" %}</a>
+            {% endif %}
+        </div>
+        <p class="sd-panel__hint">{% translate "O'qiyotgan va yig'ilayotgan guruhlar. Davomat — oxirgi 30 kun; tekshirilmagan — uy vazifalari va imtihon javoblari." %}</p>
+        {% if stats.groups %}
+            <div class="sd-scroll">
+                <table class="sd-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">{% translate "Guruh" %}</th>
+                            <th scope="col" class="sd-num">{% translate "O'quvchilar" %}</th>
+                            <th scope="col" class="sd-num">{% translate "Davomat" %}</th>
+                            <th scope="col" class="sd-num">{% translate "Bugungi kunlik test" %}</th>
+                            <th scope="col" class="sd-num">{% translate "Tekshirilmagan" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in stats.groups %}
+                            <tr>
+                                <td>
+                                    {% if row.url %}
+                                        <a href="{{ row.url }}">{{ row.group.name }}</a>
+                                    {% else %}
+                                        {{ row.group.name }}
+                                    {% endif %}
+                                    <span class="sd-sub-line">
+                                        {{ row.group.course.title }} · {{ row.group.teacher.get_full_name|default:row.group.teacher.phone }}{% if row.group.status == "FORMING" %} · {% translate "yig'ilmoqda" %}{% endif %}
+                                    </span>
+                                </td>
+                                <td class="sd-num">{{ row.students }}</td>
+                                <td class="sd-num">{% if row.attendance is None %}<span class="sd-muted">—</span>{% else %}{{ row.attendance }}%{% endif %}</td>
+                                <td class="sd-num">{% if row.daily_done is None %}<span class="sd-muted">{% translate "test yo'q" %}</span>{% else %}{{ row.daily_done }} / {{ row.students }}{% endif %}</td>
+                                <td class="sd-num">
+                                    {% if row.unchecked %}
+                                        <span class="sd-pill sd-pill--warning">{{ row.unchecked }}</span>
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="sd-empty">{% translate "Hozir o'qiyotgan yoki yig'ilayotgan guruh yo'q." %}</p>
+        {% endif %}
+    </section>
+
     <div class="sd-grid">
         <section class="sd-panel" aria-labelledby="sd-calls">
             <h2 id="sd-calls" class="sd-panel__title">{% translate "Qo'ng'iroq qilish kerak: kurs tanlamaganlar" %}</h2>

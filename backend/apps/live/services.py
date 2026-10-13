@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from django.db import transaction
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Count, Exists, OuterRef, Q, QuerySet
 from django.utils import timezone, translation
 
 from apps.catalog.models import Lesson
@@ -14,7 +14,7 @@ from apps.notifications import services as notifications
 from apps.notifications.models import Notification
 from apps.notifications.texts import day_month, locale_of, text
 from apps.users.models import User
-from apps.users.roles import Role, has_role
+from apps.users.roles import manages_groups
 
 from .models import Attendance, GroupLesson, LiveLesson, ScheduleSlot
 
@@ -28,6 +28,9 @@ LONGEST = timedelta(minutes=480)
 LINK = "/dashboard/schedule"
 # Kelmaganlarga xabar dars tugagach (o'qituvchi xatosini tuzatishga ulgursin).
 ABSENT_NOTICE_AFTER = timedelta(minutes=15)
+# Dars tugaganidan shuncha vaqt o'tib ham davomat belgilanmasa — admin muammolarida.
+UNMARKED_AFTER = timedelta(hours=2)
+UNMARKED_DAYS = 7
 
 
 class LiveError(ValueError):
@@ -160,7 +163,7 @@ def has_schedule(user: Any) -> bool:
 
 def can_manage(user: Any, lesson: LiveLesson) -> bool:
     """Davomat, bekor qilish, yozuv: guruh o'qituvchisi, menejer va admin."""
-    return lesson.group.teacher_id == user.pk or has_role(user, Role.ADMIN, Role.MANAGER)
+    return lesson.group.teacher_id == user.pk or manages_groups(user)
 
 
 # --- Jadval sahifasi ---
@@ -524,6 +527,32 @@ def attendance_rates(
         .annotate(came=Count("pk", filter=~Q(status=Attendance.Status.ABSENT)), total=Count("pk"))
     )
     return {row["student_id"]: round(row["came"] * 100 / row["total"]) for row in rows}
+
+
+def unmarked_lessons(*, now: datetime | None = None) -> list[LiveLesson]:
+    """Oxirgi 7 kunda tugagan (2 soatdan oshgan), bekor qilinmagan, o'quvchisi bor guruhdagi,
+    lekin o'qituvchi davomatni saqlamagan darslar ("Qo'shilish" bilan yozilganlar hisob emas)."""
+    now = now or timezone.now()
+    lessons = (
+        LiveLesson.objects.filter(
+            canceled_at__isnull=True,
+            starts_at__gte=now - timedelta(days=UNMARKED_DAYS),
+            starts_at__lt=now - UNMARKED_AFTER,
+        )
+        .filter(
+            Exists(
+                Enrollment.objects.filter(
+                    group_id=OuterRef("group_id"), status=Enrollment.Status.ACTIVE
+                )
+            )
+        )
+        .exclude(
+            Exists(Attendance.objects.filter(live_lesson=OuterRef("pk"), marked_by__isnull=False))
+        )
+        .select_related("group")
+        .order_by("starts_at", "pk")
+    )
+    return [lesson for lesson in lessons if lesson.ends_at <= now - UNMARKED_AFTER]
 
 
 def repeated_absences(*, now: datetime | None = None) -> list[tuple[int, int]]:

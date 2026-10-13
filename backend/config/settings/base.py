@@ -9,6 +9,7 @@ import environ
 from celery.schedules import crontab
 from django.templatetags.static import static
 from django.urls import reverse_lazy
+from django.utils.module_loading import import_string
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -16,6 +17,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 def _can(permission: str) -> Callable[[Any], bool]:
     """Admin menyusi: bo'lim faqat ruxsati borlarga ko'rinadi (rollar — apps/users/roles.py)."""
     return lambda request: bool(request.user.has_perm(permission))
+
+
+def _callback(path: str) -> Callable[[Any], Any]:
+    """Admin menyusi: funksiya so'rov paytida yuklanadi — sozlamalar o'qilayotganda ilovalar hali
+    tayyor emas."""
+    return lambda request: import_string(path)(request)
 
 
 env = environ.Env()
@@ -72,6 +79,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    # Admin panel — brauzer tilidan qat'i nazar o'zbekcha (matnlari faqat o'zbekcha).
+    "apps.core.middleware.AdminLanguageMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -516,6 +525,8 @@ UNFOLD = {
         "show_search": True,
         "show_all_applications": True,
         "navigation": [
+            # Har kuni ishlatiladiganlar (Sotuv, O'qish) — ochiq; qolganlari yig'iladigan: sahifasi
+            # ochiq bo'lsa, bo'lim o'zi ochiladi. Yig'ilgan bo'lim nomi yonida — muhim son.
             {
                 "title": "Sotuv",
                 "items": [
@@ -541,7 +552,134 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "O'qish",
+                "items": [
+                    {
+                        # Guruhlar, o'quvchilar, jadval, yo'qlama va imtihonni baholash — saytda.
+                        "title": "Kabinet: guruhlar",
+                        "icon": "open_in_new",
+                        "link": _callback("apps.core.admin_config.cabinet_link"),
+                        "link_attrs": {"target": "_blank", "rel": "noopener"},
+                        "permission": "apps.core.admin_config.cabinet_permission",
+                    },
+                    {
+                        "title": "Guruhlar",
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:learning_studygroup_changelist"),
+                        "permission": _can("learning.view_studygroup"),
+                    },
+                    {
+                        "title": "Jonli darslar",
+                        "icon": "video_call",
+                        "link": reverse_lazy("admin:live_livelesson_changelist"),
+                        "permission": _can("live.view_livelesson"),
+                    },
+                    {
+                        "title": "Kursga yozilishlar",
+                        "icon": "how_to_reg",
+                        "link": reverse_lazy("admin:learning_enrollment_changelist"),
+                        "permission": _can("learning.view_enrollment"),
+                    },
+                    {
+                        "title": "Oylik imtihonlar",
+                        "icon": "fact_check",
+                        "link": reverse_lazy("admin:exams_exam_changelist"),
+                        "permission": _can("exams.view_exam"),
+                        "badge": "apps.core.admin_config.exam_grading_badge",
+                    },
+                    {
+                        "title": "Uy vazifalari",
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:homework_submission_changelist"),
+                        "permission": _can("homework.view_submission"),
+                        "badge": "apps.core.admin_config.homework_badge",
+                    },
+                    {
+                        "title": "Kunlik testlar",
+                        "icon": "today",
+                        "link": reverse_lazy("admin:dailytest_dailytest_changelist"),
+                        "permission": _can("dailytest.view_dailytest"),
+                    },
+                    {
+                        "title": "Sertifikatlar",
+                        "icon": "workspace_premium",
+                        "link": reverse_lazy("admin:certificates_certificate_changelist"),
+                        "permission": _can("certificates.view_certificate"),
+                    },
+                    {
+                        "title": "Dars progressi",
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:learning_lessonprogress_changelist"),
+                        "permission": _can("learning.view_lessonprogress"),
+                    },
+                ],
+            },
+            {
+                "title": "Foydalanuvchilar",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Foydalanuvchilar",
+                        "icon": "group",
+                        "link": reverse_lazy("admin:users_user_changelist"),
+                        "permission": _can("users.view_user"),
+                    },
+                    {
+                        "title": "SMS kodlar",
+                        "icon": "sms",
+                        "link": reverse_lazy("admin:users_onetimecode_changelist"),
+                        "permission": _can("users.view_onetimecode"),
+                    },
+                    {
+                        "title": "Rollar",
+                        "icon": "badge",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": _can("auth.view_group"),
+                    },
+                    {
+                        "title": "Audit log",
+                        "icon": "history",
+                        "link": reverse_lazy("admin:auditlog_logentry_changelist"),
+                        "permission": _can("auditlog.view_logentry"),
+                    },
+                ],
+            },
+            {
+                "title": "To'lovlar",
+                "collapsible": True,
+                "badge": "apps.core.admin_config.refunds_badge",
+                "items": [
+                    {
+                        "title": "Buyurtmalar",
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:payments_order_changelist"),
+                        "permission": _can("payments.view_order"),
+                    },
+                    {
+                        "title": "Tranzaksiyalar",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_paymenttransaction_changelist"),
+                        "permission": _can("payments.view_paymenttransaction"),
+                    },
+                    {
+                        "title": "Pul qaytarish",
+                        "icon": "currency_exchange",
+                        "link": reverse_lazy("admin:payments_refund_changelist"),
+                        "permission": _can("payments.view_refund"),
+                        "badge": "apps.core.admin_config.refunds_badge",
+                    },
+                    {
+                        "title": "To'lov loglari",
+                        "icon": "terminal",
+                        "link": reverse_lazy("admin:payments_paymentlog_changelist"),
+                        "permission": _can("payments.view_paymentlog"),
+                    },
+                ],
+            },
+            {
                 "title": "AI yordamchi",
+                "collapsible": True,
+                "badge": "apps.core.admin_config.manager_needed_badge",
                 "items": [
                     {
                         "title": "Suhbatlar",
@@ -560,6 +698,7 @@ UNFOLD = {
             },
             {
                 "title": "Telegram bot",
+                "collapsible": True,
                 "items": [
                     {
                         "title": "Bot foydalanuvchilari",
@@ -577,6 +716,7 @@ UNFOLD = {
             },
             {
                 "title": "Katalog",
+                "collapsible": True,
                 "items": [
                     {
                         "title": "Kurslar",
@@ -597,6 +737,18 @@ UNFOLD = {
                         "permission": _can("catalog.view_lesson"),
                     },
                     {
+                        "title": "Testlar",
+                        "icon": "quiz",
+                        "link": reverse_lazy("admin:quizzes_quiz_changelist"),
+                        "permission": _can("quizzes.view_quiz"),
+                    },
+                    {
+                        "title": "Videolar",
+                        "icon": "movie",
+                        "link": reverse_lazy("admin:videos_videoasset_changelist"),
+                        "permission": _can("videos.view_videoasset"),
+                    },
+                    {
                         "title": "Kategoriyalar",
                         "icon": "category",
                         "link": reverse_lazy("admin:catalog_category_changelist"),
@@ -611,101 +763,9 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "To'lovlar",
-                "items": [
-                    {
-                        "title": "Buyurtmalar",
-                        "icon": "receipt_long",
-                        "link": reverse_lazy("admin:payments_order_changelist"),
-                        "permission": _can("payments.view_order"),
-                    },
-                    {
-                        "title": "Tranzaksiyalar",
-                        "icon": "payments",
-                        "link": reverse_lazy("admin:payments_paymenttransaction_changelist"),
-                        "permission": _can("payments.view_paymenttransaction"),
-                    },
-                    {
-                        "title": "Pul qaytarish",
-                        "icon": "currency_exchange",
-                        "link": reverse_lazy("admin:payments_refund_changelist"),
-                        "permission": _can("payments.view_refund"),
-                    },
-                    {
-                        "title": "To'lov loglari",
-                        "icon": "terminal",
-                        "link": reverse_lazy("admin:payments_paymentlog_changelist"),
-                        "permission": _can("payments.view_paymentlog"),
-                    },
-                ],
-            },
-            {
-                "title": "O'qish",
-                "items": [
-                    {
-                        "title": "Kursga yozilishlar",
-                        "icon": "how_to_reg",
-                        "link": reverse_lazy("admin:learning_enrollment_changelist"),
-                        "permission": _can("learning.view_enrollment"),
-                    },
-                    {
-                        "title": "Guruhlar",
-                        "icon": "groups",
-                        "link": reverse_lazy("admin:learning_studygroup_changelist"),
-                        "permission": _can("learning.view_studygroup"),
-                    },
-                    {
-                        "title": "Jonli darslar",
-                        "icon": "video_call",
-                        "link": reverse_lazy("admin:live_livelesson_changelist"),
-                        "permission": _can("live.view_livelesson"),
-                    },
-                    {
-                        "title": "Testlar",
-                        "icon": "quiz",
-                        "link": reverse_lazy("admin:quizzes_quiz_changelist"),
-                        "permission": _can("quizzes.view_quiz"),
-                    },
-                    {
-                        "title": "Oylik imtihonlar",
-                        "icon": "fact_check",
-                        "link": reverse_lazy("admin:exams_exam_changelist"),
-                        "permission": _can("exams.view_exam"),
-                    },
-                    {
-                        "title": "Kunlik testlar",
-                        "icon": "today",
-                        "link": reverse_lazy("admin:dailytest_dailytest_changelist"),
-                        "permission": _can("dailytest.view_dailytest"),
-                    },
-                    {
-                        "title": "Sertifikatlar",
-                        "icon": "workspace_premium",
-                        "link": reverse_lazy("admin:certificates_certificate_changelist"),
-                        "permission": _can("certificates.view_certificate"),
-                    },
-                    {
-                        "title": "Uy vazifalari",
-                        "icon": "assignment",
-                        "link": reverse_lazy("admin:homework_submission_changelist"),
-                        "permission": _can("homework.view_submission"),
-                    },
-                    {
-                        "title": "Videolar",
-                        "icon": "movie",
-                        "link": reverse_lazy("admin:videos_videoasset_changelist"),
-                        "permission": _can("videos.view_videoasset"),
-                    },
-                    {
-                        "title": "Dars progressi",
-                        "icon": "trending_up",
-                        "link": reverse_lazy("admin:learning_lessonprogress_changelist"),
-                        "permission": _can("learning.view_lessonprogress"),
-                    },
-                ],
-            },
-            {
                 "title": "XP va coin",
+                "collapsible": True,
+                "badge": "apps.core.admin_config.shop_badge",
                 "items": [
                     {
                         "title": "Sozlamalar",
@@ -748,11 +808,31 @@ UNFOLD = {
                         "icon": "shopping_bag",
                         "link": reverse_lazy("admin:shop_purchase_changelist"),
                         "permission": _can("shop.view_purchase"),
+                        "badge": "apps.core.admin_config.shop_badge",
+                    },
+                ],
+            },
+            {
+                "title": "Xabarnomalar",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Xabar yuborish",
+                        "icon": "campaign",
+                        "link": reverse_lazy("admin:notifications_broadcast_changelist"),
+                        "permission": _can("notifications.view_broadcast"),
+                    },
+                    {
+                        "title": "Yuborilgan xabarlar",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notification_changelist"),
+                        "permission": _can("notifications.view_notification"),
                     },
                 ],
             },
             {
                 "title": "Sayt kontenti",
+                "collapsible": True,
                 "items": [
                     {
                         "title": "Sozlamalar va hero",
@@ -795,52 +875,6 @@ UNFOLD = {
                         "icon": "gavel",
                         "link": reverse_lazy("admin:content_legalpage_changelist"),
                         "permission": _can("content.view_legalpage"),
-                    },
-                ],
-            },
-            {
-                "title": "Xabarnomalar",
-                "items": [
-                    {
-                        "title": "Xabar yuborish",
-                        "icon": "campaign",
-                        "link": reverse_lazy("admin:notifications_broadcast_changelist"),
-                        "permission": _can("notifications.view_broadcast"),
-                    },
-                    {
-                        "title": "Yuborilgan xabarlar",
-                        "icon": "notifications",
-                        "link": reverse_lazy("admin:notifications_notification_changelist"),
-                        "permission": _can("notifications.view_notification"),
-                    },
-                ],
-            },
-            {
-                "title": "Foydalanuvchilar",
-                "items": [
-                    {
-                        "title": "Foydalanuvchilar",
-                        "icon": "group",
-                        "link": reverse_lazy("admin:users_user_changelist"),
-                        "permission": _can("users.view_user"),
-                    },
-                    {
-                        "title": "SMS kodlar",
-                        "icon": "sms",
-                        "link": reverse_lazy("admin:users_onetimecode_changelist"),
-                        "permission": _can("users.view_onetimecode"),
-                    },
-                    {
-                        "title": "Rollar",
-                        "icon": "badge",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                        "permission": _can("auth.view_group"),
-                    },
-                    {
-                        "title": "Audit log",
-                        "icon": "history",
-                        "link": reverse_lazy("admin:auditlog_logentry_changelist"),
-                        "permission": _can("auditlog.view_logentry"),
                     },
                 ],
             },
