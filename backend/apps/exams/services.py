@@ -513,6 +513,42 @@ def students_of(viewer: Any, exam: Exam) -> list[User]:
     return list(people.distinct().order_by("first_name", "last_name", "pk"))
 
 
+def open_for(
+    exam: Exam, students: list[User], until: datetime, by: User, *, now: datetime | None = None
+) -> int:
+    """O'qituvchi belgilagan o'quvchilarga imtihonni ochadi: alohida muddat va xabar (kabinet va
+    Telegram). Qoralama imtihon ochilmaydi."""
+    if not exam.is_ready:
+        raise ExamError(_("Imtihon hali qoralamada — avval admin panelda tayyorlang."))
+    for student in students:
+        grant_extension(exam, student, until, by, now=now)
+        announce_extension(exam, student, until)
+    return len(students)
+
+
+def announce_extension(exam: Exam, student: User, until: datetime) -> None:
+    locale = locale_of(student.locale)
+    with translation.override(locale):
+        course = str(exam.course.title)
+    local = timezone.localtime(until)
+    notify(
+        student,
+        Notification.Kind.EXAM_OPENED,
+        title=text(locale, "exam_extended_title", course=course),
+        body=text(
+            locale,
+            "exam_extended_body",
+            until=f"{day_month(local.date(), locale)}, {local:%H:%M}",
+            count=str(exam.questions_count),
+            minutes=str(exam.duration_min),
+            tasks=str(exam.tasks.count()),
+        ),
+        link=f"/dashboard/exams/{exam.pk}",
+        # Yangi muddat — yangi xabar; bir xil muddat qayta bosilsa — takrorlanmaydi.
+        dedupe_key=f"exam-open:{exam.pk}:{student.pk}:{until:%Y%m%d%H%M}",
+    )
+
+
 def grant_extension(
     exam: Exam, student: User, until: datetime, by: User, *, now: datetime | None = None
 ) -> ExamExtension:

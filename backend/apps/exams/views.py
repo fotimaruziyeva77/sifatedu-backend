@@ -32,6 +32,7 @@ from .serializers import (
     ExamSavedSerializer,
     ExtensionSerializer,
     GradeSerializer,
+    OpenForSerializer,
     TaskSubmitSerializer,
     TeacherExamDetailSerializer,
     TeacherExamSerializer,
@@ -229,6 +230,30 @@ class TeacherGradeView(APIView):
                 score=serializer.validated_data["score"],
                 feedback=serializer.validated_data["feedback"],
             )
+        except services.ExamError as exc:
+            raise exam_error(exc) from exc
+        return Response(payloads.teacher_detail(exam, user))
+
+
+class TeacherOpenView(APIView):
+    """Belgilangan o'quvchilarga imtihonni ochish: alohida muddat va xabar."""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        request=OpenForSerializer, responses={200: TeacherExamDetailSerializer}, tags=["exams"]
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        user: User = request.user  # type: ignore[assignment]
+        exam = managed_exam(user, pk)
+        serializer = OpenForSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        wanted = set(serializer.validated_data["students"])
+        students = [person for person in services.students_of(user, exam) if person.pk in wanted]
+        if not students:
+            raise NotFound
+        try:
+            services.open_for(exam, students, serializer.validated_data["until"], user)
         except services.ExamError as exc:
             raise exam_error(exc) from exc
         return Response(payloads.teacher_detail(exam, user))

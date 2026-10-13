@@ -11,6 +11,7 @@ from .views import (
     TeacherExamListView,
     TeacherExtensionView,
     TeacherGradeView,
+    TeacherOpenView,
 )
 
 urlpatterns = [
@@ -27,5 +28,6 @@ urlpatterns = [
         TeacherExtensionView.as_view(),
         name="teacher-exam-extension",
     ),
+    path("teacher/exams/<int:pk>/open/", TeacherOpenView.as_view(), name="teacher-exam-open"),
     path("teacher/exam-answers/<int:pk>/grade/", TeacherGradeView.as_view(), name="teacher-grade"),
 ]

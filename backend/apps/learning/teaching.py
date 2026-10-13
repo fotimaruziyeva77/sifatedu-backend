@@ -1,7 +1,8 @@
 """O'qituvchi kabineti: o'z guruhlari va o'quvchilarining progressi.
 
 O'qituvchi faqat o'ziga biriktirilgan guruhlarni ko'radi. O'quvchi haqida — ismi, telefoni va
-o'qish holati (TZ 3.2: "o'z guruhlari, cheklangan").
+o'qish holati (TZ 3.2: "o'z guruhlari, cheklangan"). Guruhga o'quvchi qo'shadi va chiqaradi,
+haftalik dars jadvalini kiritadi (`roster`).
 """
 
 from datetime import timedelta
@@ -11,18 +12,21 @@ from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Value, When
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.bot import links
 from apps.catalog.models import Lesson
-from apps.live.models import Attendance, LiveLesson
+from apps.live.models import Attendance, LiveLesson, ScheduleSlot
 from apps.live.services import attendance_rates
 from apps.quizzes.services import group_quiz_stats
 from apps.users.roles import Role, has_role
 
+from . import roster
 from .models import Enrollment, LessonProgress, StudyGroup
 
 # Shuncha kun dars ko'rmagan o'quvchi "faol emas" deb belgilanadi — o'qituvchi bog'lanadi.
@@ -87,11 +91,43 @@ class GroupLessonSerializer(serializers.Serializer[dict[str, Any]]):
     came = serializers.IntegerField(help_text="Kelgan va kechikkanlar.")
 
 
+class SlotSerializer(serializers.Serializer[dict[str, Any]]):
+    id = serializers.IntegerField()
+    weekday = serializers.IntegerField(help_text="0 — dushanba … 6 — yakshanba.")
+    starts_at = serializers.TimeField(format="%H:%M")
+    duration_min = serializers.IntegerField()
+
+
 class TeacherGroupDetailSerializer(TeacherGroupSerializer):
     students = TeacherStudentSerializer(many=True)
     lessons = GroupLessonSerializer(
         many=True, help_text="Oxirgi 5 ta o'tgan va yaqin 5 ta jonli dars (vaqt bo'yicha)."
     )
+    slots = SlotSerializer(many=True, help_text="Haftalik dars jadvali.")
+    bot_url = serializers.CharField(
+        allow_blank=True, help_text="Bot havolasi: yangi o'quvchi shu raqam bilan kirsin."
+    )
+
+
+class AddStudentSerializer(serializers.Serializer[dict[str, Any]]):
+    phone = serializers.CharField(max_length=20)
+    first_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
+    last_name = serializers.CharField(max_length=150, allow_blank=True, required=False, default="")
+
+
+class AddedStudentSerializer(serializers.Serializer[dict[str, Any]]):
+    group = TeacherGroupDetailSerializer()
+    name = serializers.CharField()
+    created = serializers.BooleanField(help_text="Yangi akkaunt: o'quvchi hali botga kirmagan.")
+    moved_from = serializers.CharField(
+        allow_blank=True, help_text="Boshqa guruhdan o'tkazildi — eski guruh nomi."
+    )
+
+
+class SlotInputSerializer(serializers.Serializer[dict[str, Any]]):
+    weekday = serializers.IntegerField(min_value=0, max_value=6)
+    starts_at = serializers.TimeField()
+    duration_min = serializers.IntegerField(min_value=15, max_value=480, default=90)
 
 
 def group_students(group: StudyGroup) -> list[dict[str, Any]]:
@@ -217,19 +253,120 @@ class TeacherGroupsView(APIView):
         return Response(cards)
 
 
+def my_group(user: Any, pk: int) -> StudyGroup:
+    # Boshqa o'qituvchining guruhi — 404: bunday guruh borligini ham ochib bermaydi.
+    return get_object_or_404(teacher_groups(user), pk=pk)
+
+
+def group_detail(group: StudyGroup) -> dict[str, Any]:
+    students = group_students(group)
+    slots = ScheduleSlot.objects.filter(group=group).order_by("weekday", "starts_at")
+    return {
+        **group_card(group, students),
+        "students": students,
+        "lessons": group_lessons(group),
+        "slots": [
+            {
+                "id": slot.pk,
+                "weekday": slot.weekday,
+                "starts_at": f"{slot.starts_at:%H:%M}",
+                "duration_min": slot.duration_min,
+            }
+            for slot in slots
+        ],
+        "bot_url": links.bot_url() or "",
+    }
+
+
+def roster_error(exc: roster.RosterError) -> ValidationError:
+    return ValidationError({"non_field_errors": [str(exc)]})
+
+
 class TeacherGroupView(APIView):
-    """Guruh sahifasi: o'quvchilar ro'yxati va har birining progressi."""
+    """Guruh sahifasi: o'quvchilar ro'yxati, progress, darslar va haftalik jadval."""
 
     permission_classes = [IsAuthenticated, IsTeacher]
 
     @extend_schema(responses=TeacherGroupDetailSerializer, tags=["teacher"])
     def get(self, request: Request, pk: int) -> Response:
-        # Boshqa o'qituvchining guruhi — 404: bunday guruh borligini ham ochib bermaydi.
-        group = get_object_or_404(teacher_groups(request.user), pk=pk)
-        students = group_students(group)
+        return Response(group_detail(my_group(request.user, pk)))
+
+
+class TeacherGroupStudentsView(APIView):
+    """Guruhga o'quvchi qo'shish (telefon va ism bilan)."""
+
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    @extend_schema(
+        request=AddStudentSerializer, responses={201: AddedStudentSerializer}, tags=["teacher"]
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        group = my_group(request.user, pk)
+        serializer = AddStudentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            added = roster.add_student(group, **serializer.validated_data)
+        except roster.RosterError as exc:
+            raise roster_error(exc) from exc
+        user = added.user
         return Response(
-            {**group_card(group, students), "students": students, "lessons": group_lessons(group)}
+            {
+                "group": group_detail(group),
+                "name": user.get_full_name() or user.phone,
+                "created": added.created,
+                "moved_from": added.moved_from,
+            },
+            status=201,
         )
+
+
+class TeacherGroupStudentView(APIView):
+    """Guruhdan chiqarish: kursga kirish yopiladi, tarix qoladi."""
+
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    @extend_schema(request=None, responses={200: TeacherGroupDetailSerializer}, tags=["teacher"])
+    def delete(self, request: Request, pk: int, user_id: int) -> Response:
+        group = my_group(request.user, pk)
+        try:
+            roster.remove_student(group, user_id)
+        except roster.RosterError as exc:
+            raise roster_error(exc) from exc
+        return Response(group_detail(group))
+
+
+class TeacherGroupSlotsView(APIView):
+    """Haftalik jadvalga dars qo'shish: darslar 14 kun oldinga o'zi yaratiladi."""
+
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    @extend_schema(
+        request=SlotInputSerializer, responses={201: TeacherGroupDetailSerializer}, tags=["teacher"]
+    )
+    def post(self, request: Request, pk: int) -> Response:
+        group = my_group(request.user, pk)
+        serializer = SlotInputSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            roster.add_slot(group, **serializer.validated_data)
+        except roster.RosterError as exc:
+            raise roster_error(exc) from exc
+        return Response(group_detail(group), status=201)
+
+
+class TeacherGroupSlotView(APIView):
+    """Jadvaldan darsni olib tashlash: kelgusi belgilanmagan darslar ham o'chadi."""
+
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    @extend_schema(request=None, responses={200: TeacherGroupDetailSerializer}, tags=["teacher"])
+    def delete(self, request: Request, pk: int, slot_id: int) -> Response:
+        group = my_group(request.user, pk)
+        try:
+            roster.remove_slot(group, slot_id)
+        except roster.RosterError as exc:
+            raise roster_error(exc) from exc
+        return Response(group_detail(group))
 
 
 def group_lessons(group: StudyGroup) -> list[dict[str, Any]]:

@@ -4,7 +4,6 @@ from django import forms
 from django.contrib import admin, messages
 from django.db.models import Count, Q, QuerySet
 from django.http import HttpRequest
-from django.utils import translation
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 from unfold.decorators import action, display
@@ -13,28 +12,10 @@ from unfold.widgets import UnfoldAdminSelect2MultipleWidget
 from apps.live import services as live
 from apps.live.admin import GroupLessonInline, HttpsLinks, ScheduleSlotInline, https_formfield
 from apps.live.models import GroupLesson
-from apps.notifications.models import Notification
-from apps.notifications.services import notify
-from apps.notifications.texts import locale_of, text
 from apps.users.roles import sees_all
 
 from .models import Enrollment, LessonProgress, StudyGroup
-
-
-def notify_course_opened(enrollment: Enrollment) -> None:
-    """Admin kursni qo'lda ochdi: o'quvchiga kabinet va Telegram orqali xabar."""
-    user = enrollment.user
-    locale = locale_of(user.locale)
-    with translation.override(locale):
-        course = str(enrollment.course.title)
-    notify(
-        user,
-        Notification.Kind.COURSE_OPENED,
-        title=text(locale, "opened_title"),
-        body=text(locale, "opened_body", course=course),
-        link=f"/dashboard/courses/{enrollment.course.slug}",
-        dedupe_key=f"opened:{enrollment.pk}",
-    )
+from .roster import notify_course_opened
 
 
 class StudentChoiceField(forms.ModelMultipleChoiceField):

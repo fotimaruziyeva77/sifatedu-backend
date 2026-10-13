@@ -141,6 +141,11 @@ TEXTS: dict[str, dict[str, str]] = {
             "{period}. Test — {count} savol, {minutes} daqiqa, bitta urinish (saytda yoki botda); "
             "amaliy — {tasks} ta topshiriq saytda."
         ),
+        "exam_extended_title": "Imtihon siz uchun ochildi: {course}",
+        "exam_extended_body": (
+            "{until} gacha topshiring. Test — {count} savol, {minutes} daqiqa, bitta urinish "
+            "(saytda yoki botdagi «📝 Testlar»da); amaliy — {tasks} ta topshiriq saytda."
+        ),
         "exam_result_title": "Imtihon natijasi: {course}",
         "exam_result_body": "Natija — {total}%, {status}. Test {test}%, amaliy {practical}%.",
         "exam_passed": "o'tdingiz 🎉",
@@ -270,6 +275,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "exam_opened_body": (
             "{period}. Тест — {count} вопросов, {minutes} минут, одна попытка (на сайте или в "
             "боте); практика — {tasks} заданий на сайте."
+        ),
+        "exam_extended_title": "Экзамен открыт для вас: {course}",
+        "exam_extended_body": (
+            "Сдайте до {until}. Тест — {count} вопросов, {minutes} минут, одна попытка (на "
+            "сайте или в боте, раздел «📝 Тесты»); практика — {tasks} заданий на сайте."
         ),
         "exam_result_title": "Результат экзамена: {course}",
         "exam_result_body": "Результат — {total}%, {status}. Тест {test}%, практика {practical}%.",
@@ -402,6 +412,11 @@ TEXTS: dict[str, dict[str, str]] = {
         "exam_opened_body": (
             "{period}. Quiz — {count} questions, {minutes} minutes, one attempt (on the website or "
             "in the bot); practice — {tasks} tasks on the website."
+        ),
+        "exam_extended_title": "The exam is open for you: {course}",
+        "exam_extended_body": (
+            "Submit by {until}. Quiz — {count} questions, {minutes} minutes, one attempt (on the "
+            "website or in the bot, “📝 Tests”); practice — {tasks} tasks on the website."
         ),
         "exam_result_title": "Exam result: {course}",
         "exam_result_body": "Result — {total}%, {status}. Quiz {test}%, practice {practical}%.",

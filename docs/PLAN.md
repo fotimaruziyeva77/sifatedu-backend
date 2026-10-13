@@ -1685,6 +1685,7 @@ videolar keyin yuklanadi. Odamlar asosan Instagram'dan keladi.
 **Qarorlar:**
 - **Kupon:** daraja testida 70% va undan yuqori — 25%, aks holda 15%; 72 soat amal qiladi; har
   odamga bir marta; birinchi to'lovga. Bir nechta chegirma bo'lsa — eng kattasi (qo'shilmaydi).
+  2026-10-09 dan — 4 pog'ona (30/25/20/15%) va «ikkinchi imkoniyat», qarang: 22a-qadam.
 - **AI maslahatchi:** Google Gemini, Claude olib tashlanadi. Samimiy gaplashadi; bilim bazasi va
   e'tirozlarga javoblar buyurtmachi bilan birga tuziladi. Kalit — Google AI Studio (pullik tarif:
   bepul tarifda yozishmalar o'qitishga ishlatilishi mumkin). Gemini ilovasi obunasi API bermaydi.
@@ -1791,6 +1792,69 @@ yetarli bo'lmasa (o'tgan darslarda 20 tadan kam) — test berilmaydi va o'qituvc
   `QuizStep blind="daily"` (baho yo'q). Botda savolga saytda javob berilgan bo'lsa — bot keyingi
   savolga o'tadi. Baholash avtomatik (yozma javob — `grading.normalize` bilan aniq moslik).
 - Testlar: `apps/dailytest/tests` (servislar, API), `apps/bot/tests/test_daily_bot.py`.
+
+### 22a-qadam: kuchliroq daraja testi va chegirmalar (2026-10-09, buyurtmachi so'rovi)
+
+Instagram'dagi hamma videolar «bepul daraja testi»ga chaqiradi. Hozirgi test esa faqat Python
+bilimini tekshiradi: noldan boshlovchi deyarli har savolda kod o'qiydi va past ball oladi.
+
+**Buyurtmachi tanlovi:** IT qobiliyat qismi va natija kartasi (rasm); natijaga qarab 4 pog'onali
+kupon; kuponi ishlatilmay muddati o'tganlarga bir martalik «ikkinchi imkoniyat».
+
+| Qism | Vazifa |
+|---|---|
+| IT qobiliyat | Daraja testiga ikkinchi savollar banki: mantiq, ketma-ketlik, algoritmik fikrlash, diqqat — kod bilish shart emas. Test avval qobiliyat savollari (standart 6 ta), keyin yo'nalish bilimi (12 ta), 20 daqiqa. Botda har savol tepasida qism nomi, qismlar orasida qisqa xabar |
+| Natija | Ikki qism alohida: «IT qobiliyati 83% · Python bilimi 25%». Umumiy natija — ikkalasining o'rtachasi, kupon shunga qarab beriladi; daraja (boshlang'ich / o'rta / yaxshi) — bilim qismi bo'yicha. Qobiliyat qismi yo'q testda — avvalgidek |
+| Natija kartasi | Test tugagach bot natijani storis o'lchamidagi rasm (1080×1920) qilib yuboradi: logo, ism, yo'nalish, umumiy natija halqasi, ikki qism chiziqlari, daraja va «Siz ham bepul sinab ko'ring — @bot». Rasm izohida — shaxsiy taklif havolasi va «Do'stlarga yuborish» tugmasi (do'st kelsa, referal mukofotlari ishlaydi). Pillow; shriftlar (Geologica, Onest — lotin va kirill) backend'da |
+| Pog'onali kupon | Sozlamalarda 4 pog'ona (chegara va foiz): 90% → 30%, 70% → 25%, 40% → 20%, qolganlar → 15%; muddat 72 soat. Botdagi matnlar va AI maslahatchi prompti shunga moslanadi |
+| Ikkinchi imkoniyat | Har kuni 11:00 da: daraja testi kuponi ishlatilmay muddati o'tgan (standart 2 kun oldin), hali kursga yozilmagan va ikkinchi imkoniyat olmaganlarga — yangi kupon (standart 15%, 48 soat; foiz 0 — o'chiq). Xabar botga va saytdagi qo'ng'iroqchaga; tugashiga 12 soat qolganda eslatma. Kuponning yangi turi «Ikkinchi imkoniyat» (kabinetda ham) |
+| Kontent | `backend/scripts/daraja_testi_qobiliyat.py`: 28 ta qobiliyat savoli, barcha daraja testlariga ulaydi (20 daqiqa) |
+| Hujjat | `docs/yangi-kelganlar.md` yangilanadi |
+
+Qilinmaydi: kartada QR-kod (bot nomi yetarli, storisga havola stikeri qo'yiladi); kartani saytda
+ko'rsatish (test botda); vaqti tugab yopilgan testga karta (bunda faqat xabar boradi).
+
+Holat (2026-10-13): boshlangan ish `wip/daraja-testi` tarmog'ida (migratsiyasiz) — buyurtmachi
+avval 22b-qadamni so'radi.
+
+### 22b-qadam: o'qituvchi kabineti — jadval, o'quvchilar, imtihon ochish (2026-10-13, buyurtmachi so'rovi)
+
+Buyurtmachi: «loyihada yo'qlama ham bo'lsin, chunki o'zim o'quvchi kirita olmayapman; o'qituvchiga
+ochib ber — o'quvchi kirita olsin, imtihonni o'zi ocha olsin, o'quvchilarni belgilab».
+
+Hozir: yo'qlama faqat jadval bo'yicha yaratilgan darslarda bor, jadvalni esa faqat menejer admin
+panelda kiritadi; o'quvchini kursga va guruhga faqat admin panelda qo'shish mumkin; imtihon
+muddati o'qituvchi sahifasida bittadan beriladi.
+
+**Tanlov:** jadvalni o'qituvchi kiritadi; o'quvchi — telefon va ism bilan, guruhdan chiqarish ham;
+imtihon — belgilangan o'quvchilarga ochish.
+
+| Qism | Vazifa |
+|---|---|
+| Dars jadvali | Guruh sahifasida «Dars jadvali»: hafta kuni, boshlanish soati, davomiyligi — qo'shish va o'chirish. Saqlangach darslar 14 kun oldinga yaratiladi (`live.services.sync`), keyin har kecha. Yo'qlama — dars sahifasida (Keldi / Kechikdi / Kelmadi / Sababli); XP va «darsga kelmadingiz» xabari avvalgidek |
+| O'quvchi qo'shish | Guruh sahifasida «O'quvchi qo'shish»: telefon, ism, familiya. Raqam tizimda bo'lmasa — parolsiz akkaunt yaratiladi; o'quvchi botga shu raqam bilan kirganda akkaunt ulanadi. Kursga yozilish: qo'lda, guruh shakli bilan, muddatsiz; «kurs ochildi» xabari. Boshqa guruhda bo'lsa — shu guruhga o'tkaziladi (to'lov muddati saqlanadi). Xodim raqami rad etiladi |
+| Guruhdan chiqarish | O'quvchi qatorida «Chiqarish» (tasdiq bilan): yozilish bekor qilinadi, kursga kirish yopiladi; davomat va natijalar tarixda qoladi |
+| Imtihon ochish | Imtihon sahifasida o'quvchilarni belgilash («hammasi»), «Qachongacha» → «Ochish»: belgilanganlarga alohida muddat va kabinet/botga xabar. Qoralama imtihon ochilmaydi |
+| Kim | Jadval va o'quvchilar — guruhning o'qituvchisi (hozirgi o'qituvchi sahifalari kabi); imtihon — uni boshqaradiganlar (o'qituvchi, admin, menejer) |
+
+Qilinmaydi: jadvalsiz bir martalik dars; yangi topshiriqlar bilan qayta imtihon saytda (buning
+uchun skript bor: `scripts/imtihon_python_qayta.py`).
+
+**Natija (2026-10-13):**
+- `apps/learning/roster.py`: `add_student` (raqam normallashtiriladi; yangi — parolsiz akkaunt +
+  STUDENT, mavjudi — bo'sh ism to'ldiriladi; xodim va bloklangan rad etiladi; yozilish qo'lda,
+  guruh shakli bilan; bekor qilingani qayta ochiladi, boshqa guruhdagisi ko'chiriladi),
+  `remove_student` (CANCELLED), `add_slot` / `remove_slot` (jadval matni `StudyGroup.schedule` o'zi
+  yoziladi, `live.services.sync`). «Kurs ochildi» xabari (`notify_course_opened`) shu yerga
+  ko'chdi — admin ham shuni ishlatadi.
+- API (o'qituvchi, o'z guruhi): `POST teacher/groups/<id>/students/`, `DELETE …/students/<user>/`,
+  `POST teacher/groups/<id>/slots/`, `DELETE …/slots/<slot>/`; guruh sahifasi javobida `slots` va
+  `bot_url`. Imtihon: `POST teacher/exams/<id>/open/` (`students`, `until`) —
+  `services.open_for`: alohida muddat + `EXAM_OPENED` xabari (yangi muddat — yangi xabar).
+- Sayt: guruh sahifasida «O'quvchi qo'shish», «Guruhdan chiqarish», «Dars jadvali»; imtihon
+  sahifasida belgilash ustuni va «Tanlanganlarga ochish». Yo'riqnoma: `docs/oqituvchi-kabineti.md`.
+- Testlar: `apps/learning/tests/test_roster.py` (yangi o'quvchi botga kirganda ulanishi ham),
+  `apps/exams/tests/test_open_for.py`.
 
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 

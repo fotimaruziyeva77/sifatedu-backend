@@ -171,3 +171,10 @@ class GradeSerializer(serializers.Serializer[dict[str, Any]]):
 class ExtensionSerializer(serializers.Serializer[dict[str, Any]]):
     student = serializers.IntegerField()
     until = serializers.DateTimeField()
+
+
+class OpenForSerializer(serializers.Serializer[dict[str, Any]]):
+    students = serializers.ListField(
+        child=serializers.IntegerField(), min_length=1, max_length=300, help_text="O'quvchilar ID."
+    )
+    until = serializers.DateTimeField()
