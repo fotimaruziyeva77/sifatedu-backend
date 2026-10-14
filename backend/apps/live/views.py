@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 
 from apps.catalog.models import Lesson
 from apps.notifications.texts import locale_of
+from apps.quizzes import ai, drafts
 from apps.users.models import User
 
 from . import services
@@ -103,6 +104,8 @@ class TeacherLessonView(APIView):
             and GroupLesson.objects.filter(group=lesson.group, lesson_id=lesson.topic_id).exists(),
             "can_uncover": GroupLesson.objects.filter(live_lesson=lesson).exists(),
             "course_lessons": services.course_lessons(lesson),
+            "quiz_draft": drafts.payload(drafts.latest(lesson)),
+            "ai_ready": ai.ready(),
         }
 
     @extend_schema(responses={200: TeacherLiveSerializer}, tags=["live"])

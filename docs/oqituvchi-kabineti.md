@@ -53,6 +53,30 @@ test va imtihon natijalari tarixda qoladi. Qaytsa — yana «O'quvchi qo'shish»
 
 Jadvaldan darsni olib tashlasangiz (🗑), kelgusi, hali yo'qlama qilinmagan darslar ham o'chadi.
 
+## Dars qo'llanmasidan test (AI)
+
+Darsni oching («Jonli darslar» → dars) → **«Qo'llanmadan test (AI)»** bo'limi:
+
+1. **Mavzu** — kurs darsini tanlang yoki «➕ Yangi mavzu» → nomini yozing (masalan, «Ro'yxatlar»).
+2. Darsda ishlatgan **qo'llanmani** tanlang: PDF, Word (.docx), PowerPoint (.pptx), rasm (PNG, JPG,
+   WEBP) yoki matn fayli, 20 MB gacha. Eski .doc va .ppt fayllarni avval PDF qilib saqlang.
+3. **«AI bilan test tuzish»** — AI 30–60 soniyada 12 ta savol tuzadi: bitta va bir nechta to'g'ri
+   javobli, yozma javobli; dasturlash mavzusida — kod parchasi bilan. Sahifani yopsangiz ham
+   tuzilaveradi.
+4. Savollarni o'qib chiqing va matnda tuzating: `?` — savol, `+` — to'g'ri javob, `-` — noto'g'ri
+   javob, `=` — yozma javob, `>` — izoh, ```` ``` ```` — kod. Keraksiz savolni butunlay o'chiring.
+   Xato bo'lsa, qator raqami bilan ko'rsatiladi.
+5. Xohlasangiz **«Qo'llanmani o'quvchilarga ham ko'rsatish»**ni belgilang → **«Testni e'lon
+   qilish»**.
+
+E'lon qilingach savollar mavzu testiga qo'shiladi (testda savollar bo'lsa — ularga qo'shiladi),
+mavzu guruh uchun «o'tildi» bo'ladi va o'quvchilarga botda va kabinetda «Dars ochildi · Testni
+boshlash» xabari boradi. Kunlik test ham shu savollardan oladi. Mavzuni oldin «Dars o'tildi»
+bilan belgilagan bo'lsangiz ham, test tugmasi bilan xabar endi boradi. Dars hali boshlanmagan
+bo'lsa — savollar testga qo'shiladi, dars boshlangach «Dars o'tildi»ni bosing.
+
+Bo'limda «AI hali ulanmagan» yozuvi chiqsa — serverda `GEMINI_API_KEY` kiritilmagan.
+
 ## Imtihonni belgilangan o'quvchilarga ochish
 
 **Kabinet → «Guruhlarim» → «Oylik imtihonlar»** → imtihonni oching.

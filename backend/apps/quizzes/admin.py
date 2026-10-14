@@ -22,7 +22,7 @@ from unfold.widgets import UnfoldAdminTextareaWidget
 from apps.catalog.scope import TeacherScopedAdmin, scope_by_course
 
 from . import grading, services
-from .models import Attempt, Choice, Question, Quiz
+from .models import Attempt, Choice, Question, Quiz, QuizDraft
 from .parser import ParseError, parse
 
 QUICK_HELP = _(
@@ -264,3 +264,29 @@ class AttemptAdmin(ModelAdmin):
     @display(description=_("Natija"), ordering="score")
     def show_score(self, obj: Attempt) -> str:
         return "—" if obj.score is None else f"{obj.score}%"
+
+
+@admin.register(QuizDraft)
+class QuizDraftAdmin(ModelAdmin):
+    """Qo'llanmadan AI tuzgan testlar (ko'rish uchun): o'qituvchi ularni jonli dars sahifasida
+    tekshirib e'lon qiladi."""
+
+    list_display = ("lesson", "file_name", "status", "count", "created_by", "created_at")
+    list_filter = ("status",)
+    search_fields = ("file_name", "lesson__title")
+    list_select_related = ("lesson", "created_by")
+    readonly_fields = (
+        "lesson",
+        "live_lesson",
+        "file",
+        "file_name",
+        "status",
+        "text",
+        "error",
+        "count",
+        "created_by",
+        "published_at",
+    )
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False

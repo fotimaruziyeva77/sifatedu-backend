@@ -308,6 +308,8 @@ CELERY_TASK_ROUTES = {
     # AI javobi 5–20 soniya: alohida navbat, SMS kodlari va bot tugmalari kutib qolmasin.
     "apps.assistant.tasks.answer": {"queue": "ai"},
     "apps.assistant.tasks.telegram_answer": {"queue": "ai"},
+    # Qo'llanmadan test tuzish (Gemini, 30–90 s).
+    "apps.quizzes.tasks.generate_draft": {"queue": "ai"},
     # Ommaviy xabarlar alohida navbatda: SMS kodlari ularni kutib qolmaydi.
     "apps.notifications.tasks.deliver": {"queue": "bulk"},
     "apps.bot.tasks.deliver_news": {"queue": "bulk"},

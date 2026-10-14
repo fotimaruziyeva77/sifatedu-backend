@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from django.contrib import admin
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.db.models import Model
 from django.test import Client
@@ -26,7 +27,7 @@ from apps.live.models import Attendance, LiveLesson, ScheduleSlot
 from apps.notifications.models import Broadcast, Notification
 from apps.payments.models import Order, PaymentLog, PaymentTransaction, Refund
 from apps.placement.models import PlacementAnswer, PlacementAttempt, PlacementTest
-from apps.quizzes.models import Answer, Attempt, Choice, Question, Quiz
+from apps.quizzes.models import Answer, Attempt, Choice, Question, Quiz, QuizDraft
 from apps.rewards.models import Coupon, DailyTask, Entry, GameSettings, Wallet
 from apps.shop.models import Product, Purchase
 from apps.users.models import OneTimeCode, User
@@ -105,6 +106,15 @@ def staff_client(db: Any) -> Client:
         meet_url="https://meet.google.com/abc-defg-hij",
     )
     Attendance.objects.create(live_lesson=live, student=student, status="PRESENT")
+    QuizDraft.objects.create(
+        lesson=lesson,
+        live_lesson=live,
+        file=SimpleUploadedFile("dars.pdf", b"%PDF-1.4"),
+        file_name="dars.pdf",
+        status=QuizDraft.Status.READY,
+        text="? HTML nima?\n+ Belgilash tili\n- Dasturlash tili",
+        created_by=teacher,
+    )
     broadcast = Broadcast.objects.create(title="Ertaga dars yo'q", body="Dam oling")
     broadcast.courses.add(course)
     Notification.objects.create(

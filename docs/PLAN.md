@@ -1903,6 +1903,48 @@ ish bo'lmasin); direktorga kabinetda o'zgartirish huquqi; sotuv bloki.
 - Testlar: `stats/tests/test_study.py`, `learning/tests/test_group_managers.py`,
   `core/tests/test_locale.py`, `core/tests/test_sidebar.py`; vitest — `nav.test.ts`.
 
+### 22d-qadam: qo'llanmadan AI test va o'quvchi profili (2026-10-14, buyurtmachi so'rovi)
+
+Buyurtmachi (davomat sahifasi skrinshoti bilan): «o'quvchilarning rasmi, pasport ma'lumoti, to'liq
+ism-familiyasi; dars o'tsam, ishlatgan qo'llanmani yuklashim kerak — shunga mos test berasan».
+Davomatda o'quvchilar Telegram nomlari bilan chiqyapti («❤️ALHAMDULILLAH❤️👍»), o'qituvchi kim
+ekanini bilmaydi.
+
+**Tanlov:** pasport saqlanmaydi — to'liq ism (familiya, ism, otasining ismi) va tug'ilgan sana
+yetarli (shaxsiy ma'lumot qancha kam bo'lsa, xavf shuncha kam); ism va rasmni o'quvchi botda o'zi
+kiritadi, o'qituvchi va admin tuzata oladi; testni AI tuzadi, o'qituvchi tekshirib e'lon qiladi.
+
+| Qism | Vazifa |
+|---|---|
+| Qo'llanma → AI test | Jonli dars sahifasida «Qo'llanmadan test (AI)»: mavzu (kurs darsi yoki yangi mavzu nomi) va fayl (PDF, Word, PowerPoint, rasm, matn; 20 MB gacha). Gemini qo'llanma asosida 12 ta savol tuzadi (`ai` navbati, 30–60 s): bitta va bir nechta to'g'ri javobli, qisqa javobli; kod bo'lsa — kod parchasi bilan; izoh bilan. Natija «Tez kiritish» formatida — o'qituvchi matnni tuzatadi (xato qator raqami bilan ko'rsatiladi) |
+| E'lon qilish | Savollar mavzu testiga qo'shiladi (test bo'lmasa — yaratiladi); mavzu guruh uchun «o'tildi» deb belgilanadi va o'quvchilarga «Dars ochildi · Testni boshlash» xabari boradi (bot va kabinet). Kunlik test ham shu savollardan oladi. Xohlasa, qo'llanma o'quvchilarga dars materiali bo'lib qo'shiladi |
+| Profil | `User`: otasining ismi, tug'ilgan sana (rasm — `avatar` bor). Botda ro'yxatdan o'tgach: «Familiya, ism va otangizning ismini pasportdagidek yozing» → tasdiqlash → tug'ilgan sana → selfi (keyinroq ham mumkin). Hozirgi o'quvchilarga bir martalik «Profilni to'ldiring» xabari. Guruh sahifasida o'qituvchi (va admin, menejer) ism, sana va rasmni tuzatadi; davomat va guruhda rasm ko'rinadi |
+
+Qilinmaydi: pasport seriya-raqami, JSHSHIR va skanlari; AI testni o'qituvchisiz e'lon qilish.
+Kerak: serverda `GEMINI_API_KEY` (AI Studio, to'lov yoqilgan) — kalitsiz «AI kaliti
+sozlanmagan» deyiladi.
+
+**Natija — 1-qism, qo'llanmadan test (2026-10-14):**
+- `QuizDraft` (`quizzes/models.py`, migratsiya `0002_quiz_draft`): mavzu, jonli dars, fayl
+  (yopiq saqlash), holat PENDING → READY / FAILED → PUBLISHED, «Tez kiritish» matni, xato.
+- `quizzes/ai.py`: PDF va rasm Gemini'ga o'zicha beriladi; .docx/.pptx — ZIP ichidagi XML'dan
+  matn regex bilan (XML parser yo'q — entity bomb ta'sir qilmaydi), matn fayllari — o'zicha.
+  Structured output (pydantic `GenQuiz`), `thinking_level=LOW`; javob «Tez kiritish»ga
+  aylantiriladi va `parser.py` qabul qilmagan savol tashlab ketiladi.
+- `quizzes/drafts.py`: `create` (fayl turi va hajmi, AI kaliti, yangi mavzu — kursning oxirgi
+  moduliga), `run` (Celery `generate_draft`, `ai` navbati), `publish` (savollar
+  `import_questions` bilan mavzu testiga; xohlasa qo'llanma `LessonMaterial`; `open_for_group`:
+  `live.cover` — mavzu ochilib, xabar ketadi; mavzu avval testsiz ochilgan bo'lsa — xabar endi
+  test tugmasi bilan; dars boshlanmagan bo'lsa — keyin «Dars o'tildi»).
+- API: `POST teacher/live/<id>/quiz-drafts/` (multipart), `GET teacher/quiz-drafts/<id>/`,
+  `POST teacher/quiz-drafts/<id>/publish/` (`count`, `covered`, `notified`); jonli dars
+  javobida `quiz_draft` va `ai_ready`. Admin panelda qoralamalar — faqat ko'rish.
+- Sayt: `features/live/quiz-from-handout.tsx` — forma (yuklash foizi bilan), «AI tuzmoqda»
+  (3 s da holat so'raladi), matnni tuzatish (xatolar qator raqami bilan), e'lon.
+- Testlar: `quizzes/tests/test_drafts.py` (Word/PowerPoint matni, yaroqsiz savollar, to'liq yo'l,
+  avval ochilgan mavzu, boshlanmagan dars, xatolar va begona o'qituvchi, kalitsiz va noto'g'ri
+  fayl). Gemini'ning o'zi bilan sinov — serverda kalit kiritilgach.
+
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 
 **Buyurtmachi qarori (2026-10-03 yangilandi):** avval o'quvchi yig'ish va o'qitish (19–22-qadamlar, §7D), keyin 23–25-qadamlar.

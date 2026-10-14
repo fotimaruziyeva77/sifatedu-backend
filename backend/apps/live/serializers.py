@@ -2,6 +2,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from apps.quizzes.serializers import QuizDraftSerializer
+
 from .models import Attendance, LiveLesson
 
 MAX_ITEMS = 300
@@ -62,6 +64,10 @@ class TeacherLiveSerializer(LiveLessonSerializer):
     can_mark = serializers.BooleanField(help_text="Davomatni belgilash mumkin (dars boshlangan).")
     can_cancel = serializers.BooleanField(help_text="Dars hali boshlanmagan.")
     students = RosterItemSerializer(many=True)
+    quiz_draft = QuizDraftSerializer(
+        allow_null=True, help_text="Shu darsga yuklangan oxirgi qo'llanmadan AI test."
+    )
+    ai_ready = serializers.BooleanField(help_text="Serverda AI kaliti bor: test tuzish mumkin.")
 
 
 class AttendanceItemSerializer(serializers.Serializer[dict[str, Any]]):

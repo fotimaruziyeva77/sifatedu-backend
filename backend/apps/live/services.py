@@ -359,11 +359,13 @@ def uncover(lesson: LiveLesson) -> int:
     return deleted
 
 
-def announce(record: GroupLesson) -> int:
+def announce(record: GroupLesson, *, quiz_ready: bool = False) -> int:
     """Guruhga (darsda bo'lmaganlarga ham): dars ochildi. Testi bo'lsa — Telegram'da
-    "Testni boshlash" tugmasi, test botning o'zida ishlanadi."""
+    "Testni boshlash" tugmasi, test botning o'zida ishlanadi. `quiz_ready` — mavzu avval testsiz
+    ochilgan edi, endi testi tayyor: alohida «Test tayyor» xabari (bir marta)."""
     from apps.quizzes.models import Quiz
 
+    texts, key = ("lesson_quiz", "lesson-quiz") if quiz_ready else ("lesson_opened", "lesson-open")
     lesson = record.lesson
     group = record.group
     course = group.course
@@ -376,15 +378,15 @@ def announce(record: GroupLesson) -> int:
     for student in members(group.pk):
         locale = locale_of(student.locale)
         with translation.override(locale):
-            title = text(locale, "lesson_opened_title", lesson=str(lesson.title))
-            body = text(locale, "lesson_opened_body", group=group.name, course=str(course.title))
+            title = text(locale, f"{texts}_title", lesson=str(lesson.title))
+            body = text(locale, f"{texts}_body", group=group.name, course=str(course.title))
         created = notifications.notify(
             student,
             Notification.Kind.LESSON_OPENED,
             title=title,
             body=body,
             link=f"/dashboard/courses/{course.slug}/lessons/{lesson.pk}",
-            dedupe_key=f"lesson-open:{record.pk}:{student.pk}",
+            dedupe_key=f"{key}:{record.pk}:{student.pk}",
             quiz_id=quiz_id,
         )
         sent += created is not None

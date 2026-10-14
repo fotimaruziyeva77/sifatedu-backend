@@ -4,6 +4,8 @@ Test darsga bog'lanadi (modul testi — videosiz, faqat testli dars). Har bir ur
 baholanadi: brauzerga savollar javobsiz boradi, har bir javob alohida tekshiriladi.
 """
 
+import uuid
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -146,3 +148,61 @@ class Answer(models.Model):
 
     def __str__(self) -> str:
         return f"{self.attempt} · {self.question_id}"
+
+
+def draft_path(instance: "QuizDraft", filename: str) -> str:
+    return f"quiz-drafts/{uuid.uuid4().hex}/{filename}"
+
+
+class QuizDraft(TimeStampedModel):
+    """Qo'llanmadan AI tuzgan test qoralamasi: o'qituvchi tekshirib, tuzatib e'lon qiladi.
+
+    Matn «Tez kiritish» formatida (`parser.py`): e'lon qilinganda mavzu testiga qo'shiladi.
+    Fayl yopiq omborda; xohlasa o'quvchilarga dars materiali bo'lib qo'shiladi.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", _("Tuzilmoqda")
+        READY = "READY", _("Tekshirishga tayyor")
+        FAILED = "FAILED", _("Tuzilmadi")
+        PUBLISHED = "PUBLISHED", _("E'lon qilingan")
+
+    lesson = models.ForeignKey(
+        "catalog.Lesson",
+        verbose_name=_("mavzu"),
+        on_delete=models.CASCADE,
+        related_name="quiz_drafts",
+    )
+    live_lesson = models.ForeignKey(
+        "live.LiveLesson",
+        verbose_name=_("jonli dars"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quiz_drafts",
+    )
+    file = models.FileField(_("qo'llanma"), upload_to=draft_path)
+    file_name = models.CharField(_("fayl nomi"), max_length=255)
+    status = models.CharField(
+        _("holat"), max_length=10, choices=Status.choices, default=Status.PENDING, db_index=True
+    )
+    text = models.TextField(_("savollar"), blank=True)
+    error = models.CharField(_("xato"), max_length=500, blank=True)
+    count = models.PositiveSmallIntegerField(_("e'lon qilingan savollar"), default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name=_("o'qituvchi"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    published_at = models.DateTimeField(_("e'lon qilingan"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("AI test qoralamasi")
+        verbose_name_plural = _("AI test qoralamalari")
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.lesson} · {self.file_name}"
