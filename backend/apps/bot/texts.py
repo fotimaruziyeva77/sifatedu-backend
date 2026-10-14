@@ -301,6 +301,67 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "tests_daily": "📝 <b>Kunlik test</b>: {count} savol, {until} gacha",
         "tests_daily_done": "📝 Kunlik test: <b>{correct}/{total}</b> ✅",
+        # O'quvchi profili (22d): to'liq ism, tug'ilgan sana va selfi.
+        "profile_intro": (
+            "👤 <b>Profilingizni to'ldiring</b>\n"
+            "O'qituvchingiz sizni tanishi va hujjatlarda ismingiz to'g'ri yozilishi uchun: "
+            "to'liq ism, tug'ilgan sana va rasm. Bir daqiqa vaqt oladi."
+        ),
+        "profile_push": (
+            "👋 Assalomu alaykum!\n\n"
+            "O'qituvchingiz sizni tanishi va hujjatlarda ismingiz to'g'ri yozilishi uchun "
+            "profilingizni to'ldiring: to'liq ism, tug'ilgan sana va rasm. Bir daqiqa vaqt oladi."
+        ),
+        "btn_profile_start": "✍️ Profilni to'ldirish",
+        "profile_ask_name": (
+            "✍️ Familiya, ism va otangizning ismini pasportdagidek yozing.\n"
+            "Masalan: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_bad_name": (
+            "Tushunmadim. Familiya, ism va otangizning ismini harflar bilan, bo'sh joy bilan "
+            "ajratib yozing.\nMasalan: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_check_name": (
+            "Tekshiring:\n"
+            "Familiya: <b>{last}</b>\n"
+            "Ism: <b>{first}</b>\n"
+            "Otasining ismi: <b>{middle}</b>"
+        ),
+        "btn_profile_ok": "✅ To'g'ri",
+        "btn_profile_retry": "✏️ Qayta yozish",
+        "profile_ask_birth": (
+            "📅 Tug'ilgan sanangizni yozing: kun.oy.yil\nMasalan: <i>14.03.2008</i>"
+        ),
+        "profile_bad_birth": "Sanani kun.oy.yil ko'rinishida yozing, masalan: <i>14.03.2008</i>",
+        "profile_ask_photo": (
+            "🤳 Yuzingiz aniq ko'rinadigan rasm (selfi) yuboring — o'qituvchingiz sizni darsda "
+            "taniydi."
+        ),
+        "btn_profile_later": "⏭ Keyinroq",
+        "profile_only_photo": "Rasm yuboring yoki «⏭ Keyinroq» tugmasini bosing.",
+        "profile_photo_bad": "Bu rasm emas. Selfini oddiy rasm qilib yuboring.",
+        "profile_photo_wait": "⏳ Rasm saqlanmoqda…",
+        "profile_photo_failed": (
+            "Rasm saqlanmadi. Boshqa rasm yuboring yoki «⏭ Keyinroq» tugmasini bosing."
+        ),
+        "profile_done": "✅ Rahmat! Profilingiz to'ldirildi.",
+        "profile_later": (
+            "Mayli. Rasmni keyinroq «⚙️ Sozlamalar» → «👤 Profilim»dan yuborishingiz mumkin."
+        ),
+        "btn_profile": "👤 Profilim",
+        "profile_view": (
+            "👤 <b>Profilim</b>\n\n"
+            "Familiya: {last}\n"
+            "Ism: {first}\n"
+            "Otasining ismi: {middle}\n"
+            "Tug'ilgan sana: {birth}\n"
+            "Rasm: {photo}"
+        ),
+        "profile_empty": "—",
+        "profile_photo_yes": "bor ✅",
+        "profile_photo_no": "yo'q",
+        "btn_profile_edit": "✏️ O'zgartirish",
+        "btn_profile_photo": "🤳 Rasm yuborish",
     },
     "ru": {
         "subscribe": (
@@ -589,6 +650,58 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "tests_daily": "📝 <b>Ежедневный тест</b>: {count} вопросов, до {until}",
         "tests_daily_done": "📝 Ежедневный тест: <b>{correct}/{total}</b> ✅",
+        "profile_intro": (
+            "👤 <b>Заполните профиль</b>\n"
+            "Чтобы преподаватель знал вас, а имя в документах было написано верно: полное имя, "
+            "дата рождения и фото. Это займёт минуту."
+        ),
+        "profile_push": (
+            "👋 Здравствуйте!\n\n"
+            "Чтобы преподаватель знал вас, а имя в документах было написано верно, заполните "
+            "профиль: полное имя, дата рождения и фото. Это займёт минуту."
+        ),
+        "btn_profile_start": "✍️ Заполнить профиль",
+        "profile_ask_name": (
+            "✍️ Напишите фамилию, имя и отчество как в паспорте.\n"
+            "Например: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_bad_name": (
+            "Не понял. Напишите фамилию, имя и отчество буквами через пробел.\n"
+            "Например: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_check_name": (
+            "Проверьте:\nФамилия: <b>{last}</b>\nИмя: <b>{first}</b>\nОтчество: <b>{middle}</b>"
+        ),
+        "btn_profile_ok": "✅ Верно",
+        "btn_profile_retry": "✏️ Написать заново",
+        "profile_ask_birth": (
+            "📅 Напишите дату рождения: день.месяц.год\nНапример: <i>14.03.2008</i>"
+        ),
+        "profile_bad_birth": "Напишите дату в виде день.месяц.год, например: <i>14.03.2008</i>",
+        "profile_ask_photo": (
+            "🤳 Пришлите фото, где хорошо видно лицо (селфи), — преподаватель узнает вас на уроке."
+        ),
+        "btn_profile_later": "⏭ Позже",
+        "profile_only_photo": "Пришлите фото или нажмите «⏭ Позже».",
+        "profile_photo_bad": "Это не фото. Пришлите селфи обычной фотографией.",
+        "profile_photo_wait": "⏳ Сохраняю фото…",
+        "profile_photo_failed": "Фото не сохранилось. Пришлите другое или нажмите «⏭ Позже».",
+        "profile_done": "✅ Спасибо! Профиль заполнен.",
+        "profile_later": "Хорошо. Фото можно прислать позже: «⚙️ Настройки» → «👤 Мой профиль».",
+        "btn_profile": "👤 Мой профиль",
+        "profile_view": (
+            "👤 <b>Мой профиль</b>\n\n"
+            "Фамилия: {last}\n"
+            "Имя: {first}\n"
+            "Отчество: {middle}\n"
+            "Дата рождения: {birth}\n"
+            "Фото: {photo}"
+        ),
+        "profile_empty": "—",
+        "profile_photo_yes": "есть ✅",
+        "profile_photo_no": "нет",
+        "btn_profile_edit": "✏️ Изменить",
+        "btn_profile_photo": "🤳 Отправить фото",
     },
     "en": {
         "subscribe": "To use the bot, join our channel and then tap «✅ I have joined».",
@@ -879,6 +992,62 @@ TEXTS: dict[str, dict[str, str]] = {
         ),
         "tests_daily": "📝 <b>Daily test</b>: {count} questions, until {until}",
         "tests_daily_done": "📝 Daily test: <b>{correct}/{total}</b> ✅",
+        "profile_intro": (
+            "👤 <b>Complete your profile</b>\n"
+            "So your teacher knows you and your name is right in documents: full name, date of "
+            "birth and a photo. It takes a minute."
+        ),
+        "profile_push": (
+            "👋 Hello!\n\n"
+            "So your teacher knows you and your name is right in documents, please complete your "
+            "profile: full name, date of birth and a photo. It takes a minute."
+        ),
+        "btn_profile_start": "✍️ Complete profile",
+        "profile_ask_name": (
+            "✍️ Write your surname, first name and patronymic as in your passport.\n"
+            "For example: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_bad_name": (
+            "I didn't get that. Write your surname, first name and patronymic in letters, "
+            "separated by spaces.\nFor example: <i>Valiyev Aziz Akmal o'g'li</i>"
+        ),
+        "profile_check_name": (
+            "Please check:\n"
+            "Surname: <b>{last}</b>\n"
+            "First name: <b>{first}</b>\n"
+            "Patronymic: <b>{middle}</b>"
+        ),
+        "btn_profile_ok": "✅ Correct",
+        "btn_profile_retry": "✏️ Write again",
+        "profile_ask_birth": (
+            "📅 Write your date of birth: day.month.year\nFor example: <i>14.03.2008</i>"
+        ),
+        "profile_bad_birth": "Write the date as day.month.year, for example: <i>14.03.2008</i>",
+        "profile_ask_photo": (
+            "🤳 Send a photo where your face is clearly visible (a selfie) — your teacher will "
+            "recognise you in class."
+        ),
+        "btn_profile_later": "⏭ Later",
+        "profile_only_photo": "Send a photo or press «⏭ Later».",
+        "profile_photo_bad": "That's not a photo. Send the selfie as a regular photo.",
+        "profile_photo_wait": "⏳ Saving the photo…",
+        "profile_photo_failed": "The photo wasn't saved. Send another one or press «⏭ Later».",
+        "profile_done": "✅ Thank you! Your profile is complete.",
+        "profile_later": "OK. You can send a photo later: «⚙️ Settings» → «👤 My profile».",
+        "btn_profile": "👤 My profile",
+        "profile_view": (
+            "👤 <b>My profile</b>\n\n"
+            "Surname: {last}\n"
+            "First name: {first}\n"
+            "Patronymic: {middle}\n"
+            "Date of birth: {birth}\n"
+            "Photo: {photo}"
+        ),
+        "profile_empty": "—",
+        "profile_photo_yes": "yes ✅",
+        "profile_photo_no": "no",
+        "btn_profile_edit": "✏️ Change",
+        "btn_profile_photo": "🤳 Send a photo",
     },
 }
 

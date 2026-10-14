@@ -1,15 +1,18 @@
+from datetime import date
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.files.uploadedfile import UploadedFile
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.phone import InvalidPhoneError, normalize_phone
 
+from . import profile
 from .models import OneTimeCode, User
 from .roles import Role, role_names
 
@@ -149,6 +152,8 @@ class MeSerializer(serializers.ModelSerializer):
             "phone",
             "first_name",
             "last_name",
+            "middle_name",
+            "birth_date",
             "full_name",
             "locale",
             "avatar",
@@ -176,6 +181,7 @@ class MeSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "first_name": {"max_length": 150},
             "last_name": {"max_length": 150},
+            "middle_name": {"max_length": 150},
         }
 
     @extend_schema_field(serializers.ListField(child=serializers.ChoiceField(choices=Role.choices)))
@@ -206,6 +212,11 @@ class MeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("Ismingizni kiriting."), code="required")
         return value.strip()
 
+    def validate_birth_date(self, value: date | None) -> date | None:
+        if value is not None and not profile.valid_birth(value):
+            raise serializers.ValidationError(_("Tug'ilgan sana noto'g'ri."), code="invalid")
+        return value
+
     def validate_avatar(self, value: UploadedFile | None) -> UploadedFile | None:
         if value is None:
             return value
@@ -229,7 +240,12 @@ class MeSerializer(serializers.ModelSerializer):
                 instance.avatar.delete(save=False)
         if validated_data.get("avatar", ...) is None:
             validated_data["avatar"] = ""
-        return super().update(instance, validated_data)
+        user = super().update(instance, validated_data)
+        # Saytda ism-familiya va tug'ilgan sanani o'zi kiritdi: botda qayta so'ralmaydi.
+        if user.profile_confirmed_at is None and profile.complete_name(user) and user.birth_date:
+            user.profile_confirmed_at = timezone.now()
+            user.save(update_fields=["profile_confirmed_at"])
+        return user
 
 
 class GoogleLoginSerializer(serializers.Serializer):

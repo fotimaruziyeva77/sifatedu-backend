@@ -5,9 +5,10 @@ O'qituvchi faqat o'ziga biriktirilgan guruhlarni ko'radi, admin va menejer — h
 cheklangan"). Guruhga o'quvchi qo'shadi va chiqaradi, haftalik dars jadvalini kiritadi (`roster`).
 """
 
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
+from django.core.files.uploadedfile import UploadedFile
 from django.db.models import Avg, Case, Count, IntegerField, Max, Q, Value, When
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -24,6 +25,8 @@ from apps.catalog.models import Lesson
 from apps.live.models import Attendance, LiveLesson, ScheduleSlot
 from apps.live.services import attendance_rates
 from apps.quizzes.services import group_quiz_stats
+from apps.users import photos, profile
+from apps.users.models import User
 from apps.users.roles import Role, has_role, manages_groups
 
 from . import roster
@@ -65,6 +68,61 @@ class TeacherStudentSerializer(serializers.Serializer[dict[str, Any]]):
     attendance_rate = serializers.IntegerField(
         allow_null=True, help_text="Oxirgi 30 kun davomati (%): kelgan va kechikkanlar."
     )
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    middle_name = serializers.CharField(allow_blank=True, help_text="Otasining ismi.")
+    birth_date = serializers.DateField(allow_null=True)
+    profile_complete = serializers.BooleanField(
+        help_text="To'liq ism tasdiqlangan (o'quvchi botda yoki xodim) va tug'ilgan sana bor."
+    )
+
+
+class StudentProfileSerializer(serializers.Serializer[dict[str, Any]]):
+    """O'qituvchi o'quvchi profilini tuzatadi (multipart: rasm bilan)."""
+
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150, allow_blank=True, default="")
+    middle_name = serializers.CharField(max_length=150, allow_blank=True, default="")
+    birth_date = serializers.DateField(allow_null=True, required=False)
+    photo = serializers.FileField(
+        required=False,
+        help_text="Yangi rasm (JPG, PNG yoki WebP, 10 MB gacha) — kvadrat 512 px ga keltiriladi.",
+    )
+    remove_photo = serializers.BooleanField(default=False)
+
+    def validate_birth_date(self, value: date | None) -> date | None:
+        if value is not None and not profile.valid_birth(value):
+            raise ValidationError("Tug'ilgan sana noto'g'ri: yosh 4 dan 90 gacha bo'lsin.")
+        return value
+
+    def validate_photo(self, value: UploadedFile) -> UploadedFile:
+        if (value.size or 0) > photos.MAX_BYTES:
+            raise ValidationError("Rasm 10 MB dan katta bo'lmasin.")
+        return value
+
+
+class StudentProfileResultSerializer(serializers.Serializer[dict[str, Any]]):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    middle_name = serializers.CharField(allow_blank=True)
+    birth_date = serializers.DateField(allow_null=True)
+    avatar = serializers.CharField(allow_blank=True)
+    profile_complete = serializers.BooleanField()
+
+
+def student_profile(user: User) -> dict[str, Any]:
+    return {
+        "id": user.pk,
+        "name": user.get_full_name() or user.phone,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "middle_name": user.middle_name,
+        "birth_date": user.birth_date,
+        "avatar": user.avatar.url if user.avatar else "",
+        "profile_complete": profile.complete(user),
+    }
 
 
 class TeacherGroupSerializer(serializers.Serializer[dict[str, Any]]):
@@ -177,6 +235,11 @@ def group_students(group: StudyGroup) -> list[dict[str, Any]]:
                 ),
                 **quizzes.get(user.pk, {"quiz_average": None, "quiz_passed": 0}),
                 "attendance_rate": attendance.get(user.pk),
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "middle_name": user.middle_name,
+                "birth_date": user.birth_date,
+                "profile_complete": profile.complete(user),
             }
         )
     return sorted(students, key=lambda student: (student["percent"], student["name"]))
@@ -326,9 +389,38 @@ class TeacherGroupStudentsView(APIView):
 
 
 class TeacherGroupStudentView(APIView):
-    """Guruhdan chiqarish: kursga kirish yopiladi, tarix qoladi."""
+    """O'quvchi profilini tuzatish (ism, otasining ismi, tug'ilgan sana, rasm) va guruhdan
+    chiqarish (kursga kirish yopiladi, tarix qoladi)."""
 
     permission_classes = [IsAuthenticated, IsTeacher]
+
+    @extend_schema(
+        request={"multipart/form-data": StudentProfileSerializer},
+        responses={200: StudentProfileResultSerializer},
+        tags=["teacher"],
+    )
+    def patch(self, request: Request, pk: int, user_id: int) -> Response:
+        group = my_group(request.user, pk)
+        enrollment = get_object_or_404(
+            Enrollment.objects.select_related("user"),
+            group=group,
+            user_id=user_id,
+            status=Enrollment.Status.ACTIVE,
+        )
+        student = enrollment.user
+        if student.is_staff or student.is_superuser:
+            raise ValidationError({"non_field_errors": ["Xodim profili bu yerda o'zgarmaydi."]})
+        serializer = StudentProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        upload = data.pop("photo", None)
+        if upload is not None:
+            data["photo"] = upload.read()
+        try:
+            profile.update_by_staff(student, data)
+        except photos.PhotoError as exc:
+            raise ValidationError({"photo": [str(exc)]}) from exc
+        return Response(student_profile(student))
 
     @extend_schema(request=None, responses={200: TeacherGroupDetailSerializer}, tags=["teacher"])
     def delete(self, request: Request, pk: int, user_id: int) -> Response:

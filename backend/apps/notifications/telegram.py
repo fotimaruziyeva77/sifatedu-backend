@@ -6,6 +6,7 @@ import logging
 import mimetypes
 import secrets
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import PurePosixPath
 from typing import Any
@@ -18,6 +19,7 @@ from apps.core.storage import public_storage
 logger = logging.getLogger(__name__)
 
 API_URL = "https://api.telegram.org/bot{token}/{method}"
+FILE_URL = "https://api.telegram.org/file/bot{token}/{path}"
 TIMEOUT_SECONDS = 10
 BOT_USERNAME_KEY = "telegram:bot-username"
 BOT_USERNAME_TTL = 24 * 60 * 60
@@ -121,6 +123,23 @@ def call(
     if not body.get("ok"):
         raise _error(body, 0)
     return body.get("result")
+
+
+def download(file_id: str, *, limit: int) -> bytes:
+    """Foydalanuvchi botga yuborgan fayl (masalan, selfi). Havolada bot tokeni bor — u hech
+    qayerga yozilmaydi; xatoda `TelegramError` yoki `OSError`."""
+    info = call("getFile", {"file_id": file_id})
+    path = str((info or {}).get("file_path") or "") if isinstance(info, dict) else ""
+    if not path or int(info.get("file_size") or 0) > limit:
+        raise TelegramError(0, "fayl topilmadi yoki juda katta")
+    url = FILE_URL.format(
+        token=settings.TELEGRAM_BOT_TOKEN, path=urllib.parse.quote(path, safe="/")
+    )
+    with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS * 2) as response:  # noqa: S310
+        data = bytes(response.read(limit + 1))
+    if len(data) > limit:
+        raise TelegramError(0, "fayl juda katta")
+    return data
 
 
 def send_message(

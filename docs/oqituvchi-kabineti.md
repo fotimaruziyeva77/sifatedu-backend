@@ -35,6 +35,26 @@ Statistika ostidagi **«O'quv jarayoni»** bo'limi (hozirgi holat, davr tanlovig
 - Boshqa guruhda o'qiyotgan bo'lsa — shu guruhga o'tkaziladi (to'lov muddati o'zgarmaydi).
 - Xodim (o'qituvchi, menejer, admin) raqamini o'quvchi qilib qo'shib bo'lmaydi.
 
+## O'quvchi profili: to'liq ism, tug'ilgan sana, rasm
+
+Davomat va guruh ro'yxatida o'quvchi Telegram nomi bilan emas, haqiqiy ism-familiyasi va rasmi
+bilan ko'rinadi. Pasport seriya-raqami saqlanmaydi.
+
+- **O'quvchi botda o'zi to'ldiradi:** «Familiya Ism Otasining ismi» (pasportdagidek) → tasdiqlash
+  → tug'ilgan sana (kun.oy.yil) → selfi (xohlasa — «Keyinroq»). Bot buni guruhdagi o'quvchidan
+  so'raydi: siz qo'shgan o'quvchi botga birinchi marta kirganda va Telegram'i ulangan o'quvchini
+  guruhga qo'shganingizda. O'quvchi istalgan payt «⚙️ Sozlamalar» → «👤 Profilim» (yoki
+  `/profile`) orqali ko'radi, o'zgartiradi va rasm yuboradi. Saytda — «Sozlamalar»da.
+- **Siz tuzatasiz:** guruh sahifasida o'quvchi ismi ostidagi **«Profilni tahrirlash»** →
+  familiya, ism, otasining ismi, tug'ilgan sana va rasm (telefondagi surat ham bo'ladi — kvadrat
+  qilib qirqiladi) → «Saqlash». Siz saqlagan ism botda qayta so'ralmaydi.
+- Ismi tasdiqlanmagan yoki tug'ilgan sanasi yo'q o'quvchida **«Profil to'ldirilmagan»** belgisi.
+- Hozirgi o'quvchilarga bir martalik taklif (admin serverda bir marta ishga tushiradi):
+  `backend/scripts/profil_toldirish.py` — `ACTION=status` (kim to'ldirgan, kimning Telegram'i
+  yo'q), keyin `ACTION=send`.
+
+Rasmni o'quvchining o'zi, o'qituvchi, admin va menejer ko'radi.
+
 ## Guruhdan chiqarish
 
 O'quvchi ismi ostidagi **«Guruhdan chiqarish»** → tasdiqlang. Kursga kirishi yopiladi; davomati,

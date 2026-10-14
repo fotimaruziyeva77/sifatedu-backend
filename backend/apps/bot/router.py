@@ -26,6 +26,7 @@ from . import (
     links,
     menu,
     placement,
+    profile,
     quiz,
     review,
     subscription,
@@ -44,6 +45,7 @@ COMMANDS = {
     "/schedule": "schedule",
     "/invite": "invite",
     "/settings": "settings",
+    "/profile": "profile",
     # Ochiq buyruqlar ro'yxatida yo'q: faqat statistikani ko'rish huquqi borlarga.
     "/admin": "admin",
 }
@@ -282,13 +284,16 @@ def handle_message(chat: BotChat, sender: dict[str, Any], message: dict[str, Any
         user is not None
         and text
         and (
-            quiz.on_text(chat, user, text)
+            profile.on_text(chat, user, text)
+            or quiz.on_text(chat, user, text)
             or exam.on_text(chat, user, text)
             or review.on_text(chat, user, text)
             or placement.on_text(chat, user, text)
             or daily.on_text(chat, user, text)
         )
     ):
+        return
+    if user is not None and not text and profile.on_media(chat, user, message):
         return
     if not text:
         send(chat.chat_id, t(chat.language, "only_text"))
@@ -322,6 +327,8 @@ def run_menu(chat: BotChat, user: User | None, action: str) -> None:
         menu.schedule(chat, user)
     elif action == "invite":
         menu.invite(chat, user)
+    elif action == "profile":
+        profile.show(chat, user)
 
 
 def on_contact(
@@ -368,6 +375,9 @@ def on_contact(
     if newcomer:
         # Yangi kelgan: darhol yo'nalish va bepul daraja testi (kupon bilan).
         placement.choose(chat, account)
+    elif profile.wanted(account):
+        # Guruh o'quvchisi (o'qituvchi kabinetda qo'shgan): to'liq ism, sana va rasm.
+        profile.begin(chat, account)
 
 
 def ask_ai(chat: BotChat, sender: dict[str, Any], text: str) -> None:
@@ -439,6 +449,9 @@ def handle_callback(
     if user is None:
         need_account(chat)
         return ""
+    if action == "pf":
+        # Profil: to'ldirish, tasdiq, rasm, «Keyinroq» (`profile.on_button`).
+        return profile.on_button(chat, user, args)
     if action in ("qs", "qn") and args and args[0].isdigit():
         if subscribed(chat, user):
             quiz.start(chat, user, int(args[0]), fresh=action == "qn")

@@ -35,3 +35,23 @@ def deliver_news(self: Task, broadcast_id: int, chat_ids: list[int]) -> str:
             return "failed"
         raise self.retry(countdown=5 * 2**self.request.retries, exc=exc) from exc
     return f"{sent}/{failed}"
+
+
+@shared_task(acks_late=False, soft_time_limit=50, time_limit=60)
+def save_profile_photo(chat_id: int, user_id: int, file_id: str) -> None:
+    """Botga yuborilgan selfi o'quvchi rasmi bo'ladi (`profile.store_photo`)."""
+    from . import profile
+
+    profile.store_photo(chat_id, user_id, file_id)
+
+
+@shared_task(acks_late=False)
+def push_profile(user_id: int) -> None:
+    """Guruhga qo'shilgan o'quvchiga botda «Profilni to'ldiring» (Telegram ulangan bo'lsa)."""
+    from apps.users.models import User
+
+    from . import profile
+
+    user = User.objects.filter(pk=user_id, is_active=True).first()
+    if user is not None and profile.wanted(user):
+        profile.push(user)

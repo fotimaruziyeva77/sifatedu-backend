@@ -1945,6 +1945,50 @@ sozlanmagan» deyiladi.
   avval ochilgan mavzu, boshlanmagan dars, xatolar va begona o'qituvchi, kalitsiz va noto'g'ri
   fayl). Gemini'ning o'zi bilan sinov — serverda kalit kiritilgach.
 
+**2-qism rejasi — o'quvchi profili:**
+- `User`: `middle_name` (otasining ismi), `birth_date`, `profile_confirmed_at` (ism tasdiqlangan —
+  o'quvchi botda yoki xodim kabinetda). Rasm — mavjud `avatar`, 512×512 JPEG ga keltiriladi.
+- Kimdan so'raladi: faqat guruhdagi o'quvchidan (faol yozilish + guruh). Daraja testiga kelgan
+  yangi odamdan so'ralmaydi — ro'yxatdan o'tish qisqa qoladi.
+- Bot (`apps/bot/profile.py`, holat `state["profile"]`, 30 daqiqa amal qiladi): «Familiya Ism
+  Otasining ismi» (2–5 so'z, faqat harflar; KATTA yoki kichik yozilsa — bosh harf bilan) →
+  «To'g'ri / Qayta yozish» → tug'ilgan sana (kun.oy.yil, 4–90 yosh) → selfi (rasm yoki rasm-fayl;
+  «Keyinroq»). Bajarilgan qadam qayta so'ralmaydi (xodim kiritgan ism qayta so'ralmaydi).
+- Qachon so'raladi: (1) botda kontakt bilan kirgach — guruh o'quvchisi bo'lsa; (2) kabinetda
+  Telegram'i ulangan o'quvchi guruhga qo'shilganda — botga taklif; (3) hozirgi o'quvchilarga —
+  `backend/scripts/profil_toldirish.py` (`ACTION=status|send`, bir marta); (4) «⚙️ Sozlamalar» →
+  «👤 Profilim» va `/profile` — ko'rish, o'zgartirish, rasm yuborish.
+- Rasm: Telegram `getFile` → yuklab olish (10 MB gacha, Celery) → EXIF burilishi, markazdan
+  kvadrat, 512 px JPEG → `avatar`. Bot tokeni jurnalga yozilmaydi.
+- Kabinet: guruh sahifasida rasm (bo'lmasa bosh harflar), «Profil to'ldirilmagan» belgisi va
+  «Tahrirlash» (yon panel: familiya, ism, otasining ismi, tug'ilgan sana, rasm) —
+  `PATCH teacher/groups/<id>/students/<user_id>/` (o'qituvchi — o'z guruhi, admin, menejer).
+  Davomatda ham rasm. Sayt profilida — otasining ismi va tug'ilgan sana. Admin panelda — yangi
+  maydonlar va qidiruv.
+
+Qilinmaydi: pasport ma'lumotlari; rasmni majburiy qilish; sertifikatdagi ismni o'zgartirish.
+
+**Natija — 2-qism, o'quvchi profili (2026-10-14):**
+- `User.middle_name`, `birth_date`, `profile_confirmed_at` (migratsiya users `0009`).
+  `apps/users/profile.py`: `parse_name` (2–5 so'z, harflar, tutuq belgilari bir xil; KATTA/kichik
+  → bosh harf, «o'g'li», «qizi» kichik), `parse_birth` (kun.oy.yil va ISO; 4–90 yosh),
+  `missing`, `needs_profile`, `update_by_staff`. `apps/users/photos.py`: EXIF burilishi,
+  markazdan kvadrat 512 px JPEG, 10 MB va 50 Mpx chegarasi; eski fayl o'chiriladi.
+- Bot `apps/bot/profile.py`: holat `state["profile"]` (30 daqiqa), tugmalar `pf:start|edit|
+  photo|view|ok|re|skip`, rasm yoki rasm-fayl → Celery `save_profile_photo` →
+  `telegram.download` (`getFile`; jurnalga faqat xato turi — havolada token bor). Kontakt bilan
+  kirgan guruh o'quvchisiga darhol; `roster.add_student` (mavjud akkaunt) → `push_profile`;
+  «⚙️ Sozlamalar» → «👤 Profilim», `/profile` (`bot_setup` ro'yxatida ham).
+- Kabinet: `PATCH teacher/groups/<id>/students/<user_id>/` (multipart), guruh javobida
+  `first_name`, `last_name`, `middle_name`, `birth_date`, `profile_complete`. Sayt:
+  `features/teaching/student-profile.tsx` (yon panel), `student-avatar.tsx` (guruh ro'yxati va
+  davomatda rasm, davomatda kattaroq), «Profil to'ldirilmagan» belgisi; «Sozlamalar»da otasining
+  ismi va tug'ilgan sana (`MeSerializer` — ism va sana kiritilsa, tasdiqlangan).
+- Admin: shaxsiy ma'lumotlarda yangi maydonlar, qidiruvda otasining ismi.
+- Hozirgi o'quvchilar: `backend/scripts/profil_toldirish.py` (`ACTION=status|send`, bir marta).
+- Testlar: `users/tests/test_student_profile.py`, `bot/tests/test_profile.py`,
+  `learning/tests/test_student_profile.py`.
+
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 
 **Buyurtmachi qarori (2026-10-03 yangilandi):** avval o'quvchi yig'ish va o'qitish (19–22-qadamlar, §7D), keyin 23–25-qadamlar.

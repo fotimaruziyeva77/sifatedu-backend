@@ -53,6 +53,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(_("telefon"), max_length=13, unique=True, validators=[phone_validator])
     first_name = models.CharField(_("ism"), max_length=150, blank=True)
     last_name = models.CharField(_("familiya"), max_length=150, blank=True)
+    # O'quvchi profili (22d): pasport ma'lumoti saqlanmaydi — to'liq ism va tug'ilgan sana yetarli.
+    middle_name = models.CharField(_("otasining ismi"), max_length=150, blank=True)
+    birth_date = models.DateField(_("tug'ilgan sana"), null=True, blank=True)
+    profile_confirmed_at = models.DateTimeField(
+        _("ism tasdiqlangan"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "O'quvchi botda yoki xodim kabinetda to'liq ismni kiritgan vaqt. Bo'sh bo'lsa — ism "
+            "Telegram'dan olingan bo'lishi mumkin."
+        ),
+    )
     locale = models.CharField(
         _("interfeys tili"), max_length=2, choices=settings.LANGUAGES, default="uz"
     )

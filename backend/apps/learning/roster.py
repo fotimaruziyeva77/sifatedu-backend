@@ -127,6 +127,11 @@ def add_student(group: StudyGroup, *, phone: str, first_name: str, last_name: st
         )
     if opened:
         transaction.on_commit(lambda: notify_course_opened(enrollment))
+    if not created:
+        from apps.bot.tasks import push_profile
+
+        # Telegram'i ulangan o'quvchi: botda «Profilni to'ldiring» (to'ldirgan bo'lsa — yo'q).
+        transaction.on_commit(lambda: push_profile.delay(user.pk))
     return Added(user, created, moved_from)
 
 

@@ -238,6 +238,7 @@ def settings_view(chat: BotChat, user: User | None) -> tuple[str, Rows]:
         [button(t(locale, "btn_news_off" if chat.news else "btn_news_on"), "news")],
     ]
     if user is not None:
+        rows.append([button(t(locale, "btn_profile"), "pf:view")])
         rows.append([link(t(locale, "btn_site"), links.login_url(user, "/dashboard", chat))])
     return text, rows
 

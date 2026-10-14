@@ -137,7 +137,12 @@ def test_settings_toggle_news_and_change_language(tg: FakeTelegram, world: World
     settings = tg.last
     assert "Yangiliklar: yoqilgan ✅" in settings["text"]
     labels = [item["text"] for item in buttons(settings)]
-    assert labels == ["🌐 Tilni o'zgartirish", "🔕 Yangiliklarni o'chirish", "🖥 Saytga kirish"]
+    assert labels == [
+        "🌐 Tilni o'zgartirish",
+        "🔕 Yangiliklarni o'chirish",
+        "👤 Profilim",
+        "🖥 Saytga kirish",
+    ]
 
     handle_update(press("news"))
     assert BotChat.objects.get(chat_id=TG_ID).news is False

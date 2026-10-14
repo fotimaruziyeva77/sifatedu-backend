@@ -155,7 +155,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "is_active",
         "is_staff",
     )
-    search_fields = ("phone", "first_name", "last_name")
+    search_fields = ("phone", "first_name", "last_name", "middle_name")
     ordering = ("-date_joined",)
     # Rozilikni faqat foydalanuvchining o'zi beradi yoki qaytarib oladi (kabinet sozlamalari).
     readonly_fields = (
@@ -168,6 +168,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         "referred_by",
         "show_referrals",
         "signup_source",
+        "profile_confirmed_at",
     )
 
     add_fieldsets = ((None, {"classes": ("wide",), "fields": ("phone", "password1", "password2")}),)
@@ -190,7 +191,18 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
             (None, {"fields": ("phone", "password")}),
             (
                 _("Shaxsiy ma'lumotlar"),
-                {"fields": ("first_name", "last_name", "avatar", "locale", "audience")},
+                {
+                    "fields": (
+                        "last_name",
+                        "first_name",
+                        "middle_name",
+                        "birth_date",
+                        "profile_confirmed_at",
+                        "avatar",
+                        "locale",
+                        "audience",
+                    )
+                },
             ),
             (
                 _("Rozilik"),
