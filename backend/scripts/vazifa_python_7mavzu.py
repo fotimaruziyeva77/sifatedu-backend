@@ -7,6 +7,7 @@ Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yi
   dc exec -T -e ACTION=send   backend python manage.py shell < $S
   dc exec -T -e ACTION=status backend python manage.py shell < $S
   dc exec -T -e ACTION=finish backend python manage.py shell < $S
+  dc exec -T -e ACTION=check  backend python manage.py shell < $S   (GEMINI_API_KEY bilan)
 
 send   — «Python asoslari» moduliga 7-mavzu darsi: test (15 savol) va uy vazifasi (5 ta amaliy
          topshiriq, muddat — bugun UNTIL, standart 23:00). Dars «Python» guruhi uchun ochiladi,
@@ -21,6 +22,8 @@ finish — muddat tugagach: hisobot va jarima. Testni muddatida ishlamaganga va 
          muddatidan kechikdi» qiymati), o'quvchiga botda qisqa xabar. Qayta ishga tushirsa,
          ikkinchi marta yechilmaydi. Muddatdan keyin yuborilgan vazifaga avtomatik «kechikdi»
          jarimasi bilan bir xil yozuv — ikkalasi birga yechilmaydi. FORCE=1 — muddatdan oldin.
+check  — Gemini kaliti ishlayaptimi: bitta qisqa so'rov. AI Studio kaliti (Gemini API) ham,
+         Vertex AI express kaliti ham ishlaydi — qaysi biri mos kelsa, o'sha ishlatiladi.
 
 AI bahosi faqat hisobot uchun, o'quvchiga bormaydi; rasmiy baho — o'qituvchi kabinetida
 («Tekshirish»). Jarimani o'qituvchi yoki admin bekor qila oladi (guruh sahifasi → jarimalar).
@@ -44,6 +47,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 from pydantic import BaseModel
 
@@ -82,6 +86,8 @@ TEXT_FILES = {".py", ".txt", ".md", ".ipynb"}
 IMAGES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 MARKS = {"correct": "✅", "partial": "🟡", "wrong": "❌", "missing": "➖"}
 POINTS = {"correct": 100, "partial": 50, "wrong": 0, "missing": 0}
+# Kalit qaysi xizmatniki: [False] — Gemini API, [True] — Vertex AI (birinchi javobdan bilinadi).
+VERTEX: list[bool] = []
 
 QUESTIONS = r"""
 ? Qaysi biri kortej (tuple)?
@@ -549,14 +555,37 @@ def answer_parts(submission: Submission) -> list[types.Part]:
     return [types.Part.from_text(text="\n".join(lines)[:MAX_CHARS]), *images]
 
 
+def generate(
+    contents: types.Content, config: types.GenerateContentConfig
+) -> types.GenerateContentResponse:
+    """Avval Gemini API (AI Studio kaliti); kalit unga mos kelmasa — Vertex AI express."""
+    error: genai_errors.ClientError | None = None
+    for vertex in VERTEX or [False, True]:
+        client = genai.Client(
+            vertexai=vertex,
+            api_key=settings.GEMINI_API_KEY,
+            http_options=types.HttpOptions(timeout=180_000),
+        )
+        try:
+            response = client.models.generate_content(
+                model=settings.GEMINI_MODEL, contents=contents, config=config
+            )
+        except genai_errors.ClientError as exc:
+            if exc.code not in (400, 401, 403):
+                raise
+            error = exc
+            continue
+        VERTEX[:] = [vertex]
+        return response
+    if error is None:
+        raise RuntimeError("Gemini javob bermadi.")
+    raise error
+
+
 def call_model(submission: Submission) -> Review:
-    client = genai.Client(
-        api_key=settings.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=180_000)
-    )
-    response = client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=types.Content(role="user", parts=answer_parts(submission)),
-        config=types.GenerateContentConfig(
+    response = generate(
+        types.Content(role="user", parts=answer_parts(submission)),
+        types.GenerateContentConfig(
             system_instruction=SYSTEM,
             response_mime_type="application/json",
             response_schema=Review,
@@ -782,6 +811,26 @@ def deliver(lines: list[str]) -> None:
     print(f"Hisobot Telegram'da {reached} kishiga yuborildi.")
 
 
+def check() -> None:
+    if not settings.GEMINI_API_KEY:
+        raise SystemExit('Kalit berilmagan: buyruqqa -e GEMINI_API_KEY="$(cat /root/.gemini)"')
+    try:
+        response = generate(
+            types.Content(
+                role="user", parts=[types.Part.from_text(text="Bitta so'z bilan javob ber: tayyor")]
+            ),
+            types.GenerateContentConfig(
+                max_output_tokens=2000,
+                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel("LOW")),
+            ),
+        )
+    except Exception as exc:
+        raise SystemExit(f"Kalit ishlamadi: {exc}") from exc
+    service = "Vertex AI" if VERTEX == [True] else "Gemini API"
+    answer = (response.text or "").strip()[:60]
+    print(f"Kalit ishlayapti — {service}, {settings.GEMINI_MODEL}. Javob: {answer}")
+
+
 def status() -> None:
     team, _lesson, quiz, assignment = existing()
     deliver(report(collect(team, quiz, assignment), team, quiz, assignment, final=False))
@@ -843,7 +892,7 @@ def finish() -> None:
     deliver(report(rows, team, quiz, assignment, final=True))
 
 
-ACTIONS = {"send": send, "status": status, "finish": finish}
+ACTIONS = {"send": send, "status": status, "finish": finish, "check": check}
 if ACTION not in ACTIONS:
     raise SystemExit(f"ACTION: {', '.join(ACTIONS)}")
 ACTIONS[ACTION]()
