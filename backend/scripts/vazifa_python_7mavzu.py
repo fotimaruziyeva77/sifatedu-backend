@@ -24,6 +24,12 @@ finish — muddat tugagach: hisobot va jarima. Testni muddatida ishlamaganga va 
 
 AI bahosi faqat hisobot uchun, o'quvchiga bormaydi; rasmiy baho — o'qituvchi kabinetida
 («Tekshirish»). Jarimani o'qituvchi yoki admin bekor qila oladi (guruh sahifasi → jarimalar).
+
+Gemini kaliti backend/.env da bo'lmasa (u yerda kalit saytdagi AI chatni ham yoqadi), uni faqat
+shu buyruqqa berish mumkin — root'gina o'qiy oladigan fayldan:
+  (umask 077; read -rsp "Gemini kaliti: " K; echo; printf %s "$K" > /root/.gemini)
+  dc exec -T -e GEMINI_API_KEY="$(cat /root/.gemini)" -e ACTION=status backend \\
+      python manage.py shell < $S
 """
 
 import json
@@ -580,13 +586,14 @@ def summarize(review: Review) -> dict[str, Any]:
 
 
 def ai_review(submission: Submission) -> dict[str, Any] | None:
-    """Javobning AI bahosi (bir marta; keyingi safar keshdan). Kalit bo'lmasa — None."""
-    if not settings.GEMINI_API_KEY:
-        return None
+    """Javobning AI bahosi (bir marta; keyingi safar — keshdan, kalitsiz ham). Tekshirilmagan
+    va kalit yo'q — None."""
     key = CACHE_KEY.format(submission.pk)
     found: dict[str, Any] | None = cache.get(key)
     if found is not None:
         return found
+    if not settings.GEMINI_API_KEY:
+        return None
     print(f"  AI tekshirmoqda: {name_of(submission.student)}…")
     try:
         data = summarize(call_model(submission))
@@ -704,8 +711,10 @@ def report(
         f"💻 Amaliyot ({len(TASKS)} ta): yubordi <b>{len(sent)}/{total}</b>"
         + (f", AI bahosi o'rtacha {round(sum(scored) / len(scored))}/100" if scored else ""),
     ]
-    if not settings.GEMINI_API_KEY:
-        lines.append("AI tekshiruvi o'chiq (GEMINI_API_KEY yo'q) — amaliyotni ustoz tekshiradi.")
+    if any(row.review is None for row in sent):
+        lines.append(
+            "AI tekshirmagan javoblar bor (GEMINI_API_KEY berilmagan) — ularni ustoz tekshiradi."
+        )
     lines.append("")
     for number, row in enumerate(sorted(rows, key=rank), 1):
         work, notes = homework_text(row)
