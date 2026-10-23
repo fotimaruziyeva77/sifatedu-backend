@@ -1,0 +1,14 @@
+# PDF qaysi slayd matnidan yasalgan (sha256). Qo'lda o'zgartirmang —
+# python infra/tools/slides_pdf.py yozadi.
+"01-python-haqida" = "ccc40f7e1fe387e8d10dd2816f11f8fcce4bcec6be265d4b35e6fe2f1a102a17"
+"02-ozgaruvchilar" = "e2881e11773f25774e43ba141cc888c43413f1774f1c1941d26b699eb6fd16c0"
+"03-string-metodlari" = "18a07b8a46350490b6a981237c243683e3b4e05c2239a5fedb081968e10ee29b"
+"04-math-metodlari" = "bb6dee5c1209f50b6d81b26ae7f388021c86e0db59bde7d324f8ddcff3dd48ae"
+"05-shartlar" = "7459b6af6b392561a7102bdb0e607bbdaf01312c005c2beebc0a092285ba27b1"
+"06-royxat" = "378cfb76831c8b07a1bb41b46ad11c44b840affa52fae628c3e194f6f5fc0b3f"
+"07-tuple-dict-set" = "b4267a61f3646df60559f94f02460066cc9d525d229f8a641bd079327b5b3524"
+"08-for-sikli" = "7b20f71ba60e8a1ac4fd61c018a3b75236bad0a96ce4ddd1a49f7a3f42699255"
+"09-while-sikli" = "2b651f59f765a1b885d8ffebd179e48ff6b846b312b3980c4e085adbe9af4b18"
+"10-funksiyalar" = "242735ec8aa209b030a94e079adae56abb1bac867525ba0ca375a7b643335776"
+"11-modullar-fayllar" = "b2156004f53c0a4f2ae40f82863f4a06f9c89954432e3c6970bc7a6768fb1c64"
+"12-yakuniy-loyiha" = "83d8ae0d629d024c6603ffaa01ea194a87894288fae7747bcdac5dcc7a232815"

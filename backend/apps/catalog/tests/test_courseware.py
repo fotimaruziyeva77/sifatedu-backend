@@ -1,6 +1,8 @@
 """Kurs dasturini fayllardan joylash (`import_course`): yaratish, qayta import, mavjud darslar,
-test va uy vazifasini ehtiyot qilish, tekshiruv."""
+test va uy vazifasini ehtiyot qilish, slaydlar PDF'i (material), tekshiruv."""
 
+import io
+import json
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +10,7 @@ import pytest
 from django.core.management import CommandError, call_command
 
 from apps.catalog import courseware
-from apps.catalog.models import Category, Course, Lesson, LessonSlides, Module
+from apps.catalog.models import Category, Course, Lesson, LessonMaterial, LessonSlides, Module
 from apps.homework.models import Assignment
 from apps.quizzes.models import Attempt, Quiz
 from apps.users.models import User
@@ -210,8 +212,81 @@ def test_command_checks_files(root: Path, course: Course, monkeypatch: pytest.Mo
         call_command("import_course")
 
 
+def add_pdf(root: Path, stem: str, data: bytes, *, fresh: bool = True) -> None:
+    """Dars yoniga PDF va `_pdf.toml` (fresh=False — PDF eski slayd matnidan yasalgan)."""
+    folder = root / "python" / "01-asoslar"
+    (folder / f"{stem}.pdf").write_bytes(data)
+    digest = courseware.read_lesson(folder / f"{stem}.md", folder.name).slides_hash
+    (folder / "_pdf.toml").write_text(
+        f'"{stem}" = "{digest if fresh else "eski"}"\n', encoding="utf-8"
+    )
+
+
+def pdf_materials() -> list[LessonMaterial]:
+    return list(LessonMaterial.objects.filter(title=courseware.PDF_TITLE))
+
+
+def test_slides_pdf_becomes_lesson_material(root: Path, course: Course) -> None:
+    add_pdf(root, "01-kirish", b"%PDF-1.4 birinchi")
+
+    report = run(root)
+
+    [material] = pdf_materials()
+    assert material.lesson.title == "1-mavzu: Kirish"
+    assert material.kind == LessonMaterial.Kind.FILE
+    assert material.file.name.endswith("01-kirish.pdf")
+    assert material.file.read() == b"%PDF-1.4 birinchi"
+    assert "+ PDF: 1-mavzu: Kirish" in report.lines
+
+    assert not [line for line in run(root).lines if "PDF" in line]  # o'zgarmagan — qayta yo'q
+
+    add_pdf(root, "01-kirish", b"%PDF-1.4 yangisi")
+    report = run(root)
+    [material] = pdf_materials()
+    with material.file.open("rb") as handle:
+        assert handle.read() == b"%PDF-1.4 yangisi"
+    assert "~ PDF: 1-mavzu: Kirish" in report.lines
+
+
+def test_stale_pdf_is_reported_and_not_uploaded(root: Path, course: Course) -> None:
+    add_pdf(root, "01-kirish", b"%PDF-1.4", fresh=False)
+
+    report = run(root)
+
+    assert pdf_materials() == []
+    assert "! PDF eskirgan, yuklanmadi: 1-mavzu: Kirish" in report.lines
+    [warning] = courseware.warnings(courseware.read_course("python", root))
+    assert "01-kirish.pdf: PDF eskirgan" in warning
+
+
+def test_dry_run_does_not_store_pdf(root: Path, course: Course) -> None:
+    add_pdf(root, "01-kirish", b"%PDF-1.4")
+
+    report = run(root, dry_run=True)
+
+    assert "+ PDF: 1-mavzu: Kirish" in report.lines
+    assert pdf_materials() == []
+
+
+def test_command_exports_slides_as_json(
+    root: Path, course: Course, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(courseware, "CONTENT", root)
+    out = io.StringIO()
+
+    call_command("import_course", "python", "--json", stdout=out)
+
+    first, second = json.loads(out.getvalue())["lessons"]
+    assert first["path"] == "python/01-asoslar/01-kirish"
+    assert first["title"] == "1-mavzu: Kirish"
+    assert len(first["slides"]) == 3 and first["slides"][0]["kind"] == "cover"
+    assert first["hash"] != second["hash"]
+    assert not Lesson.objects.exists()
+
+
 def test_repository_content_is_valid() -> None:
-    """backend/content dagi hamma kurslar xatosiz o'qiladi (slaydlar, testlar)."""
+    """backend/content dagi kurslar xatosiz o'qiladi (slaydlar, testlar), PDF'lar eskirmagan."""
     for name in courseware.course_names():
         content = courseware.read_course(name)
         assert courseware.problems(content) == [], name
+        assert courseware.warnings(content) == [], name

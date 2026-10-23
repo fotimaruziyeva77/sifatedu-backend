@@ -17,14 +17,22 @@ Dars fayli bo'limlari (alohida qatorda, kod bloki tashqarisida):
 Dars tartibi — fayl nomidagi raqam. Qayta import xavfsiz: dars `content_key` bo'yicha (birinchi
 marta — modul ichida nomi bo'yicha) topiladi va yangilanadi; mavjud test savollari va uy vazifasi
 o'zgartirilmaydi (bayroqlar bilan — ataylab).
+
+Slaydlarning PDF'i (`<NN-dars>.pdf`, dars fayli yonida) darsga «Slaydlar (PDF)» materiali bo'lib
+yuklanadi. PDF dasturchi kompyuterida yasaladi (`infra/tools/slides_pdf.py`); modul papkasidagi
+`_pdf.toml` — qaysi slayd matnidan yasalgani (sha256). Matn o'zgarib, PDF qayta yasalmagan bo'lsa,
+PDF eskirgan hisoblanadi va yuklanmaydi.
 """
 
+import hashlib
 import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import transaction
 
 from apps.homework.models import Assignment
@@ -33,12 +41,15 @@ from apps.quizzes.parser import ParseError, parse
 from apps.quizzes.services import import_questions
 
 from . import slides as slide_kit
-from .models import Course, Lesson, LessonSlides, Module
+from .models import Course, Lesson, LessonMaterial, LessonSlides, Module
 
 CONTENT = Path(settings.BASE_DIR) / "content"
 SECTIONS = {"slaydlar": "slides", "ustozga": "notes", "test": "quiz", "uy-vazifasi": "homework"}
 ORDER = re.compile(r"^(\d+)[-_]")
 MIN_SLIDES = 3
+PDF_MANIFEST = "_pdf.toml"
+PDF_TITLE = "Slaydlar (PDF)"
+PDF_TOOL = "python infra/tools/slides_pdf.py"
 
 
 class ContentError(ValueError):
@@ -59,6 +70,16 @@ class LessonFile:
     notes: str = ""
     quiz: str = ""
     homework: str = ""
+    pdf: Path | None = None
+    pdf_hash: str = ""  # `_pdf.toml` dagi: PDF qaysi slayd matnidan yasalgan
+
+    @property
+    def slides_hash(self) -> str:
+        return hashlib.sha256(self.slides.encode("utf-8")).hexdigest()
+
+    @property
+    def pdf_fresh(self) -> bool:
+        return self.pdf is not None and self.pdf_hash == self.slides_hash
 
 
 @dataclass
@@ -123,7 +144,9 @@ def sections(path: Path, body: str) -> dict[str, str]:
     return {key: "\n".join(lines).strip() for key, lines in found.items()}
 
 
-def read_lesson(path: Path, module_key: str) -> LessonFile:
+def read_lesson(
+    path: Path, module_key: str, pdf_hashes: dict[str, Any] | None = None
+) -> LessonFile:
     match = ORDER.match(path.name)
     if match is None:
         raise ContentError(f"{path}: fayl nomi raqam bilan boshlanishi kerak (08-for-sikli.md)")
@@ -132,7 +155,10 @@ def read_lesson(path: Path, module_key: str) -> LessonFile:
     if not title or len(title) > 200:
         raise ContentError(f"{path}: title (1–200 belgi) kerak")
     parts = sections(path, body)
+    pdf = path.with_suffix(".pdf")
     return LessonFile(
+        pdf=pdf if pdf.is_file() else None,
+        pdf_hash=str((pdf_hashes or {}).get(path.stem, "")),
         path=path,
         order=int(match.group(1)),
         key=f"{module_key}/{path.stem}",
@@ -156,9 +182,11 @@ def read_module(path: Path, order: int) -> ModuleDir:
     module = ModuleDir(
         path=path, order=order, title=title, summary=str(meta.get("summary", ""))[:300]
     )
+    manifest = path / PDF_MANIFEST
+    pdf_hashes = toml(manifest) if manifest.is_file() else {}
     module.lessons = sorted(
         (
-            read_lesson(item, path.name)
+            read_lesson(item, path.name, pdf_hashes)
             for item in path.glob("*.md")
             if not item.name.startswith("_")
         ),
@@ -205,6 +233,32 @@ def problems(content: CourseContent) -> list[str]:
                 except ParseError as exc:
                     found += [f"{where}: test, {error}" for error in exc.errors]
     return found
+
+
+def warnings(content: CourseContent) -> list[str]:
+    """Import'ni to'xtatmaydigan kamchiliklar: eskirgan PDF (u yuklanmaydi)."""
+    return [
+        f"{lesson.path.with_suffix('.pdf').relative_to(lesson.path.parents[2])}: PDF eskirgan "
+        f"(slaydlar o'zgargan) — qayta yasang: {PDF_TOOL} {content.name}"
+        for module in content.modules
+        for lesson in module.lessons
+        if lesson.pdf is not None and not lesson.pdf_fresh
+    ]
+
+
+def export(content: CourseContent) -> list[dict[str, Any]]:
+    """PDF yasash uchun: har darsning slaydlari (saytdagi tuzilma) va slayd matni xeshi."""
+    return [
+        {
+            "path": lesson.path.relative_to(lesson.path.parents[2]).with_suffix("").as_posix(),
+            "title": lesson.title,
+            "hash": lesson.slides_hash,
+            "slides": slide_kit.render(lesson.slides),
+        }
+        for module in content.modules
+        for lesson in module.lessons
+        if lesson.slides
+    ]
 
 
 @dataclass
@@ -304,6 +358,44 @@ def sync_homework(lesson: Lesson, item: LessonFile, update: bool, report: Report
         report.add(f"~ uy vazifasi: {item.title}")
 
 
+def stored_digest(material: LessonMaterial) -> str:
+    try:
+        with material.file.open("rb") as handle:
+            return hashlib.sha256(handle.read()).hexdigest()
+    except Exception:  # saqlash joyi javob bermasa — PDF qayta yuklanadi
+        return ""
+
+
+def sync_pdf(lesson: Lesson, item: LessonFile, report: Report, dry_run: bool) -> None:
+    """Slaydlar PDF'i — darsga «Slaydlar (PDF)» materiali; o'zgarmagan bo'lsa, qayta yuklanmaydi."""
+    if item.pdf is None:
+        return
+    if not item.pdf_fresh:
+        report.add(f"! PDF eskirgan, yuklanmadi: {item.title}")
+        return
+    data = item.pdf.read_bytes()
+    material = LessonMaterial.objects.filter(
+        lesson=lesson, kind=LessonMaterial.Kind.FILE, title=PDF_TITLE
+    ).first()
+    unchanged = (
+        material is not None
+        and bool(material.file)
+        and stored_digest(material) == hashlib.sha256(data).hexdigest()
+    )
+    if unchanged:
+        return
+    report.add(f"{'~' if material else '+'} PDF: {item.title}")
+    if dry_run:
+        return  # sinovda saqlash joyiga fayl yozilmaydi
+    old = material.file.name if material is not None and material.file else ""
+    if material is None:
+        material = LessonMaterial(lesson=lesson, kind=LessonMaterial.Kind.FILE, title=PDF_TITLE)
+    material.file.save(item.pdf.name, ContentFile(data), save=True)
+    if old:
+        storage = material.file.storage
+        transaction.on_commit(lambda: storage.delete(old))
+
+
 def apply(
     content: CourseContent,
     *,
@@ -337,6 +429,7 @@ def apply(
                         slides_changed += 1
                 sync_quiz(lesson, item, replace_tests, report)
                 sync_homework(lesson, item, update_homework, report)
+                sync_pdf(lesson, item, report, dry_run)
         report.add(f"slaydlar yangilandi: {slides_changed} ta dars")
         if dry_run:
             transaction.set_rollback(True)

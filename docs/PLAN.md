@@ -2022,6 +2022,12 @@ oyiga 12 dars. Dastur repoda matn fayllarida — bitta buyruq bilan joylanadi va
 - Serverda: deploy → `import_course python --check` → `--dry-run` (hisobotni tekshirish) → import.
   1–6-darslarga uy vazifasi qo'shiladi (muddatsiz); 8–12-darslar guruhda «o'tildi» deb
   belgilanmaguncha yopiq.
+- PDF (buyurtmachi so'rovi, 2026-10-23): har dars yonida `<NN-dars>.pdf` — `import_course` uni
+  darsga «Slaydlar (PDF)» materiali qilib yuklaydi (admin'da «Dars materiallari», saytda
+  «Materiallar»; o'zgarmagan PDF qayta yuklanmaydi). PDF'ni dasturchi kompyuterida
+  `python infra/tools/slides_pdf.py <kurs>` yasaydi: `import_course --json` → saytdagi `Slide`
+  komponenti bilan HTML (`frontend/scripts/slides-pdf`) → Chrome headless. `_pdf.toml` — slayd
+  matnining xeshi: matn o'zgarib PDF qayta yasalmasa, PDF yuklanmaydi va repo testi yiqiladi.
 
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 

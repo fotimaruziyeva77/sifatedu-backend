@@ -1,11 +1,13 @@
 """Kurs dasturini (`backend/content/<kurs>/`) platformaga joylash: modullar, darslar, slaydlar,
-testlar va uy vazifalari.
+testlar, uy vazifalari va slaydlar PDF'i (dars materiali).
 
     python manage.py import_course python             # joylash
     python manage.py import_course --all --check      # hamma kurslarni faqat tekshirish
     python manage.py import_course backend --dry-run  # nima o'zgarishini ko'rsatish
+    python manage.py import_course python --json      # slaydlar JSON'da (PDF yasash uchun)
 """
 
+import json
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
@@ -29,6 +31,11 @@ class Command(BaseCommand):
         parser.add_argument(
             "--update-homework", action="store_true", help="uy vazifasi matnini yangilash"
         )
+        parser.add_argument(
+            "--json",
+            action="store_true",
+            help="bazaga tegmasdan slaydlarni JSON qilib chiqarish (infra/tools/slides_pdf.py)",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         names = courseware.course_names() if options["all"] else options["names"]
@@ -41,6 +48,13 @@ class Command(BaseCommand):
         found = [problem for content in contents for problem in courseware.problems(content)]
         if found:
             raise CommandError("Fayllarda xato:\n" + "\n".join(found))
+        if options["json"]:
+            exported = [lesson for content in contents for lesson in courseware.export(content)]
+            self.stdout.write(json.dumps({"lessons": exported}, ensure_ascii=False))
+            return
+        for content in contents:
+            for warning in courseware.warnings(content):
+                self.stderr.write(self.style.WARNING(f"! {warning}"))
         for content in contents:
             lessons = sum(len(module.lessons) for module in content.modules)
             self.stdout.write(
