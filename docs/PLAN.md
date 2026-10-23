@@ -1989,6 +1989,40 @@ Qilinmaydi: pasport ma'lumotlari; rasmni majburiy qilish; sertifikatdagi ismni o
 - Testlar: `users/tests/test_student_profile.py`, `bot/tests/test_profile.py`,
   `learning/tests/test_student_profile.py`.
 
+### 22e-qadam: dars slaydlari va tayyor kurs dasturlari (2026-10-23, buyurtmachi so'rovi)
+
+Buyurtmachi: «Pythonni to'liq 1 oylik kurs qil, hamma mavzularning prezentatsiyalarini tayyorla,
+tizimga joylashtir»; keyin Frontend, JavaScript, React/Next.js/Node.js, Django, FastAPI, Telegram
+bot + AI, AI'dan foydalanish, kompyuter savodxonligi, amaliy loyihalar va SIFAT Kids (12 oy) —
+reja `docs/kurslar-reja.md`. Slayd uslubi — buyurtmachining PDF namunalari («List va Tuple»,
+«Dictionary va Set»): qora fon, SIFAT logotipi, kartalar, qizil va sariq urg'u, amaliyot va
+viktorina slaydlari.
+
+**Tanlov:** slaydlar saytning o'zida (PDF — brauzerda chop etish), kurs ichida oylar (modul = oy),
+oyiga 12 dars. Dastur repoda matn fayllarida — bitta buyruq bilan joylanadi va yangilanadi.
+
+| Qism | Vazifa |
+|---|---|
+| Slaydlar | `LessonSlides` (catalog `0008`): Markdown, ustozga eslatma, tayyor JSON (`catalog/slides.py`, saqlashda). Slayd turi (muqova, qizil bo'lim, amaliyot, xulosa, viktorina), ustki yozuv (`######`), kartalar (`###`, `####`, rang `{.sariq}`, raqam «01 Nomi»), ustunlar (`\|\|\|`), indekslar sxemasi (`indeks`), xato/to'g'ri (`diff`), kod ranglari (Pygments) |
+| Dastur fayllari | `backend/content/<kurs>/<NN-modul>/<NN-dars>.md`: TOML sarlavha, bo'limlar `::: slaydlar`, `::: ustozga`, `::: test`, `::: uy-vazifasi`. `import_course` (`--check`, `--dry-run`, `--replace-tests`, `--update-homework`): dars `content_key` bo'yicha (birinchi marta — modul ichida nomi bo'yicha) topiladi; bor test va uy vazifasi o'zgarmaydi; slayd tuzilmasi o'zgarsa — qayta chiziladi |
+| Sayt | Dars sahifasida «Slaydlar»: ←/→, surish, F — to'liq ekran; video bo'lmasa — video o'rnida. Ustozga eslatma — faqat o'qituvchi va xodimga. `/slides/<id>` — chop etish (PDF). Shriftlar Rubik, Inter, JetBrains Mono — faqat slayd ichida (`src/fonts/slides.ts`), kod ligaturalari o'chiq |
+| Python, 1-oy | «Python asoslari» — 12 dars: 1–7 — mavjud darslar (nomi bir xil, testlari o'sha), 8–12 — for, while, funksiyalar, modul/fayl/try, yakuniy loyiha «Do'kon kassasi». Har darsda 18–22 slayd, 3 ta amaliyot, viktorina, ustozga 2 soatlik reja, test (14–15 savol), uy vazifasi (5 topshiriq, kutilgan natija bilan — AI tekshiruvi uchun) |
+
+**Natija (2026-10-23):**
+- Backend: `catalog/slides.py`, `catalog/courseware.py`, buyruq `import_course`, `LessonSlides`
+  admin'da (dars ichida), dars API'sida `slides` (`count`, `slides`, `teacher_notes`).
+  Bog'liqliklar: `markdown-it-py`, `pygments`. Ruff `content/**/*.md` ni formatlamaydi.
+- Sayt: `features/lesson/slides/` (`slide.tsx`, `slides-player.tsx`, `print-slides.tsx`,
+  `slides.css`, `types.ts`), `(print)/slides/[id]`. Sig'masa — shrift bosqichma-bosqich kichrayadi
+  (bo'yiga va kod qatori eniga).
+- Kontent: `backend/content/python/01-python-asoslari/` — 12 dars, 228 slayd. Slayd, viktorina,
+  test va uy vazifasidagi barcha kod ishga tushirib tekshirilgan (natijalar izohdagidek).
+- Testlar: `catalog/tests/test_slides.py`, `test_courseware.py` (repodagi kontent ham
+  tekshiriladi), `learning/tests/test_lesson_slides.py`, `features/lesson/slides/types.test.ts`.
+- Serverda: deploy → `import_course python --check` → `--dry-run` (hisobotni tekshirish) → import.
+  1–6-darslarga uy vazifasi qo'shiladi (muddatsiz); 8–12-darslar guruhda «o'tildi» deb
+  belgilanmaguncha yopiq.
+
 ## 7C. Ko'p markazli platforma (SaaS) — qarorlar (2026-10-01)
 
 **Buyurtmachi qarori (2026-10-03 yangilandi):** avval o'quvchi yig'ish va o'qitish (19–22-qadamlar, §7D), keyin 23–25-qadamlar.

@@ -14,7 +14,7 @@ from apps.homework.admin import AssignmentInline
 from apps.quizzes.admin import QuizInline
 from apps.videos.widgets import VideoUploadWidget
 
-from .models import Category, Course, Instructor, Lesson, LessonMaterial, Module
+from .models import Category, Course, Instructor, Lesson, LessonMaterial, LessonSlides, Module
 from .scope import TeacherScopedAdmin, scope_videos
 
 
@@ -226,6 +226,21 @@ class MaterialInline(StackedInline):
     fields = (("kind", "title", "order"), "file", "url", ("language",), "code")
 
 
+class SlidesInline(StackedInline):
+    """Dars slaydlari (Markdown). Odatda `import_course` yozadi; kichik tuzatishni shu yerda qilsa
+    ham bo'ladi — keyingi import fayldagisini qaytaradi."""
+
+    model = LessonSlides
+    extra = 0
+    max_num = 1
+    fields = ("show_count", "markdown", "teacher_notes")
+    readonly_fields = ("show_count",)
+
+    @display(description=_("Slaydlar soni"))
+    def show_count(self, obj: LessonSlides | None) -> str:
+        return f"{len(obj.data)} ta" if obj and obj.pk else "—"
+
+
 @admin.register(Lesson)
 class LessonAdmin(TeacherScopedAdmin, TranslatedModelAdmin):
     teacher_course_path = "module__course"
@@ -237,7 +252,7 @@ class LessonAdmin(TeacherScopedAdmin, TranslatedModelAdmin):
     autocomplete_fields = ("module",)
     ordering_field = "order"
     hide_ordering_field = True
-    inlines = [MaterialInline, AssignmentInline, QuizInline]
+    inlines = [SlidesInline, MaterialInline, AssignmentInline, QuizInline]
     fieldsets = [
         (None, {"fields": ["module", ("duration_min", "is_preview")]}),
         (

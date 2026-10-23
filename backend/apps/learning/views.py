@@ -16,16 +16,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.catalog.models import Course, Lesson, LessonMaterial, Module
+from apps.catalog.models import Course, Lesson, LessonMaterial, LessonSlides, Module
+from apps.catalog.scope import teacher_courses
 from apps.core import events
 from apps.homework.services import homework_payload
 from apps.live.gates import tasks_open
 from apps.quizzes.services import course_stars, quiz_summary
+from apps.users.roles import Role, has_role, manages_groups, sees_all
 from apps.videos import hls, s3
 from apps.videos.models import VideoAsset
 
 from . import access
-from .models import COMPLETE_RATIO, Enrollment, LessonProgress
+from .models import COMPLETE_RATIO, Enrollment, LessonProgress, StudyGroup
 from .serializers import (
     EnrollSerializer,
     LessonPlayerSerializer,
@@ -37,9 +39,9 @@ from .serializers import (
 
 
 def lesson_queryset() -> QuerySet[Lesson]:
-    return Lesson.objects.select_related("module", "module__course", "video").prefetch_related(
-        "materials"
-    )
+    return Lesson.objects.select_related(
+        "module", "module__course", "video", "slides"
+    ).prefetch_related("materials")
 
 
 def completed_ids(user: Any, course: Course) -> set[int]:
@@ -88,6 +90,32 @@ def materials_payload(lesson: Lesson) -> list[dict[str, Any]]:
             }
         )
     return items
+
+
+def sees_teacher_notes(user: Any, course: Course) -> bool:
+    """Ustozga eslatma: xodimlar va shu kursning o'qituvchisi (kurs yoki guruh bo'yicha)."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if sees_all(user) or manages_groups(user):
+        return True
+    if not has_role(user, Role.TEACHER):
+        return False
+    return (
+        teacher_courses(user).filter(pk=course.pk).exists()
+        or StudyGroup.objects.filter(teacher=user, course=course).exists()
+    )
+
+
+def slides_payload(lesson: Lesson, user: Any) -> dict[str, Any] | None:
+    """Slaydlar (bo'lsa). Chaqiruvchi darsga kirish huquqini oldin tekshirgan bo'ladi."""
+    try:
+        slides = lesson.slides
+    except LessonSlides.DoesNotExist:
+        return None
+    if not slides.data:
+        return None
+    notes = slides.teacher_notes if sees_teacher_notes(user, lesson.module.course) else ""
+    return {"count": len(slides.data), "slides": slides.data, "teacher_notes": notes}
 
 
 def course_card(
@@ -249,6 +277,7 @@ class LessonPlayerView(LessonAccessView):
                     "completed": progress[2],
                 },
                 "materials": materials_payload(lesson),
+                "slides": slides_payload(lesson, request.user),
                 "watermark": watermark_for(request.user),
                 "homework": None if locked else homework_payload(lesson, request.user),
                 "quiz": None if locked else quiz_summary(lesson, request.user),

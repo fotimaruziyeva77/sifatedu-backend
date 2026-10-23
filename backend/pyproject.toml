@@ -25,6 +25,8 @@ dependencies = [
     "uvicorn-worker>=0.3",
     "sentry-sdk[django,celery]>=2.30",
     "google-genai>=2.28",
+    "markdown-it-py>=3.0",
+    "pygments>=2.19",
 ]
 
 [dependency-groups]
@@ -45,7 +47,8 @@ package = false
 [tool.ruff]
 line-length = 100
 target-version = "py313"
-extend-exclude = ["**/migrations/*"]
+# content/ — dars slaydlari (Markdown): koddagi izohlar ataylab tekislangan, formatlanmaydi.
+extend-exclude = ["**/migrations/*", "content/**/*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "DJ", "S", "SIM", "RUF"]

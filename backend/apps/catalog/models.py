@@ -247,6 +247,16 @@ class Lesson(TimeStampedModel):
         help_text=_("Sotib olmagan foydalanuvchi ham ko'ra oladi."),
     )
     order = models.PositiveIntegerField(_("tartib"), default=0)
+    content_key = models.CharField(
+        _("dastur fayli"),
+        max_length=200,
+        blank=True,
+        db_index=True,
+        editable=False,
+        help_text=_(
+            "`import_course` qaysi fayldan yaratgan (qayta importda shu bo'yicha topiladi)."
+        ),
+    )
 
     class Meta:
         verbose_name = _("dars")
@@ -304,3 +314,38 @@ class LessonMaterial(TimeStampedModel):
         field, message = required[self.Kind(self.kind)]
         if not getattr(self, field):
             raise ValidationError({field: message})
+
+
+class LessonSlides(TimeStampedModel):
+    """Dars slaydlari: Markdown (slaydlar alohida `---` qatori bilan ajraladi) va ustozga eslatma.
+    Saytda ko'rsatish uchun bloklar (`data`) har saqlashda Markdown'dan qayta hisoblanadi."""
+
+    lesson = models.OneToOneField(
+        Lesson, verbose_name=_("dars"), on_delete=models.CASCADE, related_name="slides"
+    )
+    markdown = models.TextField(
+        _("slaydlar"),
+        help_text=_(
+            "Markdown: ## sarlavha, ro'yxat, ```python kod```, jadval, > eslatma. Slaydlar orasida "
+            "alohida qatorda ---"
+        ),
+    )
+    teacher_notes = models.TextField(
+        _("ustozga eslatma"), blank=True, help_text=_("Faqat o'qituvchi va xodimlar ko'radi.")
+    )
+    data = models.JSONField(_("slaydlar (tayyor)"), default=list, editable=False)
+
+    class Meta:
+        verbose_name = _("slaydlar")
+        verbose_name_plural = _("slaydlar")
+
+    def __str__(self) -> str:
+        return f"{self.lesson} — {len(self.data)} slayd"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        from .slides import render
+
+        self.data = render(self.markdown)
+        if kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = {*kwargs["update_fields"], "data"}
+        super().save(*args, **kwargs)

@@ -89,6 +89,16 @@ class LessonMaterialSerializer(serializers.Serializer[dict[str, Any]]):
     size = serializers.IntegerField(allow_null=True)
 
 
+class LessonSlidesSerializer(serializers.Serializer[dict[str, Any]]):
+    count = serializers.IntegerField()
+    slides = serializers.JSONField(
+        help_text="Slaydlar: [{blocks: [...]}]; bloklar tuzilmasi — apps/catalog/slides.py."
+    )
+    teacher_notes = serializers.CharField(
+        allow_blank=True, help_text="Ustozga eslatma (Markdown) — faqat o'qituvchi va xodimga."
+    )
+
+
 class LessonPlayerSerializer(serializers.Serializer[dict[str, Any]]):
     """Dars sahifasi uchun hamma narsa bitta so'rovda."""
 
@@ -105,6 +115,7 @@ class LessonPlayerSerializer(serializers.Serializer[dict[str, Any]]):
     video = LessonVideoSerializer(allow_null=True)
     progress = LessonProgressSerializer()
     materials = LessonMaterialSerializer(many=True)
+    slides = LessonSlidesSerializer(allow_null=True, help_text="Dars slaydlari (bo'lsa).")
     # Ekrandan yozib olishni to'xtatmaydi, lekin kim yozganini ko'rsatadi.
     watermark = serializers.CharField(allow_blank=True)
     homework = HomeworkSerializer(allow_null=True, help_text="Darsning uy vazifasi (bo'lsa).")
