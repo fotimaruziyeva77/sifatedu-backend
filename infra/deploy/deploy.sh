@@ -69,7 +69,12 @@ else
     exit 1
 fi
 
-step "Ishlatilmayotgan eski image'lar tozalanadi (:previous saqlanadi)"
-docker image prune -f > /dev/null
-docker builder prune -f --filter until=168h > /dev/null
+step "Sifat'ning ishlatilmayotgan eski image'lari tozalanadi (:previous saqlanadi)"
+# Server umumiy bo'lishi mumkin, shuning uchun faqat Sifat'ning tegsiz image'lari o'chadi:
+# Compose yig'ayotganda image'ga loyiha nomini label qilib yozadi (docker-compose.yml, `name:`).
+docker image prune -f --filter "label=com.docker.compose.project=sifatedu" > /dev/null
+# Build cache'ni loyiha bo'yicha ajratib bo'lmaydi: umumiy serverda unga tegilmaydi.
+if ! grep -q '^COMPOSE_FILE=.*docker-compose\.proxy\.yml' .env 2> /dev/null; then
+    docker builder prune -f --filter until=168h > /dev/null
+fi
 df -h / | tail -n 1
