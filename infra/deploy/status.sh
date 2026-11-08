@@ -29,7 +29,7 @@ for name in "$HOST" "media.$HOST"; do
 done
 
 section "Telegram bot webhook"
-"${COMPOSE[@]}" exec -T backend python manage.py telegram_webhook info 2>&1 |
+"${COMPOSE[@]}" exec -T backend python manage.py tenant_command telegram_webhook --schema=sifat info 2>&1 |
     grep -viE "secret|token" | head -n 8
 
 section "Zaxira (oxirgi 3 ta)"

@@ -50,6 +50,8 @@ services:
       <<: *backend-env
       RUN_MIGRATIONS: "1"
       COLLECT_STATIC: "1"
+      # Bo'sh bazada platforma va birinchi markaz (bor bo'lsa — hech narsa qilmaydi).
+      ENSURE_CENTER: "1"
     volumes:
       - static:/app/staticfiles
     depends_on:

@@ -8,8 +8,8 @@ yubormaydi (yangi qo'shilganlarga yuboradi).
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/profil_toldirish.py
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
-  dc exec -T -e ACTION=send backend python manage.py shell < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=send backend python manage.py tenant_command shell --schema=sifat < $S
 
 status — guruh o'quvchilari: nechtasi to'ldirgan, nechtasi rasm yuborgan, kimga bot orqali
          yetib boradi, kimning Telegram'i ulanmagan (ularni o'qituvchi kabinetda to'ldiradi).

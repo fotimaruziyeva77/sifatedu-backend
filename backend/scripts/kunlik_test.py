@@ -3,8 +3,8 @@
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/kunlik_test.py
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
-  dc exec -T -e ACTION=send   backend python manage.py shell < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=send   backend python manage.py tenant_command shell --schema=sifat < $S
 
 status — har o'qiyotgan guruh: o'quvchilar, savollar banki, bugungi test, kim boshladi va tugatdi.
 send   — bugungi testni hozir yuboradi (07:00 dagidek): testi yo'q guruhlarga ochadi; ertalab

@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from apps.users.models import User
 from apps.users.roles import Role, set_roles
-from apps.videos import crypto, ffmpeg, hls
+from apps.videos import crypto, ffmpeg, hls, s3
 from apps.videos.models import VideoAsset
 
 pytestmark = pytest.mark.django_db
@@ -120,7 +120,7 @@ class TestPlaylists:
 
         # boto3 imzosi katta harf bilan: shuning uchun argument nomlari shunday.
         def fake_get(Bucket: str, Key: str) -> dict[str, Any]:
-            assert Key == f"{video.hls_prefix}/360p/index.m3u8"
+            assert Key == s3.object_key(f"{video.hls_prefix}/360p/index.m3u8")
             return {"Body": _Body(stored.encode())}
 
         with (

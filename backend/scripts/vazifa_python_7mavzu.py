@@ -4,10 +4,10 @@ AI tekshiruvi, Telegram'da hisobot va muddatida bajarmaganlarga jarima.
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/vazifa_python_7mavzu.py
-  dc exec -T -e ACTION=send   backend python manage.py shell < $S
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
-  dc exec -T -e ACTION=finish backend python manage.py shell < $S
-  dc exec -T -e ACTION=check  backend python manage.py shell < $S   (GEMINI_API_KEY bilan)
+  dc exec -T -e ACTION=send   backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=finish backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=check  backend python manage.py tenant_command shell --schema=sifat < $S   (GEMINI_API_KEY bilan)
 
 send   — «Python asoslari» moduliga 7-mavzu darsi: test (15 savol) va uy vazifasi (5 ta amaliy
          topshiriq, muddat — bugun UNTIL, standart 23:00). Dars «Python» guruhi uchun ochiladi,
@@ -32,7 +32,7 @@ Gemini kaliti backend/.env da bo'lmasa (u yerda kalit saytdagi AI chatni ham yoq
 shu buyruqqa berish mumkin — root'gina o'qiy oladigan fayldan:
   (umask 077; read -rsp "Gemini kaliti: " K; echo; printf %s "$K" > /root/.gemini)
   dc exec -T -e GEMINI_API_KEY="$(cat /root/.gemini)" -e ACTION=status backend \\
-      python manage.py shell < $S
+      python manage.py tenant_command shell --schema=sifat < $S
 """
 
 import json

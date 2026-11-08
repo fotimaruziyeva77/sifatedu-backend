@@ -16,6 +16,8 @@ from botocore.client import BaseClient
 from botocore.config import Config
 from django.conf import settings
 
+from apps.tenancy.storage import center_prefix
+
 # Yuklash va o'chirish ko'p bo'lmaydi; qisqa timeout bilan osilib qolmaydi.
 _CONFIG = Config(
     signature_version="s3v4",
@@ -53,9 +55,14 @@ def bucket() -> str:
     return settings.S3_BUCKET_PRIVATE
 
 
+def object_key(key: str) -> str:
+    """Bazada kalit markaz papkasisiz turadi — papka S3 ga murojaat paytida qo'shiladi."""
+    return center_prefix() + key
+
+
 def start_multipart(key: str, content_type: str) -> str:
     response = internal().create_multipart_upload(
-        Bucket=bucket(), Key=key, ContentType=content_type or "application/octet-stream"
+        Bucket=bucket(), Key=object_key(key), ContentType=content_type or "application/octet-stream"
     )
     return str(response["UploadId"])
 
@@ -66,7 +73,7 @@ def sign_part(key: str, upload_id: str, part_number: int, ttl: int) -> str:
             "upload_part",
             Params={
                 "Bucket": bucket(),
-                "Key": key,
+                "Key": object_key(key),
                 "UploadId": upload_id,
                 "PartNumber": part_number,
             },
@@ -79,7 +86,7 @@ def finish_multipart(key: str, upload_id: str, parts: list[dict[str, Any]]) -> i
     """Qismlarni birlashtiradi va yakuniy fayl hajmini qaytaradi."""
     internal().complete_multipart_upload(
         Bucket=bucket(),
-        Key=key,
+        Key=object_key(key),
         UploadId=upload_id,
         MultipartUpload={
             "Parts": [
@@ -88,30 +95,36 @@ def finish_multipart(key: str, upload_id: str, parts: list[dict[str, Any]]) -> i
             ]
         },
     )
-    head = internal().head_object(Bucket=bucket(), Key=key)
+    head = internal().head_object(Bucket=bucket(), Key=object_key(key))
     return int(head["ContentLength"])
 
 
 def cancel_multipart(key: str, upload_id: str) -> None:
-    internal().abort_multipart_upload(Bucket=bucket(), Key=key, UploadId=upload_id)
+    internal().abort_multipart_upload(Bucket=bucket(), Key=object_key(key), UploadId=upload_id)
 
 
 def put_file(key: str, path: str, content_type: str) -> None:
     with open(path, "rb") as handle:
-        internal().put_object(Bucket=bucket(), Key=key, Body=handle, ContentType=content_type)
+        internal().put_object(
+            Bucket=bucket(), Key=object_key(key), Body=handle, ContentType=content_type
+        )
 
 
 def put_bytes(key: str, data: bytes, content_type: str) -> None:
-    internal().put_object(Bucket=bucket(), Key=key, Body=data, ContentType=content_type)
+    internal().put_object(Bucket=bucket(), Key=object_key(key), Body=data, ContentType=content_type)
 
 
 def download(key: str, path: str) -> None:
-    internal().download_file(Bucket=bucket(), Key=key, Filename=path)
+    internal().download_file(Bucket=bucket(), Key=object_key(key), Filename=path)
+
+
+def read_text(key: str) -> str:
+    return str(internal().get_object(Bucket=bucket(), Key=object_key(key))["Body"].read().decode())
 
 
 def sign_get(key: str, ttl: int, download_name: str | None = None) -> str:
     """Qisqa muddatli havola. `download_name` berilsa, brauzer faylni shu nom bilan saqlaydi."""
-    params: dict[str, Any] = {"Bucket": bucket(), "Key": key}
+    params: dict[str, Any] = {"Bucket": bucket(), "Key": object_key(key)}
     if download_name:
         params["ResponseContentDisposition"] = content_disposition(download_name)
     return str(browser().generate_presigned_url("get_object", Params=params, ExpiresIn=ttl))
@@ -130,7 +143,9 @@ def content_disposition(name: str) -> str:
 def delete_prefix(prefix: str) -> None:
     """Video o'chirilganda uning barcha fayllarini tozalaydi."""
     client = internal()
-    pages = client.get_paginator("list_objects_v2").paginate(Bucket=bucket(), Prefix=prefix)
+    pages = client.get_paginator("list_objects_v2").paginate(
+        Bucket=bucket(), Prefix=object_key(prefix)
+    )
     for page in pages:
         keys = [{"Key": item["Key"]} for item in page.get("Contents", [])]
         if keys:

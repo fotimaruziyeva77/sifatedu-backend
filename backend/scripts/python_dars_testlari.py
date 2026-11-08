@@ -3,8 +3,8 @@
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/python_dars_testlari.py
-  dc exec -T -e ACTION=setup  backend python manage.py shell < $S
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
+  dc exec -T -e ACTION=setup  backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
 
 setup  — «Python asoslari» moduli: 6 ta dars (mavzu), har birida 14 ta savol (jami 84 ta,
          oktabr imtihonidagilardan boshqa). Darslar «Python» guruhi uchun o'tilgan deb

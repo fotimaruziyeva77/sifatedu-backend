@@ -874,7 +874,7 @@ Admin panel — **Django Admin** (Unfold temasi), manzili `/admin/`. Faqat xodim
   - Admin ham faqat umumiy (agregat) statistikani ko'radi.
   - Instruktorga ko'rsatilmaydi.
 
-### 4.22. Ko'p markazli platforma (SaaS) (3-bosqich, 23–25-qadamlar)
+### 4.22. Ko'p markazli platforma (SaaS) (3-bosqich, 23–27-qadamlar)
 
 Platforma boshqa o'quv markazlariga oylik obuna bilan beriladi. Har bir markaz — alohida
 **mijoz**: o'z o'quvchilari, kurslari, xodimlari va puli bor, markazlar bir-birining
@@ -895,16 +895,34 @@ ma'lumotini ko'rmaydi. Sifat Edu — birinchi markaz.
 - SMS (Eskiz), AI maslahatchi sozlamalari va budjeti, XP va do'kon qiymatlari.
 - Maxfiy kalitlar (bot, Click, Eskiz) bazada shifrlangan holda saqlanadi.
 
+**Markazni ochish:** markaz saytda o'zi ro'yxatdan o'tadi (nom, manzil, egasi, telefon SMS bilan
+tasdiqlanadi) va darhol sinov muddati bilan ishlay boshlaydi.
+
+**Tarif:** qaysi bo'limlar ochiq va cheklovlar (o'quvchi, xodim, filial soni, disk, AI budjeti).
+Tarifga kirmagan bo'lim saytda, admin panelda, API'da, botda va fon vazifalarida yopiq.
+
 **Platforma egasi (super admin):**
-- Markaz qo'shish (domen, nom, tarif) — 10 daqiqada ishga tushadi; to'xtatish va qayta yoqish.
+- Markazlar ro'yxati, tarifni o'zgartirish, sinovni uzaytirish, to'xtatish va qayta yoqish.
+- Tariflarni tahrirlash (kod yozmasdan).
 - Har markaz bo'yicha foydalanish: o'quvchilar soni, disk (videolar), AI va SMS xarajati.
-- Tarif cheklovlari (o'quvchi soni, disk, AI budjeti) va obuna to'lovlari hisobi (shartnoma
-  asosida, bank o'tkazmasi).
-- Markaz ma'lumotlariga platforma xodimi faqat markaz ruxsati bilan kiradi (qo'llab-quvvatlash
-  uchun), har kirish jurnalga yoziladi.
+- Obuna to'lovlari hisobi (shartnoma asosida, bank o'tkazmasi).
+- Markaz ichidagi ma'lumotlarga kirmaydi, faqat umumiy sonlarni ko'radi.
 
 **Huquqiy:** platforma markazlar uchun shaxsiy ma'lumotlarni qayta ishlovchi; har markaz bilan
 shartnoma tuziladi; ma'lumotlar O'zbekistondagi serverda.
+
+### 4.23. CRM bo'limlari (3-bosqich, 26-qadam)
+
+Har bir bo'lim tarifga bo'linadi (4.22), saytdagi xodimlar kabinetida ishlaydi.
+
+- **Filiallar va xonalar:** filial; guruh, xona, ariza va to'lov filialga bog'langan; menejer o'z
+  filialini, direktor va admin hammasini ko'radi; filial bo'yicha hisobot; xona bandligi.
+- **To'lov va qarzdorlar:** guruh narxi va chegirma bo'yicha oylik hisob; naqd, karta va o'tkazma
+  to'lovini kiritish, Click to'lovi avtomatik yoziladi; qarzdorlar ro'yxati va eslatma; kassir
+  bo'yicha kunlik hisobot. To'lov o'chirilmaydi, sababi yozilib bekor qilinadi.
+- **Lidlar voronkasi:** markaz sozlaydigan bosqichlar, kanban, menejerga biriktirish, qayta
+  qo'ng'iroq eslatmasi, muloqot tarixi, o'quvchiga aylantirish, yo'qotish sababi, manba bo'yicha
+  konversiya.
 
 ---
 
@@ -1634,7 +1652,8 @@ NEXT_PUBLIC_GA_ID=
 # Django
 DJANGO_SETTINGS_MODULE=config.settings.prod
 DJANGO_SECRET_KEY=
-DJANGO_ALLOWED_HOSTS=
+FIRST_CENTER_DOMAINS=
+PLATFORM_DOMAIN=
 DJANGO_CSRF_TRUSTED_ORIGINS=
 APP_URL=
 

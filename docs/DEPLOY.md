@@ -215,7 +215,7 @@ avtomatik yangilanadi (certbot kuniga 2 marta tekshiradi).
 ## 10. Admin akkaunt va kontent
 
 ```bash
-dc exec backend python manage.py createsuperuser
+dc exec backend python manage.py tenant_command createsuperuser --schema=sifat
 ```
 
 Telefon (`+998…`) va kuchli parolni yozing. Bu parolni serverda yozasiz va hech kimga
@@ -234,8 +234,8 @@ Shuning uchun bu qadamdan oldin dasturchiga ayting: kompyuterdagi bot to'xtatila
 sinov uchun alohida test bot ulanadi.
 
 ```bash
-dc exec backend python manage.py telegram_webhook set
-dc exec backend python manage.py bot_setup
+dc exec backend python manage.py tenant_command telegram_webhook --schema=sifat set
+dc exec backend python manage.py tenant_command bot_setup --schema=sifat
 ```
 
 Kutilgan natija: `Webhook o'rnatildi: https://sifatedu.uz/api/v1/bot/webhook/`.
@@ -320,7 +320,7 @@ bash /srv/sifatedu/infra/deploy/status.sh
 | Sayt 502 yoki 504 qaytaryapti | `dc ps` (hamma `healthy` bo'lsin), `dc logs --tail=100 backend frontend` |
 | Konteyner qayta-qayta o'chib yonyapti | `dc logs --tail=200 <servis nomi>` |
 | Disk to'lyapti | `df -h /`, `docker system df`; eski yoki keraksiz videolarni admin'dan o'chiring; AHOST'da diskni kengaytiring |
-| Bot javob bermayapti | `dc exec backend python manage.py telegram_webhook info` — `last_error_message` ga qarang |
+| Bot javob bermayapti | `dc exec backend python manage.py tenant_command telegram_webhook --schema=sifat info` — `last_error_message` ga qarang |
 
 Foydali buyruqlar:
 

@@ -62,7 +62,7 @@ Django session + CSRF (JWT yo'q). Uch yo'l:
 - Admin yozgan HTML (kurs tavsifi, huquqiy sahifalar) saqlashda `nh3` bilan tozalanadi.
 - Kontent o'zgarganda `/api/v1/site/` keshi avtomatik tozalanadi (`apps/content/signals.py`).
 - Audit log: katalog, kontent, arizalar va foydalanuvchilardagi har bir o'zgarish (kim, qachon, eski → yangi) — Foydalanuvchilar → Audit log.
-- Namunaviy kontent: `python manage.py seed_demo` (faqat bo'sh jadvallarni to'ldiradi).
+- Namunaviy kontent: `python manage.py tenant_command seed_demo --schema=sifat` (faqat bo'sh jadvallarni to'ldiradi).
 - Foydalanuvchi sahifasida uning Google/Telegram akkauntlari ko'rinadi; "SMS kodlar" jurnali faqat o'qish uchun (kodning o'zi saqlanmaydi).
 
 ## Ishga tushirish

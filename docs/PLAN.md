@@ -1284,9 +1284,11 @@ PDF va QR bilan tekshirish.
 | **20** ✅ | **AI maslahatchi — Gemini** (§7D): Claude olib tashlanadi; samimiy maslahatchi, bilim bazasi, e'tirozlar, kupon va test taklifi. Qo'llanma — `docs/ai-maslahatchi.md` | o'rta–katta |
 | **21** ✅ | **Onlayn guruhlar Zoom orqali, videosiz** (§7D): darslar o'qituvchi «Dars o'tildi» deganda ochiladi | kichik |
 | **22** ✅ | **Guruhlarga kunlik test** (§7D): 07:00 → 23:00, kamida 20 savol, natija darhol, javoblar 23:00 da, XP va guruh reytingi | o'rta–katta |
-| **23** | **Ko'p markazli platforma — asos** (§7C): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; markaz sozlamalari va shifrlangan kalitlari; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
-| **24** | **Markazning o'z brendi va integratsiyalari:** nom, logo, ranglar; landing va hujjatlar admin'dan; o'z Telegram boti (ko'p botli webhook); o'z Click va Eskiz; AI budjeti. Frontend sozlamalari build paytida emas, har so'rovda domen bo'yicha | katta |
-| **25** | **SaaS ishlatish:** markaz domeni va avtomatik HTTPS, yangi markazni 10 daqiqada ulash, tarif cheklovlari va foydalanish hisobi, obuna to'lovlari, markazlar uchun qo'llanma | o'rta–katta |
+| **23** | **Ko'p markazli platforma — asos** (§7C, `docs/saas-reja.md`): har markaz bazada alohida sxemada, domen bo'yicha aniqlanadi; fon vazifalari, kesh va fayllar markaz bo'yicha; super admin; Sifat Edu — birinchi markaz; markazlar orasida ma'lumot sizmasligi testlari | katta |
+| **24** | **Tarif va bo'limlar:** tariflar super admin panelida, tarifga kirmagan bo'lim hamma joyda yopiq (sayt, admin, API, bot, fon vazifa), cheklovlar, obuna muddati | o'rta |
+| **25** | **Markaz o'zi ochiladi:** platforma sayti, ro'yxatdan o'tish, sinov muddati, sozlash ustasi; nom, logo, rang; o'z Telegram boti, Click va Eskiz (shifrlangan); AI budjeti; subdomen va HTTPS. Frontend sozlamalari har so'rovda domen bo'yicha | katta |
+| **26** | **CRM:** filiallar va xonalar; naqd va karta to'lovlar, qarzdorlar; lidlar voronkasi | katta |
+| **27** | **Sotuvga chiqish:** o'z domeni, obuna to'lovlari hisobi, foydalanish hisoboti, oferta, O'zbekistondagi server, markazlar uchun qo'llanma | o'rta |
 | **Oxirida** | **SIFAT Kids** (yangi g'oyalar), ota-ona rejimi, o'yinlar, Kids ligasi — boshidan ko'p markazli | — |
 
 Mini App bo'lmagani uchun botni shu kompyuterda sinab bo'ladi (polling rejimi) — test server
@@ -2060,10 +2062,33 @@ shartnoma, server O'zbekistonda.
 **Hozirgi ishlarga ta'siri:** 18-qadam o'zgarmaydi. Shu kundan yangi kodda "Sifat" nomi va
 global sozlamalar to'g'ridan-to'g'ri yozilmaydi.
 
-**19-qadam boshlanishidan oldin hal qilinadi:**
-- platformaning nomi va domeni (mijozlarga sotiladigan mahsulot, super admin va subdomenlar uchun);
-- tarif va narxlar;
-- AI va SMS — markazning o'z kaliti bilan yoki platformaniki (budjet bilan).
+**Yangilanish (2026-11-08, buyurtmachi so'rovi).** To'liq reja — `docs/saas-reja.md`. Arxitektura
+o'zgarmadi. O'zgargani:
+- markazni super admin emas, **markazning o'zi ochadi** (sinov muddati bilan);
+- tarif faqat cheklov emas, **qaysi bo'limlar ko'rinishini** ham belgilaydi;
+- CRM kengayadi: filiallar va xonalar, naqd to'lov va qarzdorlar, lidlar voronkasi;
+- qadamlar 23–27 ga bo'lindi (§7B.2);
+- AI — platforma kaliti, tarif bo'yicha budjet; SMS — markazning o'z Eskiz hisobi.
+
+**Hal qilinishi kerak (sana bilan — `docs/saas-reja.md` §9):** platformaning nomi va domeni; tarif
+narxlari.
+
+### 23-qadam natijalari (2026-11-08, `saas/23-asos`)
+
+| Qism | Natija |
+|---|---|
+| Sxemalar | `django-tenants`: `public` — platforma (`tenancy.Center`, `Domain`, super admin), har markaz o'z sxemasida. Foydalanuvchi va ruxsat jadvallari ikkala joyda (`SHARED_APPS`, `TENANT_APPS`). `pg_trgm` — `public`da |
+| Manzil | `CenterMiddleware`: `X-Forwarded-Host` yoki `Host` bo'yicha, `www.` hisobga olinmaydi; noma'lum manzil — 404, sog'liq tekshiruvidan tashqari. SSR saytning manzilini backend'ga uzatadi (`lib/api/server.ts`), `sitemap` — har so'rovda |
+| Fon vazifa | `tenant-schemas-celery`: vazifa yuborilgan sxemada bajariladi; jadval har markazga alohida; server tekshiruvi (`check-server-resources`) — bir marta |
+| Kesh va fayl | Kalit boshida sxema (`django_tenants.cache.make_key`); fayllar `centers/<sxema>/`, Sifat Edu'niki joyida (`LEGACY_STORAGE_SCHEMAS`) |
+| Super admin | `platform.<domen>/admin/`: markazlar ro'yxati, yaratish (sxema va domen). Markaz adminlari bu panelga kira olmaydi |
+| Ko'chirish | `adopt_center` (bitta tranzaksiya), `infra/deploy/adopt.sh` (sinov, ko'chirish, qaytarish), `docs/saas-kochirish.md`. Eski bazada `migrate` to'xtaydi (`adopt_center --check`) |
+| Tekshirildi | Backend testlari, jumladan aralashmaslik (`apps/tenancy/tests`); E2E (53); pool + ASGI'da ikki markazga parallel 3000 so'rov — aralashish yo'q; yangi markaz ~18 s; local bazada ko'chirish 23 s, qaytarish ham sinaldi |
+
+Keyingi qadamlarga: noma'lum manzilda SSR bo'sh sayt ko'rsatadi (backend 404) va platforma manzilining
+bosh sahifasi yo'q; `APP_URL` va `NEXT_PUBLIC_APP_URL` — bitta domen; S3 CORS va HSTS `includeSubDomains`
+boshqa domenlar uchun moslanadi; panelda markaz yaratish so'rov ichida (~18 s), o'zi ochilganda fon
+vazifaga o'tadi — 25-qadam.
 
 ## 8. Sizdan kerak bo'ladigan narsalar
 
@@ -2252,3 +2277,13 @@ Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) r
 | Kupon — muddat va turi bilan; bir nechta chegirma qo'shilmaydi, eng kattasi qo'llanadi | Chegirmalar tasodifan 40–50% ga yetib qolmasin |
 | AI: Anthropic Claude → Google Gemini (Gemini 3.8 Flash, AI Studio pullik tarifi) | Buyurtmachi tanlovi; arzonroq. Bepul tarif yozishmalarni o'qitishga ishlatishi mumkin — pullik shart |
 | Yo'l xaritasi: 19–22 — o'quvchi yig'ish va o'qitish (yangi kelganlar, Gemini, Zoom guruhlari, kunlik test); SaaS — 23–25 | Avval o'z markazini to'ldirish, keyin platformani sotish |
+
+### v3.5 → v3.6 (ko'p markazli CRM)
+
+| O'zgarish | Sabab |
+|---|---|
+| 4.22: markazni o'zi ro'yxatdan o'tib ochadi (sinov muddati bilan); super admin kuzatadi va to'xtatadi | Buyurtmachi: «o'quv markaz kelib o'zini qo'shsin» |
+| 4.22: tarif qaysi bo'limlar ko'rinishini ham belgilaydi | Buyurtmachi: «tarif bo'yicha kerakli qismlarni ko'rsin» |
+| 4.22 dan olib tashlandi: platforma xodimining markaz ichiga kirishi | Xavfli va birinchi versiyaga shart emas; super admin faqat umumiy sonlarni ko'radi |
+| Yangi 4.23: filiallar va xonalar, naqd to'lov va qarzdorlar, lidlar voronkasi | Buyurtmachi tanlovi; maosh va xarajatlar tanlanmadi |
+| Yo'l xaritasi: SaaS — 23–27 | CRM va sotuvga chiqish alohida qadamlar |

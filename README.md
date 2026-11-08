@@ -42,7 +42,7 @@ Kerak: Docker Desktop va Git.
 3. Namunaviy kontent (bo'sh bazada landing to'lishi uchun, ixtiyoriy):
 
    ```bash
-   docker compose exec backend python manage.py seed_demo
+   docker compose exec backend python manage.py tenant_command seed_demo --schema=sifat
    ```
 
    Faqat bo'sh jadvallarni to'ldiradi; keyin hammasi admin paneldan almashtiriladi.
@@ -161,7 +161,7 @@ bazadan oladi — admin'da o'zgartirsangiz, AI ham darhol shuni aytadi.
    (chegirmalar, bo'lib to'lash, sertifikat, sinov darsi — AI faqat shu yerdagi va saytdagi
    faktlarni aytadi). E'tirozlarga javoblar — **Sayt kontenti → Xavotirlar**, savol-javoblar —
    **FAQ**. Daraja testi bo'lsa, AI uni va kuponni o'zi taklif qiladi.
-5. Sifatni tekshirish (haqiqiy Gemini, ~$0,05–0,2): `docker compose exec backend python manage.py assistant_eval`.
+5. Sifatni tekshirish (haqiqiy Gemini, ~$0,05–0,2): `docker compose exec backend python manage.py tenant_command assistant_eval --schema=sifat`.
 
 **Kalitsiz (local):** `ASSISTANT_DRY_RUN=true` — chat "test rejimi" belgisi bilan ishlaydi: kurslarni
 ko'rsatadi va raqam so'raydi, raqam yozilsa ariza yaratiladi. Budjet tugasa yoki Gemini ishlamasa
@@ -205,7 +205,7 @@ foydalanuvchi sahifasida ham bor.
 
 Beshta rol: **O'quvchi**, **O'qituvchi**, **Menejer**, **Direktor**, **Admin**. Kim nima qila
 olishi kodda bitta jadvalda (`backend/apps/users/roles.py`) turadi va har `migrate`dan keyin
-avtomatik qo'llanadi. Qo'lda qayta qo'llash: `python manage.py sync_roles`.
+avtomatik qo'llanadi. Qo'lda qayta qo'llash: `python manage.py tenant_command sync_roles --schema=sifat`.
 
 | Rol | Qayerda ishlaydi | Nima qiladi |
 |---|---|---|
@@ -217,7 +217,7 @@ avtomatik qo'llanadi. Qo'lda qayta qo'llash: `python manage.py sync_roles`.
 
 **Rol berish:** admin → **Foydalanuvchilar** → foydalanuvchi → **Rollar** (faqat Admin ko'radi).
 Xodim roli admin panelga kirishni o'zi beradi, roli olinsa — kirish yopiladi. Terminaldan:
-`docker compose exec backend python manage.py grant_role +998901234567 TEACHER`
+`docker compose exec backend python manage.py tenant_command grant_role --schema=sifat +998901234567 TEACHER`
 (`--remove` — olib tashlash).
 
 **O'qituvchini sozlash:**
@@ -453,7 +453,7 @@ API ishlatilmaydi — havola qo'lda qo'yiladi.
   «Kunlik topshiriqlar»ni o'chirib qo'yish tavsiya etiladi — kunlik test ularning o'rnida.
 * **Python guruhi uchun tayyor bank:** `backend/scripts/python_dars_testlari.py` — o'tilgan 6 ta
   mavzuga dars testlari (84 savol), darslarni guruh uchun o'tilgan deb belgilaydi va guruhni
-  «O'qiyapti» qiladi (serverda: `dc exec -T -e ACTION=setup backend python manage.py shell < …`).
+  «O'qiyapti» qiladi (serverda: `dc exec -T -e ACTION=setup backend python manage.py tenant_command shell --schema=sifat < …`).
 * **Bugunoq yuborish** (07:00 o'tib ketgan bo'lsa, masalan bank kunduzi qo'shilganda):
   `backend/scripts/kunlik_test.py` — `ACTION=send` bugungi testni hozir ochadi va o'quvchilarga
   xabar yuboradi (ertalab savol yetmay berilmagan test ham ochiladi; xabar hech kimga ikki marta
@@ -508,7 +508,7 @@ Bitta bot, oddiy tugmalar (Mini App yo'q). Video darslar — faqat saytda, qolga
 1. [@BotFather](https://t.me/BotFather) → yangi bot: token va nomini `backend/.env` ga
    (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`), rasmini BotFather'da qo'ying. So'ng
    `docker compose up -d --force-recreate backend worker worker-ai beat`.
-2. Buyruqlar menyusi va tavsif (3 tilda): `docker compose exec backend python manage.py bot_setup`.
+2. Buyruqlar menyusi va tavsif (3 tilda): `docker compose exec backend python manage.py tenant_command bot_setup --schema=sifat`.
 3. Majburiy kanal: botni kanalga **administrator** qiling (bot ishlab turgan bo'lsin — webhook
    yoki `telegram_poll`) va admin → **Telegram bot → Majburiy kanallar** ga qo'shing: `@kanal`
    yoki yopiq kanal ID si `-100…` — bot administrator qilingan kanallar ID si bilan shu formada
@@ -516,8 +516,8 @@ Bitta bot, oddiy tugmalar (Mini App yo'q). Video darslar — faqat saytda, qolga
    ogohlantirish chiqadi.
 4. Arizalar guruhiga (`TELEGRAM_LEADS_CHAT_ID`) yangi botni qo'shing — xabarnomalar shu bot orqali.
 5. Production: `TELEGRAM_WEBHOOK_SECRET=<tasodifiy qator>`, so'ng
-   `docker compose exec backend python manage.py telegram_webhook set` (faqat https domen).
-   Local sinov (domensiz): `docker compose exec backend python manage.py telegram_poll`.
+   `docker compose exec backend python manage.py tenant_command telegram_webhook --schema=sifat set` (faqat https domen).
+   Local sinov (domensiz): `docker compose exec backend python manage.py tenant_command telegram_poll --schema=sifat`.
 
 Admin: **Telegram bot → Bot foydalanuvchilari** (kim /start bosgan, ro'yxatdan o'tganmi, til,
 yangiliklar, bloklaganmi — faqat ko'rish). Guruhlardagi xabarlarga bot javob bermaydi.
@@ -574,6 +574,29 @@ TELEGRAM_LEADS_CHAT_ID=...    # bot qo'shilgan guruh ID si (masalan, -100...)
 
 So'ng `docker compose up -d backend worker`. Token bo'lmasa, ariza faqat admin panelda qoladi va logda shu haqda yoziladi.
 
+## O'quv markazlari
+
+Har markaz PostgreSQL'da alohida sxemada va so'rov manzili (domen) bo'yicha tanlanadi
+(`django-tenants`, `backend/apps/tenancy`). `public` sxemada — platforma: markazlar, domenlar va
+super admin. Birinchi markaz — Sifat Edu (`sifat` sxema). Reja: `docs/saas-reja.md`.
+
+| Local manzil | Nima |
+|---|---|
+| http://localhost | Sifat Edu: sayt va admin panel |
+| http://platform.localhost/admin/ | Platforma paneli (super admin) |
+
+- Manzillar `tenancy.Domain` jadvalida: ro'yxatda yo'q manzilga backend 404 qaytaradi.
+- Bo'sh bazada platforma va birinchi markazni `ensure_center` yaratadi (`FIRST_CENTER_*`,
+  `PLATFORM_DOMAIN`). `migrate` hamma markazga o'tadi.
+- Markaz ma'lumoti bilan ishlaydigan buyruqlar:
+  `python manage.py tenant_command <buyruq> --schema=sifat`. Oddiy `manage.py <buyruq>` platformada
+  (`public`) ishlaydi.
+- Yangi app: markazniki — `TENANT_APPS`, platformaniki — `SHARED_APPS`.
+- Fon vazifa yuborilgan markazda bajariladi; rejali vazifa har markazga alohida ketadi.
+  Faqat bir marta kerak bo'lsa: `"tenant_schemas": ["public"]`.
+- Kesh kaliti boshida — sxema. Fayllar — `centers/<sxema>/` papkasida (Sifat Edu'niki avvalgi joyida).
+- Ishlab turgan bitta markazli bazani ko'chirish: `docs/saas-kochirish.md`.
+
 ## Foydali buyruqlar
 
 ```bash
@@ -584,7 +607,7 @@ docker compose exec backend mypy .
 
 # Backend: yangi migratsiya, namunaviy kontent
 docker compose exec backend python manage.py makemigrations
-docker compose exec backend python manage.py seed_demo
+docker compose exec backend python manage.py tenant_command seed_demo --schema=sifat
 
 # Frontend: lint, tiplar, unit testlar, formatlash, API tiplarini yangilash
 docker compose exec frontend npm run lint
@@ -611,7 +634,7 @@ ustida ishlaydi — dev server sahifalarni so'rov paytida kompilyatsiya qiladi v
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.e2e.yml up -d --build frontend
-docker compose exec backend python manage.py seed_e2e
+docker compose exec backend python manage.py tenant_command seed_e2e --schema=sifat
 cd frontend && npx playwright test -c e2e/playwright.config.ts
 ```
 

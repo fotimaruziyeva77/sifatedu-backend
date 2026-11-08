@@ -11,7 +11,7 @@ S=backend/scripts/imtihon_python_oktabr.py
 
 ```bash
 curl -s https://sifatedu.uz/api/v1/health/; echo
-dc exec -T backend python manage.py telegram_webhook info | grep -E '"url"|last_error'
+dc exec -T backend python manage.py tenant_command telegram_webhook --schema=sifat info | grep -E '"url"|last_error'
 ```
 
 - `{"status":"ok", ...}` chiqmasa, HTTPS yo'q:
@@ -19,14 +19,14 @@ dc exec -T backend python manage.py telegram_webhook info | grep -E '"url"|last_
 - `"url"` bo'sh bo'lsa, bot ulanmagan:
 
   ```bash
-  dc exec -T backend python manage.py telegram_webhook set
-  dc exec -T backend python manage.py bot_setup
+  dc exec -T backend python manage.py tenant_command telegram_webhook --schema=sifat set
+  dc exec -T backend python manage.py tenant_command bot_setup --schema=sifat
   ```
 
 ## 2. Admin akkaunt (bir marta)
 
 ```bash
-dc exec backend python manage.py createsuperuser
+dc exec backend python manage.py tenant_command createsuperuser --schema=sifat
 ```
 
 Telefon (`+998…`) va parol. Shu bilan saytga kirib baholaysiz.
@@ -34,7 +34,7 @@ Telefon (`+998…`) va parol. Shu bilan saytga kirib baholaysiz.
 ## 3. Imtihonni yuklash (bir marta)
 
 ```bash
-dc exec -T -e ACTION=setup backend python manage.py shell < $S
+dc exec -T -e ACTION=setup backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Kutilgan natija: `Savollar banki: 32 ta, imtihonda: 20 ta, 40 daqiqa`, `Amaliy topshiriqlar: 4 ta`.
@@ -47,8 +47,8 @@ Faqat +998 raqamlar qabul qilinadi. Akkaunt o'zi ochiladi, SMS kerak emas.
 ## 5. Guruhga qo'shish
 
 ```bash
-dc exec -T -e ACTION=students backend python manage.py shell < $S
-dc exec -T -e ACTION=enroll backend python manage.py shell < $S
+dc exec -T -e ACTION=students backend python manage.py tenant_command shell --schema=sifat < $S
+dc exec -T -e ACTION=enroll backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Birinchisi ro'yxatni ko'rsatadi — o'z ro'yxatingiz bilan solishtiring. Kech qolganlar uchun
@@ -57,13 +57,13 @@ Birinchisi ro'yxatni ko'rsatadi — o'z ro'yxatingiz bilan solishtiring. Kech qo
 **Begona kishini chiqarish** (guruh va imtihondan; akkaunt qoladi, `enroll` uni qayta qo'shmaydi):
 
 ```bash
-dc exec -T -e ACTION=remove -e PHONES=+998901234567,+998907654321 backend python manage.py shell < $S
+dc exec -T -e ACTION=remove -e PHONES=+998901234567,+998907654321 backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 ## 6. Imtihonni ochish (bir marta)
 
 ```bash
-dc exec -T -e ACTION=open backend python manage.py shell < $S
+dc exec -T -e ACTION=open backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Standart 3 soat; boshqacha kerak bo'lsa, `-e HOURS=2` qo'shing. Guruhdagilarga botda xabar
@@ -81,7 +81,7 @@ boradi. Keyin qo'shilganlar imtihonni botdagi «📝 Testlar» bo'limidan topadi
 ## 8. Kuzatish
 
 ```bash
-dc exec -T -e ACTION=status backend python manage.py shell < $S
+dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Har bir o'quvchi bo'yicha: test (boshlamagan / ishlayapti / foiz) va amaliy (nechta yuborgan).
@@ -89,7 +89,7 @@ Har bir o'quvchi bo'yicha: test (boshlamagan / ishlayapti / foiz) va amaliy (nec
 ## 9. Yopish (hamma tugatganda yoki muddat tugaganda o'zi yopiladi)
 
 ```bash
-dc exec -T -e ACTION=close backend python manage.py shell < $S
+dc exec -T -e ACTION=close backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Javob qabul qilish to'xtaydi, tugatilmagan testlar yakunlanadi, o'quvchilar to'g'ri javoblarni
@@ -105,7 +105,7 @@ unga yakuniy natija o'zi boradi: test 50% + amaliy 50%, o'tish bali 60%.
 
 | Belgi | Nima qilish kerak |
 |---|---|
-| Bot javob bermayapti | `dc exec -T backend python manage.py telegram_webhook info` — `last_error_message`; `dc logs --tail=50 backend` |
+| Bot javob bermayapti | `dc exec -T backend python manage.py tenant_command telegram_webhook --schema=sifat info` — `last_error_message`; `dc logs --tail=50 backend` |
 | O'quvchi `students` ro'yxatida yo'q | U «📱 Telefonni yuborish» tugmasini bosmagan |
 | O'quvchi botda imtihonni ko'rmayapti | `enroll` qilinmagan yoki imtihon ochilmagan (`status`) |
 | «Amaliy topshiriqlar» kirish sahifasini ochdi | Havola eskirgan — botda tugmani yana bosish kerak |
@@ -115,8 +115,8 @@ unga yakuniy natija o'zi boradi: test 50% + amaliy 50%, o'tish bali 60%.
 ## 11. Natijalar (terminalda va Excel'da)
 
 ```bash
-dc exec -T -e ACTION=results backend python manage.py shell < $S
-dc exec -T -e ACTION=excel backend python manage.py shell < $S
+dc exec -T -e ACTION=results backend python manage.py tenant_command shell --schema=sifat < $S
+dc exec -T -e ACTION=excel backend python manage.py tenant_command shell --schema=sifat < $S
 dc cp backend:/tmp/python-natijalar.xlsx /srv/sifatedu/python-natijalar.xlsx
 ```
 

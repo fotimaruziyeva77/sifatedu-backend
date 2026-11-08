@@ -456,6 +456,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-tenants"
+version = "4.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/d5/7f1b0bb15d0a5858f4a758be63ec4f6f7a2901b84ba580b2f67f8337228e/django_tenants-4.0.1.tar.gz", hash = "sha256:769a0934507305c55b7b6e49b788df6627dcc546d7f4e187812285bad1c6270b", size = 180774, upload-time = "2026-10-23T22:17:21.524Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/69/9b0935d7555abf67b9984a9bdf3dd132edba407638daf6f2a0cb4d737991/django_tenants-4.0.1-py3-none-any.whl", hash = "sha256:b9bd2ce240e71e58e47981288807d5e449c6a3624685dfe20afa819341f7ad5c", size = 137013, upload-time = "2026-10-23T22:17:19.984Z" },
+]
+
+[[package]]
 name = "django-unfold"
 version = "0.108.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1217,6 +1229,7 @@ dependencies = [
     { name = "django-filter" },
     { name = "django-modeltranslation" },
     { name = "django-storages", extra = ["s3"] },
+    { name = "django-tenants" },
     { name = "django-unfold" },
     { name = "djangorestframework" },
     { name = "drf-spectacular" },
@@ -1229,6 +1242,7 @@ dependencies = [
     { name = "pygments" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "sentry-sdk", extra = ["celery", "django"] },
+    { name = "tenant-schemas-celery" },
     { name = "uvicorn", extra = ["standard"] },
     { name = "uvicorn-worker" },
 ]
@@ -1255,6 +1269,7 @@ requires-dist = [
     { name = "django-filter", specifier = ">=25.1" },
     { name = "django-modeltranslation", specifier = ">=0.20" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14.6" },
+    { name = "django-tenants", specifier = ">=4.0.1,<5" },
     { name = "django-unfold", specifier = ">=0.108" },
     { name = "djangorestframework", specifier = ">=3.16" },
     { name = "drf-spectacular", specifier = ">=0.28" },
@@ -1267,6 +1282,7 @@ requires-dist = [
     { name = "pygments", specifier = ">=2.19" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
     { name = "sentry-sdk", extras = ["django", "celery"], specifier = ">=2.30" },
+    { name = "tenant-schemas-celery", specifier = ">=5,<6" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
     { name = "uvicorn-worker", specifier = ">=0.3" },
 ]
@@ -1317,6 +1333,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697ee8a44d3d69222b344920433d3b6666ccd9b374630c/tenacity-9.1.4.tar.gz", hash = "sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a", size = 49413, upload-time = "2026-02-07T10:45:33.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
+]
+
+[[package]]
+name = "tenant-schemas-celery"
+version = "5.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "celery" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fd/39/f6d48532a084de8f4588a3fbacf9efc4d7d255896fd5e3406e6cc74dad43/tenant_schemas_celery-5.0.0.tar.gz", hash = "sha256:139d9fd7795f207f60706caa0c4a041b583c88eeb427c0927d49804c23988f70", size = 19618, upload-time = "2026-08-01T13:14:49.327Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/d4/41ffd3d00438ecfda200a9df0133210d2c671ee4b0e28c8ac6f93307bcdc/tenant_schemas_celery-5.0.0-py3-none-any.whl", hash = "sha256:1f4fc7f587293b7032d1d73eb1562d2c1d18285cb13efff2e925067b23ecb8c6", size = 22045, upload-time = "2026-08-01T13:14:48.212Z" },
 ]
 
 [[package]]

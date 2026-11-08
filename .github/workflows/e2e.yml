@@ -50,7 +50,7 @@ jobs:
           -f docker-compose.e2e.yml up -d --build --wait nginx backend frontend worker worker-ai
 
       - name: Test ma'lumotlari
-        run: docker compose exec -T backend python manage.py seed_e2e
+        run: docker compose exec -T backend python manage.py tenant_command seed_e2e --schema=sifat
 
       - uses: actions/setup-node@v4
         with:

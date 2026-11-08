@@ -1,7 +1,12 @@
 from .base import *
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "KEY_FUNCTION": "django_tenants.cache.make_key",
+    }
+}
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 STORAGES["default"] = {"BACKEND": "django.core.files.storage.InMemoryStorage"}
 STORAGES["public"] = {"BACKEND": "django.core.files.storage.InMemoryStorage"}

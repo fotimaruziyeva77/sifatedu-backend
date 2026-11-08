@@ -88,7 +88,7 @@ aytadi.
 ## 5. Sinash va yaxshilash
 
 - **Avtomatik sinov** (haqiqiy Gemini, 3 tilda, ~$0,05–0,2):
-  `dc exec backend python manage.py assistant_eval --show`.
+  `dc exec backend python manage.py tenant_command assistant_eval --schema=sifat --show`.
 - **Haqiqiy suhbatlar**: admin → **AI yordamchi → Suhbatlar**. U yerda 👎 baholar filtri va
   «Menejer kerak» holati bor. Haftada bir 10 ta suhbatni o'qing. AI noto'g'ri yoki ishonchsiz javob
   bergan bo'lsa, kerakli faktni FAQ'ga yoki «Qo'shimcha ma'lumot»ga qo'shing. Ko'p hollarda AI'ga

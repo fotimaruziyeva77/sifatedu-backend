@@ -54,7 +54,8 @@ def main(course: str) -> None:
     OUT.mkdir(parents=True)
     exported = run(
         ["docker", "compose", "exec", "-T", "backend"]
-        + ["python", "manage.py", "import_course", course, "--json"],
+        + ["python", "manage.py", "tenant_command", "import_course", "--schema=sifat"]
+        + [course, "--json"],
         capture_output=True,
     ).stdout
     (OUT / "input.json").write_bytes(exported)

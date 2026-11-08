@@ -41,8 +41,7 @@ def rendition(video: VideoAsset, name: str, key_url: str) -> str | None:
     if item is None:
         return None
 
-    key = f"{video.hls_prefix}/{item['playlist']}"
-    body = s3.internal().get_object(Bucket=s3.bucket(), Key=key)["Body"].read().decode()
+    body = s3.read_text(f"{video.hls_prefix}/{item['playlist']}")
     ttl = settings.HLS_SIGNED_URL_TTL_SEC
     folder = item["playlist"].rsplit("/", 1)[0]
 

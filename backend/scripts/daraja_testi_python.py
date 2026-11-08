@@ -3,10 +3,10 @@
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/daraja_testi_python.py
-  dc exec -T -e ACTION=setup  backend python manage.py shell < $S
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
-  dc exec -T -e ACTION=off    backend python manage.py shell < $S
-  dc exec -T -e ACTION=on     backend python manage.py shell < $S
+  dc exec -T -e ACTION=setup  backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=off    backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=on     backend python manage.py tenant_command shell --schema=sifat < $S
 
 setup  — «Daraja testlari» xizmat kursi (nashr qilinmaydi, hech kim yozilmaydi — savollarni
          oldindan ko'rib bo'lmaydi), unda 28 ta savol va «Python» daraja testi: har odamga

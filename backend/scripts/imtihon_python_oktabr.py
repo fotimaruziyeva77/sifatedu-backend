@@ -3,13 +3,13 @@
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/imtihon_python_oktabr.py
-  dc exec -T -e ACTION=setup    backend python manage.py shell < $S
-  dc exec -T -e ACTION=students backend python manage.py shell < $S
-  dc exec -T -e ACTION=enroll   backend python manage.py shell < $S
-  dc exec -T -e ACTION=open     backend python manage.py shell < $S
-  dc exec -T -e ACTION=status   backend python manage.py shell < $S
-  dc exec -T -e ACTION=close    backend python manage.py shell < $S
-  dc exec -T -e ACTION=remove -e PHONES=+998901234567 backend python manage.py shell < $S
+  dc exec -T -e ACTION=setup    backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=students backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=enroll   backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=open     backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=status   backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=close    backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=remove -e PHONES=+998901234567 backend python manage.py tenant_command shell --schema=sifat < $S
 
 setup    — kurs, savollar banki (32 ta, har o'quvchiga tasodifiy 20 tasi), imtihon (hali yopiq),
            4 ta amaliy topshiriq va "Python" guruhi. Qayta ishga tushirsa, mavjudini o'zgartirmaydi.

@@ -30,12 +30,22 @@ env = environ.Env()
 # --- Asosiy ---
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+# Ruxsat etilgan manzillar — `tenancy.Domain` jadvali: noma'lum manzil CenterMiddleware'da 404.
+ALLOWED_HOSTS = ["*"]
+# SSR backend'ga ichki tarmoqdan murojaat qiladi: asl manzil shu sarlavhada keladi. Tashqaridan
+# kelgan qiymatni nginx almashtiradi (infra/nginx/sifat/http.conf), backend tashqariga ochiq emas.
+USE_X_FORWARDED_HOST = True
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 APP_URL = env("APP_URL", default="http://localhost")
 API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=False)
 
-INSTALLED_APPS = [
+# --- Ko'p markazlilik (django-tenants) ---
+# `public` sxemada — platforma: markazlar, domenlar, super admin. Har markazning qolgan hamma
+# ma'lumoti o'z sxemasida. Foydalanuvchi va ruxsat jadvallari ikkala joyda: markaz akkauntlari
+# markaz ichida, `public`dagilari — platforma adminlari.
+SHARED_APPS = [
+    # Birinchi turishi shart: `migrate` buyrug'ini sxemalarga moslab almashtiradi.
+    "django_tenants",
     # modeltranslation va unfold django.contrib.admin'dan oldin turishi shart
     "modeltranslation",
     "unfold",
@@ -53,6 +63,15 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "auditlog",
     "apps.core",
+    "apps.users",
+    "apps.tenancy",
+]
+TENANT_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "auditlog",
     "apps.users",
     "apps.catalog",
     "apps.content",
@@ -74,8 +93,22 @@ INSTALLED_APPS = [
     "apps.bot",
     "apps.stats",
 ]
+INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
+TENANT_MODEL = "tenancy.Center"
+TENANT_DOMAIN_MODEL = "tenancy.Domain"
+PUBLIC_SCHEMA_URLCONF = "config.urls_public"
+DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter"]
+# Birinchi markazning fayllari ko'chirilmaydi (apps/tenancy/storage.py).
+LEGACY_STORAGE_SCHEMAS = env.list("LEGACY_STORAGE_SCHEMAS", default=["sifat"])
+# Platforma (super admin) manzili va birinchi markaz: `ensure_center`, `adopt_center`.
+PLATFORM_DOMAIN = env("PLATFORM_DOMAIN", default="platform.localhost")
+FIRST_CENTER_SCHEMA = env("FIRST_CENTER_SCHEMA", default="sifat")
+FIRST_CENTER_NAME = env("FIRST_CENTER_NAME", default="Sifat Edu")
+FIRST_CENTER_DOMAINS = env.list("FIRST_CENTER_DOMAINS", default=["localhost", "127.0.0.1"])
 
 MIDDLEWARE = [
+    # Eng birinchi: keyingilari tanlangan markaz sxemasida ishlaydi.
+    "apps.tenancy.middleware.CenterMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -111,6 +144,7 @@ TEMPLATES = [
 # --- Ma'lumotlar bazasi ---
 # ASGI'da doimiy ulanishlar o'rniga psycopg pool ishlatiladi.
 DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES["default"]["ENGINE"] = "django_tenants.postgresql_backend"
 DATABASES["default"]["CONN_MAX_AGE"] = 0
 DATABASES["default"].setdefault("OPTIONS", {})["pool"] = {
     "min_size": env.int("DB_POOL_MIN_SIZE", default=1),
@@ -125,6 +159,8 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "KEY_PREFIX": "sifat",
+        # Kalit boshida markaz sxemasi: bir markazning keshi boshqasiga o'tmaydi.
+        "KEY_FUNCTION": "django_tenants.cache.make_key",
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -192,12 +228,12 @@ AWS_DEFAULT_ACL = None
 STORAGES = {
     # Yopiq fayllar (videolar, materiallar): faqat imzolangan URL orqali.
     "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
+        "BACKEND": "apps.tenancy.storage.CenterS3Storage",
         "OPTIONS": {"bucket_name": S3_BUCKET_PRIVATE, "querystring_auth": True},
     },
     # Ochiq fayllar (kurs muqovasi, ustoz rasmi, avatar).
     "public": {
-        "BACKEND": "storages.backends.s3.S3Storage",
+        "BACKEND": "apps.tenancy.storage.CenterS3Storage",
         "OPTIONS": {
             "bucket_name": S3_BUCKET_PUBLIC,
             "querystring_auth": False,
@@ -319,6 +355,8 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # Standart qiymat CPU soniga teng bo'ladi; xotirani tejash uchun aniq belgilanadi.
 CELERY_WORKER_CONCURRENCY = env.int("CELERY_WORKER_CONCURRENCY", default=2)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Har rejali vazifa har markaz uchun alohida yuboriladi; `tenant_schemas` — faqat ko'rsatilganlar.
+CELERY_BEAT_SCHEDULER = "tenant_schemas_celery.scheduler:TenantAwarePersistentScheduler"
 CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     # To'lanmagan buyurtma 30 daqiqada yopiladi; tekshiruv har 5 daqiqada.
     "expire-orders": {
@@ -410,6 +448,8 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
     "check-server-resources": {
         "task": "apps.core.tasks.check_server_resources",
         "schedule": crontab(minute=7),
+        # Server bitta: markaz soniga qarab takrorlanmasin.
+        "tenant_schemas": ["public"],
     },
     # Kunlik hisobot direktor va adminlarga (Telegram).
     "daily-report": {
@@ -499,7 +539,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "leads",
     {
         "model": "users.User",
-        "exclude_fields": ["password", "last_login"],
+        # Oxirgi ikkitasi — teskari bog'lanishlar: jadvallari faqat markazda, `public`da yo'q.
+        "exclude_fields": ["password", "last_login", "instructor_profile", "wallet"],
         "m2m_fields": ["groups"],
     },
     {"model": "auth.Group", "m2m_fields": ["permissions"]},
@@ -912,6 +953,35 @@ UNFOLD = {
             "950": "oklch(25.8% .092 26.042)",
         },
     },
+}
+
+# Platforma paneli (super admin) — `public` manzilda, apps/tenancy/admin.py.
+UNFOLD_PLATFORM = {
+    "SITE_TITLE": "Platforma",
+    "SITE_HEADER": "Platforma",
+    "SITE_SUBHEADER": "Markazlar boshqaruvi",
+    "SITE_URL": "/admin/",
+    "SITE_SYMBOL": "hub",
+    "SITE_FAVICONS": UNFOLD["SITE_FAVICONS"],
+    "SHOW_VIEW_ON_SITE": False,
+    "ENVIRONMENT": UNFOLD["ENVIRONMENT"],
+    "SIDEBAR": {
+        "show_search": False,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Platforma",
+                "items": [
+                    {
+                        "title": "Markazlar",
+                        "icon": "apartment",
+                        "link": reverse_lazy("admin:tenancy_center_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+    "COLORS": UNFOLD["COLORS"],
 }
 
 # --- Loglar ---

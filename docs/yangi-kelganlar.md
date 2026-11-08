@@ -111,13 +111,13 @@ testini qo'shing:
 ```bash
 cd /srv/sifatedu
 S=backend/scripts/daraja_testi_python.py
-dc exec -T -e ACTION=setup backend python manage.py shell < $S
+dc exec -T -e ACTION=setup backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Natijalar qisqacha — nechta odam ishladi, o'rtacha natija, kuponlar, manbalar, oxirgi 15 ta:
 
 ```bash
-dc exec -T -e ACTION=status backend python manage.py shell < $S
+dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
 ```
 
 Testni o'chirish va yoqish: `-e ACTION=off` / `-e ACTION=on`.

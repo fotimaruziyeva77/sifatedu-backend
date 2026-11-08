@@ -9,10 +9,10 @@ yoziladi va skript ularni o'zi topadi.
 Serverda, /srv/sifatedu papkasida (kod Django shell'ga uzatiladi, image qayta yig'ilmaydi):
 
   S=backend/scripts/imtihon_python_qayta.py
-  dc exec -T -e ACTION=open -e SOURCE=qayta -e HOURS=3 backend python manage.py shell < $S
-  dc exec -T -e ACTION=add -e SOURCE=qayta backend python manage.py shell < $S
-  dc exec -T -e ACTION=add -e PHONES=+998901112233 backend python manage.py shell < $S
-  dc exec -T -e ACTION=status backend python manage.py shell < $S
+  dc exec -T -e ACTION=open -e SOURCE=qayta -e HOURS=3 backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=add -e SOURCE=qayta backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=add -e PHONES=+998901112233 backend python manage.py tenant_command shell --schema=sifat < $S
+  dc exec -T -e ACTION=status backend python manage.py tenant_command shell --schema=sifat < $S
 
 open   — bugungi qayta imtihonni yaratadi (bor bo'lsa — o'shani oladi): sozlamalar va savollar
          modullari oktabr imtihonidan, 4 ta yangi amaliy topshiriq. SOURCE havolasi orqali
