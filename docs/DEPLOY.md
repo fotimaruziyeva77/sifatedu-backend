@@ -357,6 +357,13 @@ fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
+**Disk:** `deploy.sh` oxirida faqat Sifat'ning tegsiz (`<none>`) eski image'lari o'chiriladi
+(`label=com.docker.compose.project=sifatedu` filtri bilan, `:previous` saqlanadi). Docker build
+cache'ni loyiha bo'yicha ajratib bo'lmaydi, shuning uchun bu rejimda `deploy.sh`
+`docker builder prune` ni ishga tushirmaydi. Disk to'lsa va `docker system df` da build cache
+ko'p joy olgan bo'lsa, uni boshqa loyihalar egalari bilan kelishib, qo'lda tozalang:
+`docker builder prune --filter until=168h` butun serverga ta'sir qiladi.
+
 1. **Bo'sh ichki port:** quyidagi buyruq birinchi bo'sh portni chiqaradi — quyida 8090 o'rniga
    shuni yozing:
 
