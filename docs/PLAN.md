@@ -2090,6 +2090,58 @@ bosh sahifasi yo'q; `APP_URL` va `NEXT_PUBLIC_APP_URL` — bitta domen; S3 CORS 
 boshqa domenlar uchun moslanadi; panelda markaz yaratish so'rov ichida (~18 s), o'zi ochilganda fon
 vazifaga o'tadi — 25-qadam.
 
+### 24-qadam: tarif va bo'limlar — batafsil vazifalar
+
+Tarif mazmuni kodda emas, platforma panelida (`tenancy.Plan`): narx, bo'limlar, cheklovlar, muhlat.
+Markazda: tarif, qo'shimcha bo'limlar, to'langan muddat, qo'lda to'xtatish. Tarifsiz markaz —
+cheklovsiz. Sifat Edu — Pro, muddatsiz.
+
+| Bo'lim | Nimalar yopiladi |
+|---|---|
+| Dars testlari, vazifa, slaydlar | `quizzes`, `homework`, `LessonSlides`; keyingi dars testga bog'lanmaydi |
+| Imtihon | `dailytest`, `exams`, `certificates`. Berilgan sertifikatni tekshirish ochiq qoladi |
+| Daraja testi | `placement`, shu turdagi kuponlar |
+| XP, reyting, do'kon | `rewards`, `shop`; ball va coin yozilmaydi, do'st chegirmasi yo'q |
+| AI | `assistant`, AI test. Eski suhbatlarni anonimlashtirish baribir ishlaydi |
+| Video | `videos`, dars videosi va HLS |
+| Bot va xabarnomalar | `bot`, Telegram va SMS yetkazish. Kabinetdagi xabarlar va kirish SMS kodi ochiq |
+| Click | yangi buyurtma, `payments` admin. Buyurtmalar tarixi va Click javoblari ochiq |
+
+Bog'liqlik: imtihon, daraja testi va AI test savollar bankidan foydalanadi, shuning uchun darslar
+bo'limini ham ochadi.
+
+| Qatlam | Qanday |
+|---|---|
+| API | `CenterMiddleware.process_view`: ilova nomi yoki ko'rinishdagi `feature` bo'yicha 403 |
+| Admin va menyu | `User.has_perm`, `has_module_perms` (superuser uchun ham) |
+| Fon vazifa | `CenterTask.__call__`: yopiq bo'lim va to'xtatilgan markaz |
+| Bot | `router`: tugma, buyruq, eski inline tugmalar; AI yopiq bo'lsa matnga menyu haqida javob |
+| Sayt | `/api/v1/center/`: holat va bo'limlar; menyu, sahifa va bloklar shundan |
+| Bog'liq mantiq | `quiz_gate`, `credit`, `can_message`, `bot_username`, dars javobi, statistika kartalari |
+
+**Muddat:** to'langan kun o'tgach muhlat (`grace_days`): hammasi ishlaydi, xodimlar kabinetda
+ogohlantirish ko'radi. Muhlat tugasa yoki qo'lda to'xtatilsa — sayt «xizmat to'xtatilgan», API 402,
+fon vazifalar to'xtaydi; ma'lumot o'chmaydi. Click va Telegram javoblari ochiq qoladi.
+
+**Cheklovlar** (mavjudi ishlaydi, yangisi qo'shilmaydi, 403 va aniq matn):
+- O'quvchi — faol yozilishi bor odam. Tekshiruv yozilish paytida (bepul kurs, guruhga qo'shish, admin,
+  yangi buyurtma). To'lov o'tgan yozilish hech qachon to'xtatilmaydi. Saytdan ro'yxatdan o'tish ochiq.
+- Xodim — `set_roles` orqali.
+- Disk — har kecha hisoblanadi (`refresh_usage`), yangi yuklash chegaradan keyin to'xtaydi; fon
+  vazifalar yozaveradi (boshlangan video buzilmaydi).
+
+Filiallar soni — 26-qadamda filiallar bilan birga. Obuna to'lovini qayd qilish — 27-qadam.
+
+**Natija (2026-11-09, `saas/24-tarif`).** Yuqoridagilar qilindi. Platforma panelida «Tariflar» va
+markaz sahifasida tarif, qo'shimcha bo'limlar, muddat, to'xtatish, o'quvchi, xodim va disk sonlari.
+Start, Standart va Pro migratsiyada yaratildi (narxlari 0: panelda kiritiladi), Sifat Edu — Pro.
+Tekshirildi: backend testlari, jumladan `apps/tenancy/tests/test_plans.py`; E2E; alohida sinov
+markazida brauzerda Start, Standart, Pro, ogohlantirish va to'xtatilgan holat.
+
+Kirish va ro'yxatdan o'tish SMS kodi bo'lim emas: hamma tarifda ishlaydi. Admin paneldagi kunlik
+hisobot satrlari (Telegram va botdagi) yopiq bo'lim uchun nol ko'rsatishi mumkin — ular faqat bot
+ochiq tarifda yuboriladi.
+
 ## 8. Sizdan kerak bo'ladigan narsalar
 
 Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) rejimida ishlaydi. Keyinroq kerak bo'ladi:

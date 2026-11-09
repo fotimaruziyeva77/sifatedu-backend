@@ -29,6 +29,8 @@ from apps.notifications.models import Delivery, Notification
 from apps.notifications.texts import locale_of
 from apps.payments.models import Order, PaymentTransaction, Refund
 from apps.quizzes.models import Attempt
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import OneTimeCode, SocialAccount, User
 from apps.users.roles import Role, has_role, manages_groups, sees_all
 from apps.videos.models import VideoAsset
@@ -347,8 +349,16 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
     now = now or timezone.now()
     found: list[Problem] = []
 
-    def add(level: str, title: object, count: int, url: str = "", hint: object = "") -> None:
-        if count:
+    def add(
+        level: str,
+        title: object,
+        count: int,
+        url: str = "",
+        hint: object = "",
+        section: str | None = None,
+    ) -> None:
+        # `section` — tarifga bog'liq muammo: bo'lim yopiq bo'lsa, ko'rsatilmaydi.
+        if count and (section is None or has_feature(section)):
             found.append(Problem(level, str(title), count, url, str(hint)))
 
     add(
@@ -362,6 +372,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         _("Menejer kutayotgan AI suhbatlar"),
         Conversation.objects.filter(status=Conversation.Status.MANAGER).count(),
         admin_link(viewer, "assistant.conversation", status__exact=Conversation.Status.MANAGER),
+        section=Feature.AI,
     )
     ai_answers = Message.objects.filter(role=Message.Role.ASSISTANT, **p.range("created_at"))
     add(
@@ -370,6 +381,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         ai_answers.filter(model="fallback").count(),
         admin_link(viewer, "assistant.conversation"),
         _("Mijozga raqam qoldirish taklif qilindi. Sabab — server logi va Sentry'da."),
+        section=Feature.AI,
     )
     add(
         "warning",
@@ -380,6 +392,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
             "Gemini kaliti va Google AI Studio'dagi to'lov (billing), AI budjeti va AI "
             "yoqilganini tekshiring."
         ),
+        section=Feature.AI,
     )
     codes = OneTimeCode.objects.filter(
         purpose=OneTimeCode.Purpose.REGISTER, **p.range("created_at")
@@ -402,6 +415,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         ).count(),
         admin_link(viewer, "payments.order", status__exact=Order.Status.EXPIRED),
         _("Buyurtma ochildi, lekin 30 daqiqada to'lanmadi."),
+        section=Feature.CLICK,
     )
     add(
         "warning",
@@ -414,6 +428,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
             "payments.paymenttransaction",
             status__exact=PaymentTransaction.Status.CANCELLED,
         ),
+        section=Feature.CLICK,
     )
     add(
         "warning",
@@ -422,6 +437,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
             status=Submission.Status.SUBMITTED, created_at__lt=now - REVIEW_AFTER
         ).count(),
         reviews_link(viewer),
+        section=Feature.LESSONS,
     )
     unmarked = unmarked_lessons(now=now)
     add(
@@ -443,12 +459,14 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         _("Pul qaytarish so'rovlari"),
         Refund.objects.filter(status=Refund.Status.REQUESTED).count(),
         admin_link(viewer, "payments.refund", status__exact=Refund.Status.REQUESTED),
+        section=Feature.CLICK,
     )
     add(
         "danger",
         _("Video qayta ishlanmadi"),
         VideoAsset.objects.filter(status=VideoAsset.Status.FAILED).count(),
         admin_link(viewer, "videos.videoasset", status__exact=VideoAsset.Status.FAILED),
+        section=Feature.VIDEO,
     )
     add(
         "warning",
@@ -457,6 +475,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         .filter(Q(telegram=Delivery.FAILED) | Q(sms=Delivery.FAILED))
         .count(),
         admin_link(viewer, "notifications.notification", delivery="failed"),
+        section=Feature.BOT,
     )
     add(
         "warning",
@@ -464,6 +483,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         exams.unready(now=now).count(),
         admin_link(viewer, "exams.exam", status__exact="DRAFT"),
         _("Ochilishiga 5 kundan kam qoldi: amaliy topshiriqlarni kiriting va «Tayyor» qiling."),
+        section=Feature.EXAMS,
     )
     stale = exams.pending_grading().filter(updated_at__lt=now - REVIEW_AFTER)
     add(
@@ -472,6 +492,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         stale.count(),
         grading_link(viewer, set(stale.values_list("task__exam_id", flat=True))),
         _("48 soatdan beri kutmoqda. Bosing — saytda baholash sahifasi ochiladi."),
+        section=Feature.EXAMS,
     )
     add(
         "warning",
@@ -479,6 +500,7 @@ def problems(p: Period, viewer: User | None = None, now: datetime | None = None)
         len(channel_problems()),
         admin_link(viewer, "bot.requiredchannel"),
         _("Botni kanalga administrator qiling — hozircha obuna so'ralmayapti."),
+        section=Feature.BOT,
     )
     add(
         "danger",

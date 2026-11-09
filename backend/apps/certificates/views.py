@@ -63,6 +63,8 @@ class VerifyView(APIView):
 
     permission_classes = [AllowAny]
     throttle_classes = [AnonRateThrottle]
+    # Berilgan sertifikat bo'lim yopilgandan keyin ham tekshiriladi.
+    feature = None
 
     @extend_schema(
         operation_id="certificates_verify",

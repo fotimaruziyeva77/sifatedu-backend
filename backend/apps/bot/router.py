@@ -16,6 +16,8 @@ from django.utils import timezone, translation
 
 from apps.core.phone import InvalidPhoneError, normalize_phone
 from apps.notifications import linking, telegram
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from . import (
@@ -50,6 +52,20 @@ COMMANDS = {
     "/admin": "admin",
 }
 QUIZ_BUTTONS = frozenset({"qa", "qt", "qd", "qo", "qm", "qr"})
+# Bo'limi tarifda yo'q bo'lsa, menyuda tugma chiqmaydi; eski tugma va buyruq shu ro'yxatdan o'tadi.
+ACTION_FEATURES = {
+    "tests": Feature.LESSONS,
+    "today": Feature.REWARDS,
+    "invite": Feature.REWARDS,
+    "placement": Feature.PLACEMENT,
+    "ask": Feature.AI,
+}
+BUTTON_FEATURES = {
+    **dict.fromkeys(("qs", "qn", *QUIZ_BUTTONS), Feature.LESSONS),
+    **dict.fromkeys(("xs", "xg", "dq", "dg", "dr", "dv"), Feature.EXAMS),
+    **dict.fromkeys(("pt", "pg"), Feature.PLACEMENT),
+    **dict.fromkeys(("dt", "rv"), Feature.REWARDS),
+}
 # Saytdan bugungi kunlik testga: t.me/<bot>?start=dt
 DAILY_START = "dt"
 # Reklama manbasi: /start ig, /start tg, /start ads1 … (boshqa prefikslar — o'z ishlari).
@@ -190,11 +206,13 @@ def start(chat: BotChat, sender: dict[str, Any], payload: str) -> None:
         adopt_language(chat, user)
         send(chat.chat_id, escape(linking.reply(result, chat.language or "uz")))
     elif payload.startswith(links.QUIZ_PREFIX):
-        user = start_quiz_link(chat, sender, payload, user)
+        if has_feature(Feature.LESSONS):
+            user = start_quiz_link(chat, sender, payload, user)
     elif payload == DAILY_START:
         # Saytdagi «Botda ishlash»: menyudan keyin bugungi kunlik test ochiladi.
-        chat.state["start"] = DAILY_START
-        chat.save(update_fields=["state", "updated_at"])
+        if has_feature(Feature.EXAMS):
+            chat.state["start"] = DAILY_START
+            chat.save(update_fields=["state", "updated_at"])
     elif SOURCE.fullmatch(payload.lower()) and not chat.source:
         # Birinchi manba saqlanadi (keyingi havolalar uni almashtirmaydi).
         chat.source = payload.lower()
@@ -298,12 +316,18 @@ def handle_message(chat: BotChat, sender: dict[str, Any], message: dict[str, Any
     if not text:
         send(chat.chat_id, t(chat.language, "only_text"))
         return
-    ask_ai(chat, sender, text)
+    if has_feature(Feature.AI):
+        ask_ai(chat, sender, text)
+    else:
+        send(chat.chat_id, t(chat.language, "use_menu"))
 
 
 def run_menu(chat: BotChat, user: User | None, action: str) -> None:
     locale = chat.language
-    if action == "help":
+    feature = ACTION_FEATURES.get(action)
+    if feature and not has_feature(feature):
+        send(chat.chat_id, t(locale, "section_closed"))
+    elif action == "help":
         send(chat.chat_id, t(locale, "help"))
     elif action == "ask":
         send(chat.chat_id, t(locale, "ask"))
@@ -417,6 +441,9 @@ def handle_callback(
 ) -> str:
     """Tugma bosildi. Qaytadi: qisqa ogohlantirish (bo'sh — kerak emas)."""
     action, _, rest = data.partition(":")
+    feature = BUTTON_FEATURES.get(action)
+    if feature and not has_feature(feature):
+        return t(chat.language, "section_closed")
     args = rest.split(":") if rest else []
     first_name = str(sender.get("first_name") or "")
     if action == "lang":

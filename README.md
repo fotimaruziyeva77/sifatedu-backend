@@ -597,6 +597,18 @@ super admin. Birinchi markaz — Sifat Edu (`sifat` sxema). Reja: `docs/saas-rej
 - Kesh kaliti boshida — sxema. Fayllar — `centers/<sxema>/` papkasida (Sifat Edu'niki avvalgi joyida).
 - Ishlab turgan bitta markazli bazani ko'chirish: `docs/saas-kochirish.md`.
 
+**Tariflar.** Tarif platforma panelida (`tenancy.Plan`): narx, bo'limlar, o'quvchi, xodim va disk
+chegarasi, muhlat. Markazda: tarif, qo'shimcha bo'limlar, to'langan muddat, qo'lda to'xtatish.
+Tarifsiz markaz cheklovsiz ishlaydi.
+
+- Bo'limlar va ular qaysi kodga tegishli: `backend/apps/tenancy/sections.py`. Yangi ilova biror
+  bo'limga tegishli bo'lsa — `APP_FEATURES`ga qo'shing, shunda API, admin va fon vazifalar o'zi yopiladi.
+- Bo'limga bog'liq mantiq: `has_feature(Feature.X)`. Ko'rinish ilovasidan boshqa bo'limga tegishli
+  bo'lsa — `feature = Feature.X`, doim ochiq bo'lishi kerak bo'lsa — `feature = None`.
+- Sayt bo'limlarni `/api/v1/center/`dan oladi: `getCenter()`, sahifada `requireFeature("exams")`.
+- Muddat va muhlat o'tsa yoki qo'lda to'xtatilsa: API 402, sayt «xizmat to'xtatilgan», fon vazifalar
+  ishlamaydi. To'xtatilgan markazda ham ishlashi kerak bo'lgan ko'rinish: `open_when_blocked = True`.
+
 ## Foydali buyruqlar
 
 ```bash

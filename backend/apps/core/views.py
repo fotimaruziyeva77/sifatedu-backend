@@ -40,6 +40,7 @@ class HealthView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = []
+    open_when_blocked = True
 
     @extend_schema(
         responses=inline_serializer(

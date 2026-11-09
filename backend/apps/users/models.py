@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.storage import public_storage
+from apps.tenancy.access import app_is_open, perm_is_open
 
 phone_validator = RegexValidator(
     regex=r"^\+998\d{9}$",
@@ -139,6 +140,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self) -> str:
         return self.first_name or self.phone
+
+    # Admin panel va uning menyusi shu ikki tekshiruvdan o'tadi: tarifga kirmagan bo'lim
+    # superuser uchun ham yopiq.
+    def has_perm(self, perm: str, obj: Any = None) -> bool:
+        return perm_is_open(perm) and super().has_perm(perm, obj)
+
+    def has_module_perms(self, app_label: str) -> bool:
+        return app_is_open(app_label) and super().has_module_perms(app_label)
 
 
 class OneTimeCode(models.Model):

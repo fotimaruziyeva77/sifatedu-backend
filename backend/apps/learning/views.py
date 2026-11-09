@@ -22,6 +22,8 @@ from apps.core import events
 from apps.homework.services import homework_payload
 from apps.live.gates import tasks_open
 from apps.quizzes.services import course_stars, quiz_summary
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.roles import Role, has_role, manages_groups, sees_all
 from apps.videos import hls, s3
 from apps.videos.models import VideoAsset
@@ -201,6 +203,7 @@ class MyCourseView(APIView):
         # Kursga huquq yuqorida tekshirildi: dars faqat test sababli yopiq bo'lishi mumkin.
         gate = access.quiz_gate(request.user, course.pk)
         payload = course_card(course, done, enrollment, gate)
+        video_open = has_feature(Feature.VIDEO)
         payload["modules"] = [
             {
                 "id": module.pk,
@@ -211,7 +214,7 @@ class MyCourseView(APIView):
                         "title": lesson.title,
                         "duration_min": lesson.duration_min,
                         "is_preview": lesson.is_preview,
-                        "has_video": lesson.video_id is not None,
+                        "has_video": video_open and lesson.video_id is not None,
                         "locked": lesson.pk in gate,
                         "lock_reason": access.LOCK_QUIZ if lesson.pk in gate else None,
                         "blocked_by": gate.get(lesson.pk),
@@ -257,7 +260,9 @@ class LessonPlayerView(LessonAccessView):
         index = siblings.index(lesson.pk)
         progress = self.progress(request, lesson)
         # Offlayn guruhda test va vazifa ustoz "Dars o'tildi" deb belgilagach ko'rinadi.
-        locked = not tasks_open(request.user, lesson)
+        tasks_section = has_feature(Feature.LESSONS)
+        locked = tasks_section and not tasks_open(request.user, lesson)
+        show_tasks = tasks_section and not locked
         return Response(
             {
                 "id": lesson.pk,
@@ -277,10 +282,10 @@ class LessonPlayerView(LessonAccessView):
                     "completed": progress[2],
                 },
                 "materials": materials_payload(lesson),
-                "slides": slides_payload(lesson, request.user),
+                "slides": slides_payload(lesson, request.user) if tasks_section else None,
                 "watermark": watermark_for(request.user),
-                "homework": None if locked else homework_payload(lesson, request.user),
-                "quiz": None if locked else quiz_summary(lesson, request.user),
+                "homework": homework_payload(lesson, request.user) if show_tasks else None,
+                "quiz": quiz_summary(lesson, request.user) if show_tasks else None,
                 "tasks_locked": locked,
             }
         )
@@ -295,7 +300,7 @@ class LessonPlayerView(LessonAccessView):
 
     def video_payload(self, lesson: Lesson) -> dict[str, Any] | None:
         video = lesson.video
-        if video is None:
+        if video is None or not has_feature(Feature.VIDEO):
             return None
         return {
             "status": video.status,
@@ -311,6 +316,8 @@ class LessonPlayerView(LessonAccessView):
 class LessonMasterPlaylistView(LessonAccessView):
     """Sifatlar ro'yxati. Har bir sifat alohida so'rov bilan olinadi."""
 
+    feature = Feature.VIDEO
+
     def get(self, request: Request, pk: int) -> HttpResponse:
         lesson = self.lesson(request, pk)
         video = self.ready_video(lesson)
@@ -322,6 +329,8 @@ class LessonMasterPlaylistView(LessonAccessView):
 @extend_schema(tags=["learning"], responses={200: {"type": "string"}})
 class LessonRenditionPlaylistView(LessonAccessView):
     """Segment havolalari imzolangan va qisqa muddatli."""
+
+    feature = Feature.VIDEO
 
     def get(self, request: Request, pk: int, name: str) -> HttpResponse:
         lesson = self.lesson(request, pk)
@@ -336,6 +345,8 @@ class LessonRenditionPlaylistView(LessonAccessView):
 @extend_schema(tags=["learning"], responses={200: {"type": "string", "format": "binary"}})
 class LessonKeyView(LessonAccessView):
     """AES-128 kaliti. Faqat shu darsga huquqi bori oladi."""
+
+    feature = Feature.VIDEO
 
     def get(self, request: Request, pk: int) -> HttpResponse:
         lesson = self.lesson(request, pk)

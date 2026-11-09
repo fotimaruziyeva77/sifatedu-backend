@@ -15,6 +15,8 @@ from django.conf import settings
 from django.core.cache import cache
 
 from apps.core.storage import public_storage
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 
 logger = logging.getLogger(__name__)
 
@@ -261,6 +263,8 @@ def bot_username() -> str:
 
     Telegram javob bermasa, 5 daqiqa qayta so'ralmaydi: dars sahifalari har safar 10 soniya
     kutib qolmasin."""
+    if not has_feature(Feature.BOT):
+        return ""
     if settings.TELEGRAM_BOT_USERNAME:
         return str(settings.TELEGRAM_BOT_USERNAME).lstrip("@")
     if not settings.TELEGRAM_BOT_TOKEN:

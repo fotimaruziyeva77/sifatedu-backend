@@ -14,6 +14,8 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from apps.learning.models import Enrollment, StudyGroup
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.roles import sees_all
 
 from .models import Entry, GameSettings, Wallet
@@ -41,7 +43,10 @@ def credit(
     note: str = "",
     by: Any = None,
 ) -> Entry | None:
-    """Mukofot (musbat) yoki shtraf (manfiy XP). Shu `key` bilan faol yozuv bor bo'lsa — None."""
+    """Mukofot (musbat) yoki shtraf (manfiy XP). Shu `key` bilan faol yozuv bor bo'lsa — None.
+    XP bo'limi tarifga kirmagan bo'lsa ham None."""
+    if not has_feature(Feature.REWARDS):
+        return None
     with transaction.atomic():
         wallet_of(user_id)
         wallet = Wallet.objects.select_for_update().get(user_id=user_id)

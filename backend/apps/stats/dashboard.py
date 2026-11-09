@@ -10,6 +10,8 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import gettext as _
 
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 from apps.users.roles import manages_groups
 
@@ -27,10 +29,18 @@ def som(amount: int) -> str:
 
 
 def card(
-    title: str, value: int, previous: int, note: str, icon: str, url: str = ""
+    title: str,
+    value: int,
+    previous: int,
+    note: str,
+    icon: str,
+    url: str = "",
+    section: str | None = None,
 ) -> dict[str, Any]:
+    """`section` — tarifga bog'liq karta: bo'lim yopiq bo'lsa, ko'rsatilmaydi."""
     delta = value - previous
     return {
+        "section": section,
         "title": title,
         "value": value,
         "previous": previous,
@@ -107,6 +117,7 @@ def build(viewer: User, key: str) -> dict[str, Any]:
             som(now.revenue),
             "payments",
             metrics.admin_link(viewer, "payments.order", status__exact="PAID"),
+            Feature.CLICK,
         ),
         card(
             _("Arizalar"),
@@ -123,6 +134,7 @@ def build(viewer: User, key: str) -> dict[str, Any]:
             _("Xarajat: $%(cost)s") % {"cost": f"{now.ai_cost:.2f}"},
             "smart_toy",
             metrics.admin_link(viewer, "assistant.conversation"),
+            Feature.AI,
         ),
         card(
             _("Botga qo'shildi"),
@@ -136,8 +148,10 @@ def build(viewer: User, key: str) -> dict[str, Any]:
             },
             "send",
             metrics.admin_link(viewer, "bot.botchat"),
+            Feature.BOT,
         ),
     ]
+    cards = [item for item in cards if not item["section"] or has_feature(item["section"])]
     week_ago = timezone.localdate() - timedelta(days=7)
     return {
         "period": p,
@@ -163,7 +177,7 @@ def build(viewer: User, key: str) -> dict[str, Any]:
         # O'quv jarayoni — hozirgi holat, davrga bog'liq emas.
         "lessons": study.lessons_today(viewer),
         "groups": study.groups_overview(viewer),
-        "exams": study.exams_overview(viewer),
+        "exams": study.exams_overview(viewer) if has_feature(Feature.EXAMS) else [],
         "groups_url": metrics.site_link(viewer, "/dashboard/teaching")
         if manages_groups(viewer)
         else "",

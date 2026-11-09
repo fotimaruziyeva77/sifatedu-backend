@@ -21,6 +21,8 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.learning.models import Enrollment
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import SocialAccount, User
 
 from . import telegram
@@ -50,6 +52,7 @@ def can_message(account: SocialAccount | None) -> bool:
         and account is not None
         and account.notify
         and account.blocked_at is None
+        and has_feature(Feature.BOT)
     )
 
 
@@ -71,7 +74,7 @@ def build(
     """Saqlanmagan xabar: qaysi kanal ishlatilishi shu yerda hal qilinadi."""
     consent = not promo or user.marketing_consent_at is not None
     via_telegram = consent and can_message(account)
-    sms_allowed = sms_text.strip() if consent else ""
+    sms_allowed = sms_text.strip() if consent and has_feature(Feature.BOT) else ""
     return Notification(
         user=user,
         kind=kind,

@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 
 from apps.learning import access
 from apps.live.gates import tasks_open
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from . import drafts, services
@@ -121,6 +122,7 @@ def managed_draft(user: Any, pk: int) -> QuizDraft:
 class TeacherDraftCreateView(APIView):
     """Jonli darsga qo'llanma yuklanadi — AI test tuzadi (`ai` navbati, 30–90 s)."""
 
+    feature = Feature.AI
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
@@ -161,6 +163,7 @@ class TeacherDraftCreateView(APIView):
 
 
 class TeacherDraftView(APIView):
+    feature = Feature.AI
     permission_classes = [IsAuthenticated]
 
     @extend_schema(responses={200: QuizDraftSerializer}, tags=["teacher"])
@@ -171,6 +174,7 @@ class TeacherDraftView(APIView):
 class TeacherDraftPublishView(APIView):
     """Tekshirilgan savollar mavzu testiga qo'shiladi; mavzu guruhda «o'tildi» bo'ladi."""
 
+    feature = Feature.AI
     permission_classes = [IsAuthenticated]
 
     @extend_schema(

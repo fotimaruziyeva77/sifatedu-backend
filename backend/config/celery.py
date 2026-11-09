@@ -6,8 +6,13 @@ from tenant_schemas_celery.app import CeleryApp
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
 
+
+class CenterCelery(CeleryApp):
+    task_cls = "apps.tenancy.celery_task:CenterTask"
+
+
 # Vazifa navbatga yuborilgan markaz sxemasida bajariladi.
-app = CeleryApp("sifatedu")
+app = CenterCelery("sifatedu")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 

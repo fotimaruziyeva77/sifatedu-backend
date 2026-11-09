@@ -104,7 +104,9 @@ LEGACY_STORAGE_SCHEMAS = env.list("LEGACY_STORAGE_SCHEMAS", default=["sifat"])
 PLATFORM_DOMAIN = env("PLATFORM_DOMAIN", default="platform.localhost")
 FIRST_CENTER_SCHEMA = env("FIRST_CENTER_SCHEMA", default="sifat")
 FIRST_CENTER_NAME = env("FIRST_CENTER_NAME", default="Sifat Edu")
-FIRST_CENTER_DOMAINS = env.list("FIRST_CENTER_DOMAINS", default=["localhost", "127.0.0.1"])
+FIRST_CENTER_DOMAINS = env.list(
+    "FIRST_CENTER_DOMAINS", default=["localhost", "127.0.0.1", "backend"]
+)
 
 MIDDLEWARE = [
     # Eng birinchi: keyingilari tanlangan markaz sxemasida ishlaydi.
@@ -311,6 +313,7 @@ SPECTACULAR_SETTINGS = {
     # Bir xil nomli, lekin har xil qiymatli tanlovlar: frontend tiplari barqaror nomlansin.
     "ENUM_NAME_OVERRIDES": {
         "LanguageEnum": LANGUAGES,
+        "CenterStateEnum": "apps.tenancy.models.Center.State",
         "CourseAudienceEnum": "apps.catalog.models.Course.Audience",
         "UserAudienceEnum": "apps.users.models.User.Audience",
         "CourseIconEnum": "apps.catalog.models.Course.Icon",
@@ -450,6 +453,11 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "schedule": crontab(minute=7),
         # Server bitta: markaz soniga qarab takrorlanmasin.
         "tenant_schemas": ["public"],
+    },
+    # Tarif cheklovlari: o'quvchi, xodim va disk hajmi (platforma paneli uchun).
+    "refresh-usage": {
+        "task": "apps.tenancy.tasks.refresh_usage",
+        "schedule": crontab(hour=2, minute=40),
     },
     # Kunlik hisobot direktor va adminlarga (Telegram).
     "daily-report": {
@@ -976,6 +984,11 @@ UNFOLD_PLATFORM = {
                         "title": "Markazlar",
                         "icon": "apartment",
                         "link": reverse_lazy("admin:tenancy_center_changelist"),
+                    },
+                    {
+                        "title": "Tariflar",
+                        "icon": "sell",
+                        "link": reverse_lazy("admin:tenancy_plan_changelist"),
                     },
                 ],
             },

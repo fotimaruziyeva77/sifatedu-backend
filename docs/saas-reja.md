@@ -129,8 +129,9 @@ Eng xavfli qism — jonli baza. Tartib:
    bo'ladi). To'liq zaxira olinadi.
 3. Jadvallar `sifat` sxemasiga o'tkaziladi (`ALTER TABLE … SET SCHEMA`): ma'lumot qayta yozilmaydi,
    ID'lar o'zgarmaydi.
-4. Markaz, domenlar va `Pro` tarif yoziladi; bot, Click va Eskiz sozlamalari `.env` dan markaz
-   sozlamalariga o'tadi. Fayllar va webhook manzillari o'zgarmaydi.
+4. Markaz va domenlar yoziladi (`Pro` tarif — 24-qadam migratsiyasida; bot, Click va Eskiz
+   sozlamalari `.env` dan markaz sozlamalariga — 25-qadamda). Fayllar va webhook manzillari
+   o'zgarmaydi.
 5. Tekshiruv: kirish, dars, test, to'lov, bot.
 6. Muammo bo'lsa: oldingi image va zaxiradan qaytariladi.
 

@@ -11,6 +11,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.core.phone import InvalidPhoneError, normalize_phone
+from apps.tenancy.access import days_until_expiry, has_feature
+from apps.tenancy.sections import Feature
 
 from . import profile
 from .models import OneTimeCode, User
@@ -145,6 +147,10 @@ class MeSerializer(serializers.ModelSerializer):
     in_group = serializers.SerializerMethodField(
         help_text="O'quvchi sifatida guruhda o'qiydi (menyuda «Kunlik test»)."
     )
+    subscription_days_left = serializers.SerializerMethodField(
+        help_text="Xodimga: markaz obunasi tugashiga necha kun (o'tgan bo'lsa — manfiy). "
+        "Muddat uzoq yoki muddatsiz bo'lsa — null."
+    )
 
     class Meta:
         model = User
@@ -166,6 +172,7 @@ class MeSerializer(serializers.ModelSerializer):
             "pending_reviews",
             "has_schedule",
             "in_group",
+            "subscription_days_left",
         )
         read_only_fields = (
             "phone",
@@ -177,6 +184,7 @@ class MeSerializer(serializers.ModelSerializer):
             "pending_reviews",
             "has_schedule",
             "in_group",
+            "subscription_days_left",
         )
         extra_kwargs = {
             "first_name": {"max_length": 150},
@@ -195,7 +203,10 @@ class MeSerializer(serializers.ModelSerializer):
     def get_pending_reviews(self, obj: User) -> int:
         from apps.homework.services import pending_reviews
 
-        return pending_reviews(obj)
+        return pending_reviews(obj) if has_feature(Feature.LESSONS) else 0
+
+    def get_subscription_days_left(self, obj: User) -> int | None:
+        return days_until_expiry() if obj.is_staff else None
 
     def get_has_schedule(self, obj: User) -> bool:
         from apps.live.services import has_schedule

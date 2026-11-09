@@ -49,11 +49,17 @@ def accepted(update: dict[str, Any]) -> bool:
 
 @method_decorator(csrf_exempt, name="dispatch")
 class WebhookView(APIView):
-    """Telegram serveridan: himoya — `setWebhook`da berilgan maxfiy kalit (header)."""
+    """Telegram serveridan: himoya — `setWebhook`da berilgan maxfiy kalit (header).
+
+    Bo'lim yopiq yoki markaz to'xtatilgan bo'lsa ham 200 qaytadi, yangilanishni vazifa o'tkazadi
+    (`CenterTask`): aks holda Telegram uni qayta-qayta yuboraveradi.
+    """
 
     authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = []
+    feature = None
+    open_when_blocked = True
 
     @extend_schema(exclude=True)
     def post(self, request: Request) -> Response:
@@ -104,9 +110,12 @@ def private_redirect(url: str) -> HttpResponseRedirect:
 class LoginLinkView(View):
     """Botdagi tugma: bir martalik token bilan saytga kiritadi va kerakli sahifani ochadi.
 
+    Bot bo'limi yopilgandan keyin ham berilgan havola 403 bermaydi.
     Havola eskirgan yoki ishlatilgan bo'lsa — kirish sahifasi (kirgach shu sahifaga qaytadi).
     Xodim akkauntiga token bilan kirilmaydi (bot unga token bermaydi ham).
     """
+
+    feature = None
 
     def get(self, request: HttpRequest, token: str) -> HttpResponse:
         data = links.take_login(token)

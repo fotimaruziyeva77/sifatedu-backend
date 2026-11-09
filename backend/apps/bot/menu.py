@@ -16,6 +16,8 @@ from apps.live import services as live
 from apps.live.models import LiveLesson
 from apps.notifications.texts import day_month
 from apps.rewards.models import GameSettings
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users import services as user_services
 from apps.users.models import User
 
@@ -34,23 +36,32 @@ def main_keyboard(
 ) -> dict[str, Any]:
     """Pastki menyu. Ro'yxatdan o'tmaganda — telefon yuborish tugmasi; statistikani ko'rish
     huquqi borga — eng tepada «Admin panel»; hali kursga yozilmaganga — «Daraja testi»."""
+    rewards = has_feature(Feature.REWARDS)
+    ask = ["btn_ask"] if has_feature(Feature.AI) else []
     rows: list[list[dict[str, Any]]]
     if registered:
         rows = [[{"text": t(locale, "btn_admin")}]] if admin else []
         if newcomer:
             rows.append([{"text": t(locale, "btn_placement")}])
-        rows += [
-            [{"text": t(locale, "btn_today")}],
-            [{"text": t(locale, "btn_courses")}, {"text": t(locale, "btn_tests")}],
-            [{"text": t(locale, "btn_schedule")}, {"text": t(locale, "btn_invite")}],
-            [{"text": t(locale, "btn_ask")}, {"text": t(locale, "btn_settings")}],
-        ]
+        if rewards:
+            rows.append([{"text": t(locale, "btn_today")}])
+        tests = ["btn_tests"] if has_feature(Feature.LESSONS) else []
+        invite = ["btn_invite"] if rewards else []
+        rows += pairs(
+            locale, ["btn_courses", *tests, "btn_schedule", *invite, *ask, "btn_settings"]
+        )
     else:
         rows = [
             [{"text": t(locale, "btn_contact"), "request_contact": True}],
-            [{"text": t(locale, "btn_ask")}, {"text": t(locale, "btn_settings")}],
+            *pairs(locale, [*ask, "btn_settings"]),
         ]
     return {"keyboard": rows, "resize_keyboard": True, "is_persistent": True}
+
+
+def pairs(locale: str, keys: list[str]) -> list[list[dict[str, Any]]]:
+    """Tugmalar ikkitadan: yopiq bo'lim tugmasi bo'lmasa, qolganlari siljiydi."""
+    buttons = [{"text": t(locale, key)} for key in keys]
+    return [buttons[index : index + 2] for index in range(0, len(buttons), 2)]
 
 
 def courses(chat: BotChat, user: User) -> None:
@@ -101,14 +112,15 @@ def tests(chat: BotChat, user: User) -> None:
     found, passed = available(user)
     blocks = [t(locale, "tests_title")]
     rows: Rows = []
+    exams_open = has_feature(Feature.EXAMS)
     # Bugungi kunlik test (guruh o'quvchisiga) — eng tepada.
-    today_test = daily.menu_block(user, locale)
+    today_test = daily.menu_block(user, locale) if exams_open else None
     if today_test is not None:
         text, buttons = today_test
         blocks.append(text)
         rows += buttons
     # Oylik imtihon ochiq bo'lsa — undan keyin.
-    for opened in exam.open_exams(user):
+    for opened in exam.open_exams(user) if exams_open else []:
         title = exam.course_title(opened, locale)
         blocks.append(t(locale, "tests_exam", course=escape(title)))
         rows.append([button(t(locale, "btn_exam", course=title[:40]), f"xs:{opened.pk}")])

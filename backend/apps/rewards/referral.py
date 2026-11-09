@@ -15,6 +15,8 @@ from apps.notifications.models import Notification
 from apps.notifications.services import notify
 from apps.notifications.texts import locale_of, text
 from apps.payments.models import Order
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from . import services
@@ -36,8 +38,12 @@ class Discount:
 def valid_coupons(user: Any) -> QuerySet[Coupon]:
     """Ishlatilmagan, muddati o'tmagan kuponlar: eng kattasi birinchi."""
     now = timezone.now()
+    closed = [Coupon.Kind.PLACEMENT] if not has_feature(Feature.PLACEMENT) else []
+    if not has_feature(Feature.REWARDS):
+        closed += [Coupon.Kind.REFERRAL, Coupon.Kind.MANUAL]
     return (
         Coupon.objects.filter(user_id=user.pk, used_at__isnull=True)
+        .exclude(kind__in=closed)
         .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=now))
         .exclude(order__status=Order.Status.PAID)
         .order_by("-percent", "created_at", "pk")
@@ -52,7 +58,12 @@ def discount_for(user: Any) -> Discount | None:
     config = services.settings()
     paid = Order.objects.filter(user_id=user.pk, status=Order.Status.PAID).exists()
     found: list[Discount] = []
-    if user.referred_by_id and config.referral_discount and not paid:
+    if (
+        has_feature(Feature.REWARDS)
+        and user.referred_by_id
+        and config.referral_discount
+        and not paid
+    ):
         found.append(Discount(config.referral_discount, "REFERRAL"))
     coupon = valid_coupons(user).first()
     if coupon is not None:
@@ -102,6 +113,8 @@ def order_paid(order: Order) -> None:
     kupon."""
     now = timezone.now()
     Coupon.objects.filter(order=order, used_at__isnull=True).update(used_at=order.paid_at or now)
+    if not has_feature(Feature.REWARDS):
+        return
     friend = User.objects.filter(pk=order.user_id).select_related("referred_by").first()
     if friend is None or friend.referred_by is None or not friend.referred_by.is_active:
         return

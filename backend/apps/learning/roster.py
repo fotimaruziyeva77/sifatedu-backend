@@ -22,6 +22,7 @@ from apps.live.models import ScheduleSlot
 from apps.notifications.models import Notification
 from apps.notifications.services import notify
 from apps.notifications.texts import locale_of, text
+from apps.tenancy.limits import check_new_student
 from apps.users.models import User
 from apps.users.roles import Role
 
@@ -99,6 +100,7 @@ def add_student(group: StudyGroup, *, phone: str, first_name: str, last_name: st
     )
     moved_from, opened = "", False
     if enrollment is None:
+        check_new_student(user)
         enrollment = Enrollment.objects.create(
             user=user,
             course_id=group.course_id,

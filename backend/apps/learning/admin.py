@@ -12,6 +12,7 @@ from unfold.widgets import UnfoldAdminSelect2MultipleWidget
 from apps.live import services as live
 from apps.live.admin import GroupLessonInline, HttpsLinks, ScheduleSlotInline, https_formfield
 from apps.live.models import GroupLesson
+from apps.tenancy.limits import check_new_student
 from apps.users.roles import sees_all
 
 from .models import Enrollment, LessonProgress, StudyGroup
@@ -219,6 +220,8 @@ class EnrollmentAdmin(ModelAdmin):
         return super().get_queryset(request).select_related("user", "course", "group")
 
     def save_model(self, request: HttpRequest, obj: Enrollment, form: Any, change: bool) -> None:
+        if not change:
+            check_new_student(obj.user)
         super().save_model(request, obj, form, change)
         opened = not change and obj.status == Enrollment.Status.ACTIVE
         if opened and obj.source == Enrollment.Source.MANUAL:

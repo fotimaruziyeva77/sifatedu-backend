@@ -13,6 +13,8 @@ from django.utils.html import strip_tags
 
 from apps.catalog.models import Course
 from apps.content.models import Advantage, Concern, FAQItem, HowStep, SiteSettings
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 
 from .models import AssistantSettings, Conversation
 from .phones import ACCOUNT_KEY
@@ -158,7 +160,7 @@ def placement_lines(locale: str) -> list[str]:
     from apps.placement.services import active_tests
     from apps.rewards.services import settings as game_settings
 
-    tests = active_tests()
+    tests = active_tests() if has_feature(Feature.PLACEMENT) else []
     if not tests:
         return []
     config = game_settings()
@@ -183,6 +185,24 @@ def placement_lines(locale: str) -> list[str]:
     return lines
 
 
+def student_perks() -> str:
+    """Faqat markaz tarifidagi imkoniyatlar: AI yo'q narsani va'da qilmasin."""
+    perks = [
+        (Feature.BOT, "Telegram botda dars testlari va eslatmalar"),
+        (Feature.EXAMS, "oylik imtihon"),
+        (Feature.REWARDS, "XP va reyting, coin bilan sovg'alar do'koni"),
+    ]
+    named = [text for feature, text in perks if has_feature(feature)]
+    if not named:
+        return ""
+    certificate = (
+        "; kurs tugatilganda sertifikat (kursda belgilangan bo'lsa)"
+        if has_feature(Feature.EXAMS)
+        else ""
+    )
+    return f"- O'quvchilar uchun: {', '.join(named)}{certificate}."
+
+
 def _section(title: str, lines: list[str]) -> str:
     return f"## {title}\n" + "\n".join(lines) if lines else ""
 
@@ -200,9 +220,7 @@ def build_system_prompt(locale: str, config: AssistantSettings | None = None) ->
             f"- Instagram: {site.instagram_url}" if site.instagram_url else "",
             "- To'lov: saytda Click orqali. Onlayn — bir martalik to'lov va umrbod kirish; "
             "offlayn — oylik to'lov. Bepul kurslarni ro'yxatdan o'tgan har kim o'qiy oladi.",
-            "- O'quvchilar uchun: Telegram botda dars testlari va eslatmalar, oylik imtihon, XP va "
-            "reyting, coin bilan sovg'alar do'koni; kurs tugatilganda sertifikat (kursda "
-            "belgilangan bo'lsa).",
+            student_perks(),
         ]
         steps = [
             f"- {step.title}: {strip_tags(step.text).strip()}"

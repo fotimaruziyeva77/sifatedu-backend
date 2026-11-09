@@ -19,6 +19,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.tenancy.limits import check_disk
+
 from . import s3
 from .models import VideoAsset
 from .serializers import (
@@ -59,6 +61,8 @@ class UploadStartView(StaffVideoView):
         form = UploadStartSerializer(data=request.data)
         form.is_valid(raise_exception=True)
         payload = form.validated_data
+        # Fayl to'g'ridan-to'g'ri storage'ga ketadi: chegara shu yerda tekshiriladi.
+        check_disk()
 
         video = VideoAsset.objects.create(
             title=payload.get("title") or payload["filename"],

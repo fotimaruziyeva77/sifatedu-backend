@@ -13,6 +13,8 @@ from apps.learning.models import Enrollment, StudyGroup
 from apps.notifications import services as notifications
 from apps.notifications.models import Notification
 from apps.notifications.texts import day_month, locale_of, text
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 from apps.users.roles import manages_groups
 
@@ -373,6 +375,8 @@ def announce(record: GroupLesson, *, quiz_ready: bool = False) -> int:
         Quiz.objects.filter(lesson=lesson, questions__isnull=False)
         .values_list("pk", flat=True)
         .first()
+        if has_feature(Feature.LESSONS)
+        else None
     )
     sent = 0
     for student in members(group.pk):

@@ -17,6 +17,8 @@ from apps.quizzes.services import Layout
 from apps.rewards import services as rewards
 from apps.rewards.models import Coupon
 from apps.rewards.referral import valid_coupons
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from . import links
@@ -35,7 +37,9 @@ def has_coupon(user: User) -> bool:
 def offered(user: User | None) -> bool:
     """Menyuda «🎯 Daraja testi»: hali kursga yozilmagan (bosh admin — sinab ko'rish uchun) va
     faol test bor."""
-    return services.eligible(user) and bool(services.active_tests())
+    return (
+        has_feature(Feature.PLACEMENT) and services.eligible(user) and bool(services.active_tests())
+    )
 
 
 def allowed(chat: BotChat, user: User) -> bool:

@@ -9,6 +9,8 @@ from django.utils import timezone
 
 from apps.notifications import telegram
 from apps.notifications.texts import day_month
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import SocialAccount, User
 from apps.users.roles import Role
 
@@ -65,7 +67,7 @@ def recipients() -> list[SocialAccount]:
 
 def send_daily_report() -> int:
     """Bugungi hisobotni yuboradi. Qaytadi: nechta chatga yetdi."""
-    if not settings.TELEGRAM_BOT_TOKEN:
+    if not settings.TELEGRAM_BOT_TOKEN or not has_feature(Feature.BOT):
         return 0
     message = render(metrics.period("today"))
     accounts = {account.uid: account for account in recipients()}

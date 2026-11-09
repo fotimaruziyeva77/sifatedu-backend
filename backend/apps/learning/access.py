@@ -11,6 +11,9 @@ from typing import Any
 from django.db.models import Count, QuerySet
 
 from apps.catalog.models import Course, Lesson
+from apps.tenancy.access import has_feature
+from apps.tenancy.limits import check_new_student
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from .models import Enrollment
@@ -59,7 +62,12 @@ def quiz_gate(user: Any, course_id: int) -> dict[int, int]:
     from apps.quizzes.models import Attempt, Quiz
 
     person = student(user)
-    if person is None or person.is_staff or paced_group(person, course_id) is not None:
+    if (
+        person is None
+        or person.is_staff
+        or not has_feature(Feature.LESSONS)
+        or paced_group(person, course_id) is not None
+    ):
         return {}
     quizzes = dict(
         Quiz.objects.filter(lesson__module__course_id=course_id)
@@ -126,6 +134,8 @@ def ensure_free_enrollment(user: Any, course: Course) -> Enrollment | None:
     person = student(user)
     if not course.is_free or person is None:
         return None
+    if not Enrollment.objects.filter(user=person, course=course).exists():
+        check_new_student(person)
     enrollment, _created = Enrollment.objects.get_or_create(
         user=person,
         course=course,

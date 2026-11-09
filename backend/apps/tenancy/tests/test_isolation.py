@@ -14,7 +14,7 @@ from tenant_schemas_celery.scheduler import TenantAwareScheduler
 from apps.catalog.models import Category, Course
 from apps.tenancy.db import connection
 from apps.tenancy.management.commands import adopt_center
-from apps.tenancy.models import Center
+from apps.tenancy.models import Center, Plan
 from apps.tenancy.services import ensure_center
 from apps.tenancy.storage import CenterS3Storage, center_prefix
 from apps.users.models import User
@@ -135,6 +135,7 @@ def center_form(schema: str) -> dict[str, Any]:
     return {
         "name": "Yangi markaz",
         "schema_name": schema,
+        "plan": Plan.objects.get(name="Start").pk,
         "domains-TOTAL_FORMS": 1,
         "domains-INITIAL_FORMS": 0,
         "domains-MIN_NUM_FORMS": 0,

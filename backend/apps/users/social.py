@@ -16,6 +16,9 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from jwt import PyJWKClient
 
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
+
 from .models import SocialAccount
 
 logger = logging.getLogger(__name__)
@@ -50,7 +53,9 @@ def google_enabled() -> bool:
 
 
 def telegram_enabled() -> bool:
-    return bool(settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_BOT_USERNAME)
+    return bool(
+        settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_BOT_USERNAME and has_feature(Feature.BOT)
+    )
 
 
 # Google kalitlari kamdan-kam o'zgaradi: mijoz ularni keshlaydi.

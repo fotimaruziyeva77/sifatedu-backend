@@ -19,6 +19,9 @@ from google.genai import errors as genai_errors
 from google.genai import types
 from pydantic import BaseModel
 
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
+
 from .parser import ParseError, parse
 
 logger = logging.getLogger(__name__)
@@ -86,8 +89,8 @@ class GenQuiz(BaseModel):
 
 
 def ready() -> bool:
-    """AI kaliti bormi (kalitsiz test tuzilmaydi)."""
-    return bool(settings.GEMINI_API_KEY)
+    """AI test tuzsa bo'ladimi: bo'lim tarifda va kalit bor."""
+    return has_feature(Feature.AI) and bool(settings.GEMINI_API_KEY)
 
 
 def suffix(name: str) -> str:

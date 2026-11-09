@@ -13,6 +13,8 @@ from django.contrib.auth.models import Group, Permission
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.tenancy.limits import check_new_staff
+
 if TYPE_CHECKING:
     from .models import User
 
@@ -213,6 +215,8 @@ def set_roles(user: "User", roles: Iterable[str]) -> None:
     """Rollarni almashtiradi; rolga tegishli bo'lmagan boshqa guruhlar saqlanadi.
     `is_staff` guruhlar o'zgarganda signal orqali qayta hisoblanadi (signals.py)."""
     wanted = {Role(role).value for role in roles}
+    if wanted & STAFF_ROLES:
+        check_new_staff(user)
     current = set(user.groups.filter(name__in=Role.values).values_list("name", flat=True))
     if remove := current - wanted:
         user.groups.remove(*Group.objects.filter(name__in=remove))

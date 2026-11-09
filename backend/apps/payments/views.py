@@ -20,6 +20,9 @@ from apps.catalog.models import Course
 from apps.core.request import get_client_ip
 from apps.notifications.alerts import alert
 from apps.rewards import referral
+from apps.tenancy.access import require_feature
+from apps.tenancy.limits import check_new_student
+from apps.tenancy.sections import Feature
 from apps.users.models import User
 
 from . import click, pricing
@@ -49,11 +52,14 @@ class OrderCreateView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "orders"
+    # Buyurtmalar tarixi Click yopiq tarifga o'tilganda ham ko'rinadi: faqat yangi buyurtma yopiq.
+    feature = None
 
     @extend_schema(
         tags=["payments"], request=OrderCreateSerializer, responses=OrderCreatedSerializer
     )
     def post(self, request: Request) -> Response:
+        require_feature(Feature.CLICK)
         form = OrderCreateSerializer(data=request.data)
         form.is_valid(raise_exception=True)
         data = form.validated_data
@@ -62,6 +68,8 @@ class OrderCreateView(APIView):
         user = cast(User, request.user)
         course: Course = get_object_or_404(Course.objects.all(), slug=data["course"])
         pricing.check_can_buy(user, course, data["study_format"])
+        # To'lov o'tgach yozilish to'xtatilmaydi, shuning uchun chegara shu yerda.
+        check_new_student(user)
         months = data["months"] if data["study_format"] == Order.Format.OFFLINE else 1
         full = pricing.amount_for(course, data["study_format"], months)
         discount = referral.discount_for(user)
@@ -96,6 +104,7 @@ class OrderDetailView(APIView):
     """Natija sahifasi holatni shu orqali kuzatadi: Click'dan qaytish isbot emas."""
 
     permission_classes = [IsAuthenticated]
+    feature = None
 
     def get(self, request: Request, pk: int) -> Response:
         order = get_object_or_404(my_orders(request.user), pk=pk)
@@ -110,6 +119,9 @@ class ClickCallbackView(APIView):
     permission_classes = [AllowAny]
     throttle_classes: list[type] = []
     action_name = ""
+    # Boshlangan to'lov tarif va holatdan qat'i nazar tugashi kerak.
+    feature = None
+    open_when_blocked = True
 
     def handle(self, callback: click.Callback) -> dict[str, Any]:
         raise NotImplementedError

@@ -12,6 +12,8 @@ from unfold.decorators import display
 from apps.core.admin_utils import FORMFIELD_OVERRIDES, TranslatedModelAdmin, language_tabs
 from apps.homework.admin import AssignmentInline
 from apps.quizzes.admin import QuizInline
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.videos.widgets import VideoUploadWidget
 
 from .models import Category, Course, Instructor, Lesson, LessonMaterial, LessonSlides, Module
@@ -21,6 +23,16 @@ from .scope import TeacherScopedAdmin, scope_videos
 def money(amount: int) -> str:
     """1 800 000 so'm ko'rinishida."""
     return f"{amount:,} so'm".replace(",", " ")
+
+
+def without_fields(fieldsets: Any, *names: Any) -> list[Any]:
+    """Tarifga kirmagan bo'lim sozlamalari formada ko'rinmaydi (bo'sh bo'lak ham)."""
+    result = []
+    for title, options in fieldsets:
+        fields = [field for field in options["fields"] if field not in names]
+        if fields:
+            result.append((title, {**options, "fields": fields}))
+    return result
 
 
 @admin.register(Category)
@@ -187,6 +199,12 @@ class CourseAdmin(TeacherScopedAdmin, TranslatedModelAdmin):
         length = f"{hours} s {minutes} daq" if hours else f"{minutes} daq"
         return f"{obj.lesson_count} dars · {length}"
 
+    def get_fieldsets(self, request: HttpRequest, obj: Any = None) -> Any:
+        fieldsets = super().get_fieldsets(request, obj)
+        if has_feature(Feature.EXAMS):
+            return fieldsets
+        return without_fields(fieldsets, ("monthly_exam", "certificate"))
+
 
 @admin.register(Module)
 class ModuleAdmin(TeacherScopedAdmin, TranslatedModelAdmin):
@@ -267,6 +285,10 @@ class LessonAdmin(TeacherScopedAdmin, TranslatedModelAdmin):
         ),
         *language_tabs(["title", "summary"]),
     ]
+
+    def get_fieldsets(self, request: HttpRequest, obj: Any = None) -> Any:
+        fieldsets = super().get_fieldsets(request, obj)
+        return fieldsets if has_feature(Feature.VIDEO) else without_fields(fieldsets, "video")
 
     def formfield_for_foreignkey(self, db_field: Any, request: HttpRequest, **kwargs: Any) -> Any:
         if db_field.name == "video":

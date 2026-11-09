@@ -22,6 +22,8 @@ from apps.learning.views import completed_ids, course_card, with_program
 from apps.live.models import LiveLesson
 from apps.live.services import student_group_ids
 from apps.quizzes.models import Attempt, Question
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 from apps.users.models import SocialAccount, User
 
 from . import services
@@ -135,14 +137,16 @@ def todays_live(user: User, now: datetime) -> Candidate | None:
 
 
 def candidates(user: User, now: datetime) -> list[Candidate]:
-    found = [
-        todays_live(user, now),
-        next_lesson(user),
-        open_quiz(user),
-        open_homework(user),
-    ]
-    if has_telegram(user) and len(review_pool(user)) >= REVIEW_SIZE:
-        found.append(Candidate(Kind.REVIEW, ""))
+    found = [todays_live(user, now), next_lesson(user)]
+    # Yopiq bo'lim topshirig'i berilmaydi: bajarib bo'lmaydi, kun oxirida esa shtraf yoziladi.
+    if has_feature(Feature.LESSONS):
+        found += [open_quiz(user), open_homework(user)]
+        if (
+            has_feature(Feature.BOT)
+            and has_telegram(user)
+            and len(review_pool(user)) >= REVIEW_SIZE
+        ):
+            found.append(Candidate(Kind.REVIEW, ""))
     return [item for item in found if item is not None]
 
 

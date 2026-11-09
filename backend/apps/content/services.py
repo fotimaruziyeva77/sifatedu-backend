@@ -8,6 +8,8 @@ from django.db.models import Prefetch
 from django.utils import translation
 
 from apps.catalog.models import Course, Instructor
+from apps.tenancy.access import has_feature
+from apps.tenancy.sections import Feature
 
 from .models import (
     Advantage,
@@ -75,4 +77,13 @@ def get_site_payload() -> dict[str, Any]:
     if payload is None:
         payload = dict(SitePayloadSerializer(_collect()).data)
         cache.set(key, payload, SITE_CACHE_TTL)
-    return payload
+    # Tarif platforma panelida o'zgaradi: keshdagi qiymatga qaramasdan darhol ta'sir qiladi.
+    site = payload["settings"]
+    return {
+        **payload,
+        "settings": {
+            **site,
+            "payments_enabled": site["payments_enabled"] and has_feature(Feature.CLICK),
+            "assistant_enabled": site["assistant_enabled"] and has_feature(Feature.AI),
+        },
+    }

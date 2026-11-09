@@ -47,6 +47,7 @@ def test_memory_is_read_from_meminfo(tmp_path: Path) -> None:
     assert resources.memory_free_percent(tmp_path / "yo'q") is None
 
 
+@pytest.mark.django_db
 def test_alerts_once_per_cooldown(server: Path) -> None:
     with patch("apps.notifications.tasks.send_alert_task.delay") as send:
         assert check_server_resources() == ["server:disk", "server:memory"]

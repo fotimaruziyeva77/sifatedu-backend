@@ -234,6 +234,8 @@ class DiscountView(APIView):
     Kirmagan mehmonga ham 200 (null): kurs sahifasida konsolda 403 xatosi chiqmasin."""
 
     permission_classes = [AllowAny]
+    # Daraja testi kuponi XP bo'limisiz ham ishlaydi; qaysi chegirma ochiq — `discount_for`da.
+    feature = None
 
     @extend_schema(responses={200: DiscountStateSerializer}, tags=["rewards"])
     def get(self, request: Request) -> Response:
