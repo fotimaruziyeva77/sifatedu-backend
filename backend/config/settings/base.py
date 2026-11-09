@@ -314,6 +314,7 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "LanguageEnum": LANGUAGES,
         "CenterStateEnum": "apps.tenancy.models.Center.State",
+        "ExamStateEnum": "apps.exams.serializers.EXAM_STATES",
         "CourseAudienceEnum": "apps.catalog.models.Course.Audience",
         "UserAudienceEnum": "apps.users.models.User.Audience",
         "CourseIconEnum": "apps.catalog.models.Course.Icon",
