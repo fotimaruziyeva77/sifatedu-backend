@@ -2142,6 +2142,65 @@ Kirish va ro'yxatdan o'tish SMS kodi bo'lim emas: hamma tarifda ishlaydi. Admin 
 hisobot satrlari (Telegram va botdagi) yopiq bo'lim uchun nol ko'rsatishi mumkin — ular faqat bot
 ochiq tarifda yuboriladi.
 
+### 25-qadam: markaz o'zi ochiladi — batafsil vazifalar
+
+O'quv markazi platforma saytida tarif tanlaydi, formani to'ldiradi, telefonini SMS kod bilan
+tasdiqlaydi va bir daqiqadan keyin `nom.<domen>` manzilida o'z sayti ishlaydi (14 kun bepul). Egasi
+kabinetdagi «Markaz sozlamalari»da nom, logo, rang, o'z boti, Click va Eskiz kalitlarini kiritadi.
+Sifat Edu'ning ko'rinishi va ishlashi o'zgarmaydi.
+
+| Qism | Nima qilinadi |
+|---|---|
+| Markaz kalitlari | Yangi `apps.integrations`: har markaz sxemasida bitta qator — bot tokeni, webhook siri, arizalar va hisobot guruhi; Click va STIR; Eskiz. Maxfiy maydonlar shifrlangan (`INTEGRATIONS_SECRET`), API ularni qaytarmaydi. `settings.TELEGRAM_*`, `CLICK_*`, `ESKIZ_*` shu qatordan o'qiladi. Sifat Edu qiymatlari migratsiyada `.env`dan ko'chadi. `.env`da faqat platformaniki qoladi: server ogohlantirishlari va ro'yxatdan o'tish SMS'i |
+| Manzil | `settings.APP_URL` o'rniga `site_url()` — markazning asosiy domeni: bot havolalari, Click qaytish manzili, webhook, hisobot. Frontendda `NEXT_PUBLIC_APP_URL` o'rniga so'rov manzili: SEO, sitemap, robots |
+| Brend | Nom — `Center.name`; logo (yorug' va qorong'i tema) va asosiy rang — `SiteSettings`. Sayt, admin panel, bot, SMS, hisobot va AI maslahatchida nom markazniki. Rang CSS tokenlariga o'tadi, matn kontrasti hisoblanadi |
+| Sifat Edu'ga xos qismlar | Birinchi markazda hozirgi landing to'liq qoladi. Boshqalarda 3D logo, rolik, kasb testi, IT matnlari va kafolatlar chiqmaydi; bo'sh bo'limlar ko'rinmaydi |
+| Platforma sayti | `PLATFORM_DOMAIN`da alohida sahifalar: bosh sahifa, tariflar, ro'yxatdan o'tish. Noma'lum manzilda «markaz topilmadi» |
+| Ro'yxatdan o'tish | Nom, manzil (`najot`), egasining ismi, telefon, parol → SMS kod → markaz fonda tayyorlanadi («tayyorlanmoqda» ekrani) → bir martalik havola bilan egasi kabinetga kiradi |
+| Sinov muddati | `Plan.trial_days` (14) panelda o'zgaradi. Tanlangan tarif sinaladi. Tugashiga 7 kun qolganda ogohlantirish, keyin `grace_days`, keyin «to'lov kerak» — 24-qadam mantig'i |
+| Sozlash | Kabinetda «Markaz sozlamalari» (ADMIN roli): qilinishi kerak ishlar ro'yxati; nom, logo, rang; tarifga qarab bot, Click, Eskiz. Kurs va guruh — admin panel havolalari. Bot tokeni tekshiriladi, webhook, menyu va tavsif o'zi yoziladi |
+| AI budjeti | `Plan.ai_monthly_usd`, kerak bo'lsa markazga alohida `Center.ai_monthly_usd`. Kalit platformaniki. Sifat Edu'ning hozirgi budjeti o'zgarmaydi |
+| Domen va HTTPS | `CENTERS_BASE_DOMAIN`, `*.domen` uchun wildcard sertifikat (DNS API), S3 CORS. Qo'llanma — `docs/saas-domen.md` |
+
+**Qoidalar:**
+- Manzil: 3–30 belgi, lotin harfi bilan boshlanadi, harf, raqam va chiziqcha. Band va taqiqlangan
+  so'zlar (`www`, `admin`, `api`, `media`, `platform`, `sifat` va h.k.) qabul qilinmaydi. Sxema —
+  `c_<manzil>`: PostgreSQL'ning ichki nomlari va mavjud sxemalar bilan to'qnashmaydi.
+- Markaz nomida `< > { } &` bo'lmaydi: nom Telegram HTML va tarjima shablonlariga tushadi.
+- Bitta telefon — bitta markaz: bepul sinovni qayta-qayta olib bo'lmaydi. Raqam band ekani faqat
+  SMS kod tasdiqlangandan keyin aytiladi.
+- Egasi markazda ADMIN va DIRECTOR rollarini oladi. Parol ochiq saqlanmaydi: faqat xeshi, markaz
+  tayyor bo'lgach o'chiriladi. Tasdiqlanmagan yozuvlar 7 kundan keyin tozalanadi.
+- O'quvchining SMS kodi: markazning Eskiz'i ulangan bo'lsa — shundan, bo'lmasa platforma hisobidan,
+  neytral matn bilan va oyiga `Plan.otp_sms_monthly` tagacha. Ommaviy xabar va eslatmalar — faqat
+  markazning o'z Eskiz'idan.
+- Server ogohlantirishlari platforma botidan platforma guruhiga boradi, matnda markaz nomi bilan.
+- Google bilan kirish faqat birinchi markazda: Google manzillar ro'yxatida `*` qabul qilmaydi.
+  Telegram orqali kirish — markaz BotFather'da domenni sozlab, belgilab qo'ygandan keyin.
+
+**Qilinmaydi (27-qadam):** o'z domeni, obuna to'lovlari hisobi, oferta matni, foydalanish hisoboti.
+
+**Natija (2026-11-10, `saas/25-markaz`).** Yuqoridagilar qilindi. Serverga chiqarish — `docs/saas-domen.md`.
+
+| Qo'shimcha | Sabab |
+|---|---|
+| Ochilganda markaz faqat 1 ta yozuv oladi: sayt sarlavhasi va egasi. Kurs, guruh, hujjatlar — sozlamalar ro'yxatida | Namunaviy kontent keyin o'chirishga majbur qiladi |
+| Yozilmagan oferta va maxfiylik sahifasiga havola oddiy matn bo'lib ko'rinadi | Yangi markazda 404 ochilmasin |
+| Pro tarifida AI budjeti 10 $ (panelda o'zgaradi), Sifat Edu'da `Center.ai_monthly_usd` | Kalit va xarajat platformaniki, Sifat Edu'ning hozirgi budjeti o'zgarmasin |
+| AI test (qo'llanmadan) shu budjetga kiradi: har biri taxminan 0,05 $ | Aks holda markaz platforma hisobidan cheklovsiz yuklay oladi |
+| `SIFAT Kids` boshqa markazlarda «Kids» | Sifat Edu mahsuloti nomi |
+| Platforma sayti va ro'yxatdan o'tish `SIGNUP_OPEN=true` bo'lguncha yopiq | Oddiy deploy hech narsani tashqariga ochmasin: avval nom, domen, HTTPS va SMS |
+| Click kaliti kiritilmagan markazda Click so'rovlari rad etiladi, buyurtma yaratilmaydi | Bo'sh kalit bilan to'lov imzosini soxtalashtirib bo'lardi |
+| Uzilib qolgan tayyorlash 15 daqiqada «xato» bo'ladi, yarim ochilgan sxema o'chiriladi | Deploy yoki xotira yetmasligi arizani va manzilni qotirib qo'ymasin |
+| Platforma hisobidagi SMS kodlar: bitta IP'ga kuniga 40, markaz ochishga kuniga 300, markazga oyiga `Plan.otp_sms_monthly` | Suiiste'moldan himoya |
+| Disk chegarasi kun davomida ham hisoblanadi (yuklangan hajm qo'shib boriladi) | Yangi markaz bir kunda diskni to'ldirib qo'ymasin |
+| SMS'dagi nom Eskiz ulangan paytdagi nom bo'lib qoladi | Markaz nomini o'zgartirsa, Eskiz'da tasdiqlangan shablon buzilmasin |
+| Backend javob bermasa: Sifat Edu avvalgidek ko'rinadi, boshqa markazlarda «sayt vaqtincha ishlamayapti» | Brend noma'lum paytda boshqa markaz nomi yoki bo'sh sahifa chiqmasin |
+| Kalitlar `INTEGRATIONS_SECRET` bilan, u bo'lmasa `DJANGO_SECRET_KEY` bilan ochiladi | Sir keyin qo'shilsa ham saqlangan kalitlar ochilaversin |
+
+Keyingi qadamlarga: markazlarning fayllari `media.sifatedu.uz` manzilidan beriladi; video navbati
+hamma markazga umumiy; `Plan.is_public` va AI budjeti orqali sinovdagi xarajat cheklanadi — 27-qadam.
+
 ## 8. Sizdan kerak bo'ladigan narsalar
 
 Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) rejimida ishlaydi. Keyinroq kerak bo'ladi:
@@ -2339,3 +2398,11 @@ Local ishlab chiqish uchun hech narsa kerak emas: SMS va to'lov test (dry-run) r
 | 4.22 dan olib tashlandi: platforma xodimining markaz ichiga kirishi | Xavfli va birinchi versiyaga shart emas; super admin faqat umumiy sonlarni ko'radi |
 | Yangi 4.23: filiallar va xonalar, naqd to'lov va qarzdorlar, lidlar voronkasi | Buyurtmachi tanlovi; maosh va xarajatlar tanlanmadi |
 | Yo'l xaritasi: SaaS — 23–27 | CRM va sotuvga chiqish alohida qadamlar |
+
+### v3.6 → v3.7 (25-qadam: markaz o'zi ochiladi)
+
+| O'zgarish | Sabab |
+|---|---|
+| 4.22: brend — nom, logo va bitta asosiy rang; favicon alohida emas, ranglar to'plami yo'q | `docs/saas-reja.md` §10: to'liq dizayn tahriri birinchi versiyaga kerak emas |
+| 4.22: o'quvchining SMS kodi Eskiz ulanmaguncha platforma hisobidan, oylik chegara bilan | Sinov muddatida markazda Eskiz shartnomasi hali bo'lmaydi, kodsiz ro'yxatdan o'tib bo'lmaydi |
+| 4.22: bitta telefon raqamiga bitta markaz | Bepul sinovni qayta-qayta olishdan himoya |

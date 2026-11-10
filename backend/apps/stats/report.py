@@ -3,14 +3,15 @@
 import logging
 from html import escape
 
-from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.integrations import conf
 from apps.notifications import telegram
 from apps.notifications.texts import day_month
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
+from apps.tenancy.sites import center_name, site_url
 from apps.users.models import SocialAccount, User
 from apps.users.roles import Role
 
@@ -29,7 +30,7 @@ def render(p: metrics.Period) -> str:
     now, before = metrics.summary(p), metrics.summary(p.previous)
     title = f"{day_month(timezone.localdate(p.start), 'uz')}"
     lines = [
-        f"📊 <b>Sifat Edu — {escape(title)}</b>",
+        f"📊 <b>{escape(center_name())} — {escape(title)}</b>",
         "",
         f"👤 Ro'yxatdan o'tdi: <b>{now.registered}</b> ({p.previous_label} {before.registered})",
         f"🎓 Kurs tanladi: <b>{now.chose_course}</b> · to'ladi: <b>{now.paid}</b>"
@@ -46,7 +47,7 @@ def render(p: metrics.Period) -> str:
         )
     else:
         lines.append("✅ Muammo yo'q")
-    lines.extend(["", f"Batafsil: {settings.APP_URL.rstrip('/')}/admin/"])
+    lines.extend(["", f"Batafsil: {site_url()}/admin/"])
     return "\n".join(lines)
 
 
@@ -67,13 +68,14 @@ def recipients() -> list[SocialAccount]:
 
 def send_daily_report() -> int:
     """Bugungi hisobotni yuboradi. Qaytadi: nechta chatga yetdi."""
-    if not settings.TELEGRAM_BOT_TOKEN or not has_feature(Feature.BOT):
+    bot = conf.telegram()
+    if not bot.token or not has_feature(Feature.BOT):
         return 0
     message = render(metrics.period("today"))
     accounts = {account.uid: account for account in recipients()}
     chats: list[str] = list(accounts)
-    if settings.TELEGRAM_REPORTS_CHAT_ID:
-        chats.append(str(settings.TELEGRAM_REPORTS_CHAT_ID))
+    if bot.reports_chat:
+        chats.append(bot.reports_chat)
     sent = 0
     for chat in dict.fromkeys(chats):
         try:

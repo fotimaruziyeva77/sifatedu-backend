@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.catalog.models import Category, Course
+from apps.integrations.testing import set_keys
 from apps.learning.models import Enrollment
 from apps.payments.models import Order
 from apps.payments.pricing import add_months
@@ -21,10 +22,10 @@ URL = "/api/v1/orders/"
 
 
 @pytest.fixture(autouse=True)
-def click_settings(settings: Any) -> None:
-    settings.CLICK_SERVICE_ID = "12345"
-    settings.CLICK_MERCHANT_ID = "999"
-    settings.CLICK_SECRET_KEY = "click-secret"
+def click_settings(db: None) -> None:
+    set_keys(click_service_id="12345")
+    set_keys(click_merchant_id="999")
+    set_keys(click_secret_key="click-secret")
 
 
 @pytest.fixture
@@ -88,7 +89,7 @@ class TestCreate:
 
         query = parse_qs(urlparse(response.json()["pay_url"]).query)
         order_id = Order.objects.get().pk
-        assert query["return_url"] == [f"http://localhost/ru/payment/result?order={order_id}"]
+        assert query["return_url"] == [f"http://testserver/ru/payment/result?order={order_id}"]
 
     def test_offline_amount_multiplies_by_months(
         self, client: APIClient, student: User, course: Course

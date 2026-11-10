@@ -583,7 +583,9 @@ super admin. Birinchi markaz — Sifat Edu (`sifat` sxema). Reja: `docs/saas-rej
 | Local manzil | Nima |
 |---|---|
 | http://localhost | Sifat Edu: sayt va admin panel |
+| http://platform.localhost | Platforma sayti: markaz ochish |
 | http://platform.localhost/admin/ | Platforma paneli (super admin) |
+| http://<nom>.localhost | Ochilgan markaz sayti |
 
 - Manzillar `tenancy.Domain` jadvalida: ro'yxatda yo'q manzilga backend 404 qaytaradi.
 - Bo'sh bazada platforma va birinchi markazni `ensure_center` yaratadi (`FIRST_CENTER_*`,
@@ -596,6 +598,13 @@ super admin. Birinchi markaz — Sifat Edu (`sifat` sxema). Reja: `docs/saas-rej
   Faqat bir marta kerak bo'lsa: `"tenant_schemas": ["public"]`.
 - Kesh kaliti boshida — sxema. Fayllar — `centers/<sxema>/` papkasida (Sifat Edu'niki avvalgi joyida).
 - Ishlab turgan bitta markazli bazani ko'chirish: `docs/saas-kochirish.md`.
+
+**Markaz ochish.** Platforma saytida forma → SMS kod → markaz fonda tayyorlanadi (`worker` kerak) →
+egasi bir martalik havola bilan kabinetga kiradi (`apps/tenancy/signup.py`). 14 kun bepul
+(`Plan.trial_days`). Local'da SMS kodi `worker` logida. Har markazning bot, Click va Eskiz kalitlari
+shifrlangan holda o'z sxemasida (`apps/integrations`), kod ularni faqat `integrations.conf` orqali
+oladi. Sayt manzili — `tenancy.sites.site_url()`. Production'da platforma sayti va ro'yxatdan
+o'tish `SIGNUP_OPEN=true` bo'lguncha yopiq. Serverga chiqarish: `docs/saas-domen.md`.
 
 **Tariflar.** Tarif platforma panelida (`tenancy.Plan`): narx, bo'limlar, o'quvchi, xodim va disk
 chegarasi, muhlat. Markazda: tarif, qo'shimcha bo'limlar, to'langan muddat, qo'lda to'xtatish.

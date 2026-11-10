@@ -5,16 +5,17 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from apps.integrations.testing import set_keys
 from apps.notifications import telegram
 from apps.users.models import SocialAccount, User
 
 
 @pytest.fixture(autouse=True)
-def bot(settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = "test-token"
-    settings.TELEGRAM_BOT_USERNAME = "sifat_test_bot"
+def bot(settings: Any, db: None) -> None:
+    set_keys(telegram_token="test-token")
+    set_keys(telegram_username="sifat_test_bot")
     settings.SMS_DRY_RUN = True
-    settings.APP_URL = "https://sifatedu.uz"
+    settings.SITE_SCHEME = "https"
 
 
 @pytest.fixture

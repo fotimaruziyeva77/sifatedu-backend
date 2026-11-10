@@ -21,7 +21,9 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.core import events
+from apps.integrations import conf
 from apps.learning.models import Enrollment
+from apps.tenancy.sites import site_url
 
 from . import pricing
 from .models import Order, PaymentTransaction, Provider
@@ -103,19 +105,20 @@ class Callback:
 
 
 def configured() -> bool:
-    return bool(settings.CLICK_SERVICE_ID and settings.CLICK_SECRET_KEY)
+    return conf.click().ready
 
 
 def pay_url(order: Order, locale: str) -> str:
     """O'quvchi yuboriladigan Click sahifasi. To'lovdan keyin u o'z tilidagi sahifaga qaytadi."""
     language = locale if locale in dict(settings.LANGUAGES) else settings.LANGUAGE_CODE
+    account = conf.click()
     query = urlencode(
         {
-            "service_id": settings.CLICK_SERVICE_ID,
-            "merchant_id": settings.CLICK_MERCHANT_ID,
+            "service_id": account.service_id,
+            "merchant_id": account.merchant_id,
             "amount": order.amount,
             "transaction_param": order.pk,
-            "return_url": f"{settings.APP_URL}/{language}/payment/result?order={order.pk}",
+            "return_url": f"{site_url()}/{language}/payment/result?order={order.pk}",
         }
     )
     return f"{PAY_URL}?{query}"
@@ -130,10 +133,14 @@ def check_sign(callback: Callback) -> None:
 
     Complete'da `merchant_prepare_id` ham qatnashadi — shuning uchun ikki variant.
     """
+    account = conf.click()
+    # Kalit yo'q bo'lsa, imzoni bo'sh kalit bilan soxtalashtirib bo'lardi.
+    if not account.ready:
+        raise ClickError(SIGN_FAILED)
     parts = [
         callback.click_trans_id,
         callback.service_id,
-        settings.CLICK_SECRET_KEY,
+        account.secret_key,
         callback.merchant_trans_id,
     ]
     if callback.action == ACTION_COMPLETE:

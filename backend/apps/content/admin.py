@@ -23,6 +23,7 @@ from .models import (
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(TranslatedModelAdmin):
     fieldsets = [
+        (_("Brend"), {"fields": ["logo", "logo_dark", "brand_color"]}),
         (_("Kontaktlar"), {"fields": ["phone", "email"]}),
         (
             _("Ijtimoiy tarmoqlar"),

@@ -21,7 +21,7 @@ class Product(TimeStampedModel):
     class Audience(models.TextChoices):
         ALL = "ALL", _("Hammaga")
         ADULT = "ADULT", _("Kattalarga")
-        KIDS = "KIDS", _("SIFAT Kids")
+        KIDS = "KIDS", _("Kids (7–11 yosh)")
 
     name = models.CharField(_("nomi"), max_length=120)
     description = models.TextField(_("tavsif"), blank=True)

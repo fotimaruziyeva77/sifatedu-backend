@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.catalog.models import Category, Course, Lesson, Module
+from apps.integrations.testing import set_keys
 from apps.learning.models import Enrollment
 from apps.payments import click
 from apps.payments.models import Order, PaymentLog, PaymentTransaction
@@ -22,10 +23,10 @@ COMPLETE_URL = "/api/v1/payments/click/complete/"
 
 
 @pytest.fixture(autouse=True)
-def click_settings(settings: Any) -> None:
-    settings.CLICK_SERVICE_ID = SERVICE_ID
-    settings.CLICK_MERCHANT_ID = "999"
-    settings.CLICK_SECRET_KEY = SECRET
+def click_settings(db: None) -> None:
+    set_keys(click_service_id=SERVICE_ID)
+    set_keys(click_merchant_id="999")
+    set_keys(click_secret_key=SECRET)
 
 
 @pytest.fixture

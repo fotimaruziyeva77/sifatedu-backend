@@ -13,6 +13,7 @@ from apps.bot import menu, router
 from apps.bot.models import BotChat
 from apps.catalog.models import Category, Course, Lesson, Module
 from apps.content.services import get_site_payload
+from apps.integrations.testing import set_keys
 from apps.learning import access, roster
 from apps.learning.models import Enrollment, StudyGroup
 from apps.notifications import services as notifications
@@ -151,13 +152,13 @@ def test_center_info_lists_features(client: APIClient) -> None:
 
     data = client.get("/api/v1/center/").json()
 
-    assert data == {"state": "active", "features": ["bot"]}
+    assert (data["state"], data["features"]) == ("active", ["bot"])
 
 
 def test_site_payload_follows_plan_despite_cache(settings: Any) -> None:
     settings.ASSISTANT_DRY_RUN = True
-    settings.CLICK_SERVICE_ID = "1"
-    settings.CLICK_SECRET_KEY = "x"
+    set_keys(click_service_id="1")
+    set_keys(click_secret_key="x")
     assert get_site_payload()["settings"]["payments_enabled"] is True
 
     use_plan()
@@ -381,8 +382,8 @@ def test_no_coupon_when_both_sections_closed(student: User) -> None:
 
 
 def test_no_telegram_or_sms_without_bot_section(student: User, settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = "t"
-    settings.TELEGRAM_BOT_USERNAME = "sinov_bot"
+    set_keys(telegram_token="t")
+    set_keys(telegram_username="sinov_bot")
     use_plan()
     account = SocialAccount.objects.create(
         user=student, provider=SocialAccount.Provider.TELEGRAM, uid="1", notify=True
@@ -398,7 +399,7 @@ def test_no_telegram_or_sms_without_bot_section(student: User, settings: Any) ->
 
 
 def test_delivery_is_queued_with_bot_section(student: User, settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = "t"
+    set_keys(telegram_token="t")
     use_plan(Feature.BOT)
     account = SocialAccount.objects.create(
         user=student, provider=SocialAccount.Provider.TELEGRAM, uid="1", notify=True
@@ -512,6 +513,7 @@ def test_order_is_refused_at_student_limit(
     client: APIClient, student: User, group: StudyGroup
 ) -> None:
     use_plan(Feature.CLICK, max_students=1)
+    set_keys(click_service_id="1", click_secret_key="x")
     add_to_group(group, "+998901000011")
     client.force_authenticate(student)
     Course.objects.filter(pk=group.course_id).update(price_online=100_000, study_format="ONLINE")

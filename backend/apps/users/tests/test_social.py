@@ -19,6 +19,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.integrations.testing import set_keys
 from apps.users.models import OneTimeCode, SocialAccount, User
 
 GOOGLE_CLIENT_ID = "test-client.apps.googleusercontent.com"
@@ -32,13 +33,10 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
-def _setup() -> Any:
+def _setup(db: None) -> Any:
     cache.clear()
-    settings = override_settings(
-        GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID,
-        TELEGRAM_BOT_TOKEN=BOT_TOKEN,
-        TELEGRAM_BOT_USERNAME=BOT_USERNAME,
-    )
+    set_keys(telegram_token=BOT_TOKEN, telegram_username=BOT_USERNAME, telegram_login=True)
+    settings = override_settings(GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID)
     # Kod oldindan ma'lum bo'lsin; SMS yuborilishi test_auth.py'da tekshiriladi.
     with settings, mock.patch("apps.users.otp.generate_code", return_value=CODE):
         yield
@@ -109,8 +107,9 @@ def test_providers_are_listed_when_configured(client: APIClient) -> None:
     }
 
 
-@override_settings(GOOGLE_CLIENT_ID="", TELEGRAM_BOT_USERNAME="")
+@override_settings(GOOGLE_CLIENT_ID="")
 def test_providers_hidden_when_not_configured(client: APIClient) -> None:
+    set_keys(telegram_username="")
     response = client.get("/api/v1/auth/social/")
 
     assert response.json() == {"google_client_id": "", "telegram_bot": ""}

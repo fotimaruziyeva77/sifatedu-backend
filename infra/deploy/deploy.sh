@@ -37,6 +37,17 @@ site_ok() {  # HTTPS orqali, xuddi foydalanuvchi kabi (umumiy serverda — host 
 step "Kod"
 git pull --ff-only
 git -C frontend pull --ff-only
+# Frontend'ga kerak ikki qiymat backend sozlamasidan olinadi: platforma sayti manzili va birinchi
+# markaz manzillari (backend javob bermaganda ham u o'z ko'rinishida qoladi).
+sync_frontend_env() {  # <frontend kaliti> <backend kaliti>
+    local value
+    value=$(sed -n "s/^$2=//p" backend/.env | tr -d "\"'")
+    [ -n "$value" ] || return 0
+    sed -i "/^$1=/d" frontend/.env
+    printf '\n%s=%s\n' "$1" "$value" >> frontend/.env
+}
+sync_frontend_env PLATFORM_DOMAIN PLATFORM_DOMAIN
+sync_frontend_env FLAGSHIP_DOMAINS FIRST_CENTER_DOMAINS
 echo "backend:  $(git log -1 --format='%h %cd %s' --date=short)"
 echo "frontend: $(git -C frontend log -1 --format='%h %cd %s' --date=short)"
 

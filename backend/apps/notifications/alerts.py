@@ -10,6 +10,8 @@ import logging
 from django.conf import settings
 from django.core.cache import cache
 
+from apps.tenancy.sites import center_name
+
 logger = logging.getLogger(__name__)
 
 COOLDOWN_SECONDS = 600
@@ -31,5 +33,6 @@ def alert(kind: str, text: str, *, cooldown: int = COOLDOWN_SECONDS) -> bool:
 
     from .tasks import send_alert_task
 
-    send_alert_task.delay(f"⚠️ <b>{html.escape(kind)}</b>\n{html.escape(text)}")
+    title = html.escape(f"{center_name()}: {kind}")
+    send_alert_task.delay(f"⚠️ <b>{title}</b>\n{html.escape(text)}")
     return True

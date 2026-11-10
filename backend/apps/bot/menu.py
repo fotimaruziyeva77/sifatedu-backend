@@ -18,6 +18,7 @@ from apps.notifications.texts import day_month
 from apps.rewards.models import GameSettings
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
+from apps.tenancy.sites import is_flagship
 from apps.users import services as user_services
 from apps.users.models import User
 
@@ -232,7 +233,10 @@ def invite(chat: BotChat, user: User) -> None:
     if rewards:
         text += "\n\n" + "\n".join([t(locale, "invite_rewards"), *rewards])
     share = "https://t.me/share/url?" + urlencode(
-        {"url": bot or site, "text": t(locale, "share_text")}
+        {
+            "url": bot or site,
+            "text": t(locale, "share_text" if is_flagship() else "share_text_center"),
+        }
     )
     send(chat.chat_id, text, [[link(t(locale, "btn_share"), share)]])
 

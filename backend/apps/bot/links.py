@@ -9,11 +9,11 @@ import secrets
 from typing import Any
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.core.cache import cache
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.notifications import telegram
+from apps.tenancy.sites import site_url as center_url
 from apps.users.models import User
 
 from .models import BotChat
@@ -44,7 +44,7 @@ def _take(kind: str, token: str) -> dict[str, Any] | None:
 
 
 def base_url() -> str:
-    return str(settings.APP_URL).rstrip("/")
+    return center_url()
 
 
 def bot_url(payload: str = "") -> str | None:

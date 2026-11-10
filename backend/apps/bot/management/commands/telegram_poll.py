@@ -31,7 +31,7 @@ class Command(BaseCommand):
         try:
             info = self.patiently("getWebhookInfo", {})
         except telegram.TelegramNotConfiguredError as exc:
-            raise CommandError("TELEGRAM_BOT_TOKEN bo'sh.") from exc
+            raise CommandError("Bot tokeni kiritilmagan.") from exc
         if info.get("url"):
             if not options["force"]:
                 raise CommandError(

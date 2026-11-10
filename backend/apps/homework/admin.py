@@ -6,7 +6,6 @@ kuzatish uchun ro'yxat va havola.
 
 from typing import Any
 
-from django.conf import settings
 from django.contrib import admin
 from django.db.models import QuerySet
 from django.http import HttpRequest
@@ -15,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, StackedInline
 from unfold.decorators import display
 
+from apps.tenancy.sites import site_url
 from apps.users.roles import sees_all
 
 from . import services
@@ -120,7 +120,7 @@ class SubmissionAdmin(ModelAdmin):
 
     @admin.display(description=_("Kabinetda"))
     def review_link(self, obj: Submission) -> str:
-        url = f"{settings.APP_URL.rstrip('/')}/uz/dashboard/reviews/{obj.pk}"
+        url = f"{site_url()}/uz/dashboard/reviews/{obj.pk}"
         return format_html(
             '<a href="{}" target="_blank" rel="noopener" class="underline">{}</a>',
             url,

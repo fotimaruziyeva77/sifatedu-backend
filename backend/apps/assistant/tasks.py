@@ -7,6 +7,7 @@ from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
 
+from apps.integrations import conf
 from apps.notifications import telegram as telegram_api
 
 from .agent import respond
@@ -60,7 +61,7 @@ def notify_managers(conversation_id: int) -> None:
         lines.append(f"Xulosa: {escape(conversation.summary)}")
     lines.append(f'<a href="{escape(admin_link(conversation))}">Suhbatni ochish</a>')
     try:
-        telegram_api.send_message(settings.TELEGRAM_LEADS_CHAT_ID, "\n".join(lines))
+        telegram_api.send_message(conf.telegram().leads_chat, "\n".join(lines))
     except telegram_api.TelegramNotConfiguredError:
         logger.info("Telegram sozlanmagan: suhbat #%s faqat admin panelda", conversation_id)
 

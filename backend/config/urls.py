@@ -13,7 +13,10 @@ urlpatterns: list[URLPattern | URLResolver] = [
 
 if settings.API_DOCS_ENABLED:
     urlpatterns += [
-        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+        # Sxemada platforma API'si ham bor: frontend tiplari bitta fayldan yig'iladi.
+        path(
+            "api/schema/", SpectacularAPIView.as_view(urlconf="config.urls_schema"), name="schema"
+        ),
         path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     ]
 

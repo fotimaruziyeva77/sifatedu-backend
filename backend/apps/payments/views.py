@@ -8,7 +8,7 @@ from django.utils import translation
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import exceptions, status
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
@@ -60,6 +60,10 @@ class OrderCreateView(APIView):
     )
     def post(self, request: Request) -> Response:
         require_feature(Feature.CLICK)
+        if not click.configured():
+            raise exceptions.ValidationError(
+                {"detail": ["Online to'lov hali ulanmagan. Markaz bilan bog'laning."]}
+            )
         form = OrderCreateSerializer(data=request.data)
         form.is_valid(raise_exception=True)
         data = form.validated_data

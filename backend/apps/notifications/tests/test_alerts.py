@@ -8,6 +8,8 @@ from django.core.cache import cache
 
 from apps.notifications.alerts import alert
 
+pytestmark = pytest.mark.django_db
+
 
 @pytest.fixture(autouse=True)
 def clean_cache() -> None:

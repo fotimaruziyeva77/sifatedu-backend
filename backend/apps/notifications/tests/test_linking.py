@@ -8,6 +8,7 @@ import pytest
 from apps.assistant.models import Conversation
 from apps.bot import router as bot
 from apps.bot.models import BotChat
+from apps.integrations.testing import set_keys
 from apps.notifications import linking, telegram
 from apps.users.models import SocialAccount
 
@@ -127,6 +128,6 @@ def test_any_message_unblocks(replies: mock.MagicMock, settings: Any) -> None:
 
 
 def test_connect_url_needs_bot(settings: Any) -> None:
-    settings.TELEGRAM_BOT_USERNAME = ""
+    set_keys(telegram_username="")
     with mock.patch.object(linking.telegram, "call", side_effect=OSError("offline")):
         assert linking.connect_url(1) is None

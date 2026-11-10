@@ -9,10 +9,16 @@ import math
 import secrets
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
+
+from apps.integrations import conf
+from apps.notifications.alerts import alert
+from apps.tenancy.access import current_center
+from apps.tenancy.sites import is_platform
 
 from .models import OneTimeCode
 
@@ -21,6 +27,8 @@ CODE_TTL = timedelta(minutes=5)
 MAX_ATTEMPTS = 5
 RESEND_SECONDS = 60
 DAILY_LIMIT = 5
+QUOTA_TTL = 40 * 24 * 60 * 60
+PLATFORM_SMS_PER_IP = 40
 
 
 class OtpError(Exception):
@@ -35,6 +43,10 @@ class OtpCooldownError(OtpError):
 
 class OtpDailyLimitError(OtpError):
     pass
+
+
+class OtpQuotaError(OtpError):
+    """Platforma hisobidan ketadigan SMS chegarasi tugadi (IP, kun yoki markazning oyligi)."""
 
 
 class InvalidCodeError(OtpError):
@@ -55,6 +67,34 @@ def _cooldown_key(phone: str) -> str:
     return f"otp:cooldown:{phone}"
 
 
+def _over(key: str, limit: int) -> bool:
+    cache.add(key, 0, QUOTA_TTL)
+    return int(cache.incr(key)) > limit
+
+
+def _spend_platform_sms(ip: str | None) -> None:
+    """Platforma hisobidan ketadigan kodlar (markaz ochish va Eskiz ulanmagan markaz):
+    IP bo'yicha kunlik, platformada umumiy kunlik, markazda tarif bo'yicha oylik chegara."""
+    if settings.SMS_DRY_RUN or not (is_platform() or platform_pays_sms()):
+        return
+    day = f"{timezone.localdate():%Y-%m-%d}"
+    if ip and _over(f"otp-sms-ip:{ip}:{day}", PLATFORM_SMS_PER_IP):
+        raise OtpQuotaError
+    if is_platform():
+        if _over(f"otp-sms-day:{day}", settings.PLATFORM_SMS_DAILY):
+            alert("sms:platform-cap", "Markaz ochish SMS kodlarining kunlik chegarasi tugadi.")
+            raise OtpQuotaError
+        return
+    center = current_center()
+    plan = center.plan if center else None
+    if plan is not None and _over(f"otp-sms:{timezone.localdate():%Y-%m}", plan.otp_sms_monthly):
+        raise OtpQuotaError
+
+
+def platform_pays_sms() -> bool:
+    return not is_platform() and not conf.eskiz().ready
+
+
 def issue_code(phone: str, purpose: str, ip: str | None = None) -> str:
     """Yangi kod yaratadi va qaytaradi (yuborish chaqiruvchining vazifasi)."""
     # cache.add atomik: bir vaqtdagi ikki so'rovdan faqat bittasi o'tadi.
@@ -69,6 +109,7 @@ def issue_code(phone: str, purpose: str, ip: str | None = None) -> str:
     ).count()
     if sent_today >= DAILY_LIMIT:
         raise OtpDailyLimitError
+    _spend_platform_sms(ip)
 
     code = generate_code()
     with transaction.atomic():

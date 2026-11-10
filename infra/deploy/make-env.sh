@@ -140,6 +140,11 @@ DJANGO_SETTINGS_MODULE=config.settings.prod
 DJANGO_SECRET_KEY=$(token 64)
 FIRST_CENTER_DOMAINS=$DOMAIN
 PLATFORM_DOMAIN=platform.$DOMAIN
+CENTERS_BASE_DOMAIN=$DOMAIN
+# Platforma sayti va markaz ochish: docs/saas-domen.md bo'yicha tayyor bo'lgach true.
+SIGNUP_OPEN=false
+# Markaz kalitlari shu sir bilan shifrlanadi: o'zgartirilsa, ular ochilmaydi.
+INTEGRATIONS_SECRET=$(token 48)
 DJANGO_CSRF_TRUSTED_ORIGINS=$APP_URL
 APP_URL=$APP_URL
 API_DOCS_ENABLED=false
@@ -151,7 +156,7 @@ S3_REGION=us-east-1
 S3_PUBLIC_ENDPOINT=$MEDIA_URL
 S3_BUCKET_PRIVATE=sifat-private
 S3_BUCKET_PUBLIC=sifat-public
-S3_CORS_ORIGINS=$APP_URL
+S3_CORS_ORIGINS=$APP_URL,https://*.$DOMAIN
 MAX_VIDEO_SIZE_MB=2048
 VIDEO_PART_SIZE_MB=16
 HLS_SIGNED_URL_TTL_SEC=7200
@@ -200,8 +205,9 @@ EOF
 
 cat > frontend/.env <<EOF
 # Production — infra/deploy/make-env.sh yaratdi ($(date +%F)).
-NEXT_PUBLIC_APP_URL=$APP_URL
 API_INTERNAL_URL=http://backend:8000
+PLATFORM_DOMAIN=platform.$DOMAIN
+FLAGSHIP_DOMAINS=$DOMAIN
 NEXT_PUBLIC_S3_PUBLIC_URL=$MEDIA_URL/sifat-public
 CSP_EXTRA_ORIGINS=
 SENTRY_DSN=$(quote "$SENTRY_FRONTEND")

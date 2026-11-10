@@ -140,7 +140,6 @@ services:
       target: runtime
       # Brauzerga ketadigan sozlamalar build paytida yoziladi (frontend/Dockerfile).
       args:
-        NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost}
         NEXT_PUBLIC_S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000/sifat-public}
         NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_FRONTEND:-}
         NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}

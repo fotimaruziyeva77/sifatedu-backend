@@ -11,10 +11,10 @@ import urllib.request
 from pathlib import PurePosixPath
 from typing import Any
 
-from django.conf import settings
 from django.core.cache import cache
 
 from apps.core.storage import public_storage
+from apps.integrations import conf
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
 
@@ -96,10 +96,13 @@ def call(
     *,
     timeout: float = TIMEOUT_SECONDS,
     files: dict[str, tuple[str, bytes, str]] | None = None,
+    token: str | None = None,
 ) -> Any:
     """Bot API metodini chaqiradi va `result`ni qaytaradi. Xatoda istisno ko'taradi:
-    Telegram rad etsa — `TelegramError`, tarmoq ishlamasa — `OSError`."""
-    token = settings.TELEGRAM_BOT_TOKEN
+    Telegram rad etsa — `TelegramError`, tarmoq ishlamasa — `OSError`.
+
+    Bot — hozirgi markazniki; `token` faqat yangi tokenni saqlashdan oldin tekshirish uchun."""
+    token = token or conf.telegram().token
     if not token:
         raise TelegramNotConfiguredError
     if files:
@@ -134,9 +137,7 @@ def download(file_id: str, *, limit: int) -> bytes:
     path = str((info or {}).get("file_path") or "") if isinstance(info, dict) else ""
     if not path or int(info.get("file_size") or 0) > limit:
         raise TelegramError(0, "fayl topilmadi yoki juda katta")
-    url = FILE_URL.format(
-        token=settings.TELEGRAM_BOT_TOKEN, path=urllib.parse.quote(path, safe="/")
-    )
+    url = FILE_URL.format(token=conf.telegram().token, path=urllib.parse.quote(path, safe="/"))
     with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS * 2) as response:  # noqa: S310
         data = bytes(response.read(limit + 1))
     if len(data) > limit:
@@ -258,6 +259,11 @@ def send_rich(
     send_message(chat_id, text, reply_markup=reply_markup)
 
 
+def forget_username() -> None:
+    """Bot almashganda eski nom ko'rsatilmasin."""
+    cache.delete(BOT_USERNAME_KEY)
+
+
 def bot_username() -> str:
     """Bot nomi (@siz): sozlamadan yoki `getMe` orqali (bir kun keshlanadi). Bo'lmasa — "".
 
@@ -265,9 +271,10 @@ def bot_username() -> str:
     kutib qolmasin."""
     if not has_feature(Feature.BOT):
         return ""
-    if settings.TELEGRAM_BOT_USERNAME:
-        return str(settings.TELEGRAM_BOT_USERNAME).lstrip("@")
-    if not settings.TELEGRAM_BOT_TOKEN:
+    account = conf.telegram()
+    if account.username:
+        return account.username
+    if not account.token:
         return ""
     cached = cache.get(BOT_USERNAME_KEY)
     if cached is not None:

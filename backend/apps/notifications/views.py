@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from django.conf import settings
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.integrations import conf
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
 from apps.users.models import SocialAccount, User
@@ -83,7 +83,7 @@ def settings_data(user: User) -> dict[str, Any]:
     ).first()
     return {
         "telegram": {
-            "available": bool(settings.TELEGRAM_BOT_TOKEN) and has_feature(Feature.BOT),
+            "available": bool(conf.telegram().token) and has_feature(Feature.BOT),
             "connected": account is not None,
             "notify": bool(account and account.notify),
             "blocked": bool(account and account.blocked_at),
@@ -131,7 +131,7 @@ class TelegramConnectView(APIView):
 
     @extend_schema(request=None, responses={200: TelegramConnectSerializer}, tags=["notifications"])
     def post(self, request: Request) -> Response:
-        if not settings.TELEGRAM_BOT_TOKEN or not has_feature(Feature.BOT):
+        if not conf.telegram().token or not has_feature(Feature.BOT):
             raise TelegramUnavailable
         user: User = request.user  # type: ignore[assignment]
         url = linking.connect_url(user.pk)

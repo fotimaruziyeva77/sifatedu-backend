@@ -11,11 +11,11 @@ from datetime import timedelta
 from html import escape as html_escape
 from typing import Any
 
-from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 
 from apps.notifications import telegram as telegram_api
+from apps.tenancy.sites import site_url
 
 from .agent import respond
 from .models import Conversation, Message
@@ -64,7 +64,7 @@ def locale_for(language_code: str | None) -> str:
 
 def card_line(card: dict[str, Any], locale: str) -> str:
     texts = TEXTS[locale]
-    url = f"{settings.APP_URL.rstrip('/')}/{locale}/courses/{card['slug']}"
+    url = f"{site_url()}/{locale}/courses/{card['slug']}"
     if card.get("is_free"):
         price = texts["free"]
     elif card.get("price_online"):

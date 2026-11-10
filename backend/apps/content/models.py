@@ -3,7 +3,7 @@
 from typing import Any
 
 from django.conf import settings
-from django.core.validators import FileExtensionValidator
+from django.core.validators import FileExtensionValidator, RegexValidator
 from django.db import models
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
@@ -12,8 +12,12 @@ from apps.core.html import sanitize_html
 from apps.core.models import TimeStampedModel
 from apps.core.storage import public_storage
 from apps.core.validators import MaxFileSizeValidator
+from apps.tenancy.sites import center_name
 
 PROMO_VIDEO_MAX_MB = 200
+LOGO_MAX_MB = 2
+LOGO_FORMATS = ["png", "jpg", "jpeg", "webp"]
+HEX_COLOR = r"^#[0-9a-fA-F]{6}$"
 
 
 class SiteSettings(models.Model):
@@ -56,6 +60,28 @@ class SiteSettings(models.Model):
         help_text=_("Video boshlanishidan oldin ko'rinadigan rasm (16:9)."),
     )
 
+    logo = models.ImageField(
+        _("logo"),
+        storage=public_storage,
+        upload_to="brand/",
+        blank=True,
+        validators=[FileExtensionValidator(LOGO_FORMATS), MaxFileSizeValidator(LOGO_MAX_MB)],
+    )
+    logo_dark = models.ImageField(
+        _("logo (qorong'i tema)"),
+        storage=public_storage,
+        upload_to="brand/",
+        blank=True,
+        validators=[FileExtensionValidator(LOGO_FORMATS), MaxFileSizeValidator(LOGO_MAX_MB)],
+    )
+    brand_color = models.CharField(
+        _("asosiy rang"),
+        max_length=7,
+        blank=True,
+        validators=[RegexValidator(HEX_COLOR)],
+        help_text=_("Masalan: #2563eb. Bo'sh bo'lsa — standart rang."),
+    )
+
     phone = models.CharField(_("telefon"), max_length=20, blank=True)
     email = models.EmailField(_("email"), blank=True)
     address = models.CharField(_("manzil"), max_length=255, blank=True)
@@ -76,8 +102,6 @@ class SiteSettings(models.Model):
 
     updated_at = models.DateTimeField(_("yangilangan"), auto_now=True)
 
-    DEFAULT_HERO_TITLE = "Sifat Edu"
-
     class Meta:
         verbose_name = _("sayt sozlamalari")
         verbose_name_plural = _("sayt sozlamalari")
@@ -91,9 +115,7 @@ class SiteSettings(models.Model):
 
     @classmethod
     def load(cls) -> "SiteSettings":
-        obj, _created = cls.objects.get_or_create(
-            pk=1, defaults={"hero_title": cls.DEFAULT_HERO_TITLE}
-        )
+        obj, _created = cls.objects.get_or_create(pk=1, defaults={"hero_title": center_name()})
         return obj
 
 

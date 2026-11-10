@@ -27,5 +27,21 @@ TELEGRAM_LEADS_CHAT_ID = ""
 TELEGRAM_ALERTS_CHAT_ID = ""
 TELEGRAM_REPORTS_CHAT_ID = ""
 TELEGRAM_WEBHOOK_SECRET = ""
+CLICK_SERVICE_ID = ""
+CLICK_MERCHANT_ID = ""
+CLICK_MERCHANT_USER_ID = ""
+CLICK_SECRET_KEY = ""
+CLICK_MERCHANT_TIN = ""
+ESKIZ_EMAIL = ""
+ESKIZ_PASSWORD = ""
+# Testlar birinchi markaz nomidan ishlaydi (backend/conftest.py), `second_center` — boshqa markaz.
+FIRST_CENTER_SCHEMA = "test_center"
+SITE_SCHEME = "http"
+SITE_PORT = ""
+PLATFORM_NAME = "Test platforma"
+FIRST_CENTER_NAME = "Test markaz"
+SIGNUP_OPEN = True
+PLATFORM_DOMAIN = "platform.testserver"
+CENTERS_BASE_DOMAIN = "testserver"
 # Disk va xotira — test mashinasiniki; resurs testlari qiymatni o'zi yoqadi.
 RESOURCE_CHECKS = False

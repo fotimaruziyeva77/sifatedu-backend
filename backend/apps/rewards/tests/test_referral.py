@@ -7,12 +7,20 @@ from django.utils import timezone
 
 from apps.catalog.models import Course
 from apps.core import events
+from apps.integrations.testing import set_keys
 from apps.notifications.models import Notification
 from apps.payments.models import Order
 from apps.rewards import referral
 from apps.rewards.models import Coupon, Entry, Wallet
 
 from .conftest import World, api
+
+
+@pytest.fixture(autouse=True)
+def _click(db: None) -> None:
+    # Buyurtma faqat Click ulangan markazda yaratiladi.
+    set_keys(click_service_id="1", click_secret_key="x")
+
 
 pytestmark = pytest.mark.django_db
 

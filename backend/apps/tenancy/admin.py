@@ -16,7 +16,7 @@ from unfold.decorators import display
 from unfold.sites import UnfoldAdminSite
 from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget
 
-from .models import Center, Domain, Plan
+from .models import Center, Domain, Plan, Signup
 from .sections import Feature
 
 
@@ -56,6 +56,26 @@ class PlanAdmin(ModelAdmin):
         return f"{len(obj.features)} / {len(Feature)}"
 
 
+@admin.register(Signup, site=platform_site)
+class SignupAdmin(ModelAdmin):
+    """Faqat kuzatish: arizani platforma emas, markaz egasi to'ldiradi."""
+
+    list_display = ("slug", "name", "plan", "phone", "status", "created_at")
+    list_filter = ("status", "plan")
+    search_fields = ("slug", "name", "phone")
+    ordering = ("-created_at",)
+    fields = ("slug", "name", "plan", "first_name", "last_name", "phone", "status", "center")
+
+    def has_add_permission(self, request: HttpRequest) -> bool:
+        return False
+
+    def has_change_permission(self, request: HttpRequest, obj: Any = None) -> bool:
+        return False
+
+    def has_delete_permission(self, request: HttpRequest, obj: Any = None) -> bool:
+        return False
+
+
 class DomainForm(forms.ModelForm):
     class Meta:
         labels = {"domain": "Manzil", "is_primary": "Asosiy"}
@@ -85,7 +105,16 @@ class CenterForm(forms.ModelForm):
             self.fields["plan"].required = True
 
 
-SETTINGS_FIELDS = ("plan", "extra_features", "paid_until", "is_suspended")
+SETTINGS_FIELDS = (
+    "plan",
+    "extra_features",
+    "paid_until",
+    "is_trial",
+    "is_suspended",
+    "ai_monthly_usd",
+    "owner_name",
+    "owner_phone",
+)
 USAGE_FIELDS = ("students_count", "staff_count", "disk")
 
 
@@ -93,8 +122,8 @@ USAGE_FIELDS = ("students_count", "staff_count", "disk")
 class CenterAdmin(ModelAdmin):
     form = CenterForm
     list_display = ("name", "schema", "address", "plan", "status", "paid_until", *USAGE_FIELDS)
-    list_filter = ("plan", "is_suspended")
-    search_fields = ("name", "schema_name", "domains__domain")
+    list_filter = ("plan", "is_trial", "is_suspended")
+    search_fields = ("name", "schema_name", "domains__domain", "owner_phone")
     ordering = ("-created_at",)
     inlines = (DomainInline,)
 

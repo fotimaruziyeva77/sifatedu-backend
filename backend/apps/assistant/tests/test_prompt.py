@@ -9,6 +9,7 @@ from apps.assistant.models import AssistantSettings, Conversation
 from apps.assistant.prompt import build_system_prompt, context_block
 from apps.catalog.models import Course, Lesson, Module
 from apps.content.models import FAQItem, SiteSettings
+from apps.integrations.testing import set_keys
 from apps.placement.models import PlacementTest
 from apps.quizzes.models import Quiz
 from apps.quizzes.parser import parse
@@ -72,7 +73,7 @@ def test_context_block(conversation: Conversation, db: Any) -> None:
 
 
 def test_prompt_offers_level_test_and_coupon(courses: list[Course], settings: Any) -> None:
-    settings.TELEGRAM_BOT_USERNAME = "sifat_test_bot"
+    set_keys(telegram_username="sifat_test_bot")
     assert "## Bepul daraja testi" not in build_system_prompt("ru")  # faol test yo'q
 
     module = Module.objects.create(course=courses[0], title_uz="Daraja testi")

@@ -12,6 +12,8 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from apps.assistant.budget import within_budget
+from apps.assistant.models import AssistantSettings
 from apps.catalog.models import Course, Lesson, LessonMaterial, Module
 
 from . import ai
@@ -50,6 +52,8 @@ def create(
     check_file(upload)
     if not ai.ready():
         raise DraftError("AI kaliti sozlanmagan: serverda GEMINI_API_KEY kiritilishi kerak.")
+    if not within_budget(AssistantSettings.load()):
+        raise DraftError("AI budjeti tugadi. Keyingi oy yoki budjet oshirilgach qayta urining.")
     with transaction.atomic():
         if topic is None:
             title = new_title.strip()

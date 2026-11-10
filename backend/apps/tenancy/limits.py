@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from django.core.cache import cache
 from rest_framework import exceptions
 
 from .access import current_center
@@ -9,6 +10,9 @@ from .models import Plan
 
 GIB = 1024**3
 UPGRADE_HINT = "Tarifni oshirish uchun platforma bilan bog'laning."
+# Oxirgi hisobdan keyin yuklanganlar (bayt): `tasks.refresh_usage` har kecha nolga tushiradi.
+PENDING_DISK_KEY = "disk:pending"
+PENDING_DISK_TTL = 3 * 24 * 60 * 60
 
 
 class LimitReached(exceptions.APIException):
@@ -61,10 +65,16 @@ def check_new_staff(user: Any) -> None:
         raise LimitReached(f"Xodimlar soni tarif chegarasiga yetdi. {UPGRADE_HINT}")
 
 
-def check_disk() -> None:
-    """Yangi yuklashdan oldin. Hajm har kecha hisoblanadi (`tasks.refresh_usage`)."""
+def check_disk(size: int = 0) -> None:
+    """Yangi yuklashdan oldin. Hajm har kecha hisoblanadi (`tasks.refresh_usage`), undan keyin
+    yuklanganlari `size` bo'yicha qo'shib boriladi: chegara kun davomida ham ishlaydi."""
     center = current_center()
     if center is None or center.plan is None or center.plan.max_disk_gb is None:
         return
-    if center.disk_bytes >= center.plan.max_disk_gb * GIB:
+    limit = center.plan.max_disk_gb * GIB
+    used = center.disk_bytes + int(cache.get(PENDING_DISK_KEY, 0))
+    if used >= limit or used + size > limit:
         raise LimitReached(f"Fayllar uchun joy tugadi. {UPGRADE_HINT}")
+    if size > 0:
+        cache.add(PENDING_DISK_KEY, 0, PENDING_DISK_TTL)
+        cache.incr(PENDING_DISK_KEY, size)

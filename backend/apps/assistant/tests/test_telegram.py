@@ -37,7 +37,7 @@ def test_text_gets_answer(sent: Any, dry_run: None, courses: list[Course]) -> No
 
     text = sent.call_args.args[1]
     assert text.startswith("🧪 Test rejimi")
-    assert "http://localhost/uz/courses/frontend" in text
+    assert "http://testserver/uz/courses/frontend" in text
     # Botning pastki menyusi o'z joyida qoladi.
     assert sent.call_args.kwargs.get("reply_markup") is None
     conversation = Conversation.objects.get()
@@ -68,5 +68,5 @@ def test_render_escapes_html_and_keeps_bold() -> None:
 
     assert html.startswith("<b>Frontend</b> — &lt;script&gt;")
     assert (
-        "<b>Frontend &lt;b&gt;</b> — 1 200 000 so'm\nhttp://localhost/ru/courses/frontend" in html
+        "<b>Frontend &lt;b&gt;</b> — 1 200 000 so'm\nhttp://testserver/ru/courses/frontend" in html
     )

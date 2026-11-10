@@ -3,11 +3,14 @@
 from django.urls import include, path
 
 from apps.core.views import HealthView
+from apps.integrations.views import WelcomeView
 from apps.tenancy.views import CenterInfoView
 
 urlpatterns = [
     path("health/", HealthView.as_view(), name="health"),
     path("center/", CenterInfoView.as_view(), name="center"),
+    path("center/welcome/<str:token>/", WelcomeView.as_view(), name="center-welcome"),
+    path("center/", include("apps.integrations.urls")),
     path("", include("apps.assistant.urls")),
     path("", include("apps.bot.urls")),
     path("", include("apps.catalog.urls")),

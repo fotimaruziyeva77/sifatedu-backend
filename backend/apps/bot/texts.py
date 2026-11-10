@@ -1,5 +1,7 @@
 """Bot matnlari (3 tilda). Til — botda tanlangani (`BotChat.language`)."""
 
+from apps.tenancy.sites import rebrand
+
 LANGUAGES = {"uz": "🇺🇿 O'zbekcha", "ru": "🇷🇺 Русский", "en": "🇬🇧 English"}
 CHOOSE_LANGUAGE = "Tilni tanlang · Выберите язык · Choose a language"
 
@@ -95,6 +97,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "invite_discount": "🎉 Do'stingizga birinchi to'lovda <b>{percent}% chegirma</b>",
         "btn_share": "📤 Do'stlarga yuborish",
         "share_text": "Sifat Edu'da IT o'rganyapman — sen ham qo'shil!",
+        "share_text_center": "Sifat Edu'da o'qiyapman — sen ham qo'shil!",
         "settings": "⚙️ <b>Sozlamalar</b>\n\nTil: {language}\nYangiliklar: {news}",
         "news_on": "yoqilgan ✅",
         "news_off": "o'chirilgan",
@@ -449,6 +452,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "invite_discount": "🎉 Другу — <b>скидка {percent}%</b> на первую оплату",
         "btn_share": "📤 Отправить друзьям",
         "share_text": "Изучаю IT в Sifat Edu — присоединяйся!",
+        "share_text_center": "Учусь в Sifat Edu — присоединяйся!",
         "settings": "⚙️ <b>Настройки</b>\n\nЯзык: {language}\nНовости: {news}",
         "news_on": "включены ✅",
         "news_off": "выключены",
@@ -788,6 +792,7 @@ TEXTS: dict[str, dict[str, str]] = {
         "invite_discount": "🎉 Your friend gets <b>{percent}% off</b> the first payment",
         "btn_share": "📤 Send to friends",
         "share_text": "I am learning IT at Sifat Edu — join me!",
+        "share_text_center": "I am studying at Sifat Edu — join me!",
         "settings": "⚙️ <b>Settings</b>\n\nLanguage: {language}\nNews: {news}",
         "news_on": "on ✅",
         "news_off": "off",
@@ -1081,4 +1086,4 @@ def language(value: str | None) -> str:
 
 def t(locale: str | None, key: str, **params: object) -> str:
     template = TEXTS[language(locale)].get(key) or TEXTS["uz"][key]
-    return template.format(**params) if params else template
+    return rebrand(template.format(**params) if params else template)

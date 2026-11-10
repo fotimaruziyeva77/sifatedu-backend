@@ -6,6 +6,7 @@ from celery import Task, shared_task
 from django.conf import settings
 from django.db.models import Max, Q
 from django.utils import timezone, translation
+from django_tenants.utils import get_public_schema_name, schema_context
 
 from . import services, telegram
 from .models import Broadcast, Delivery, Notification
@@ -24,13 +25,19 @@ EXPIRING_DAYS = 3
     retry_backoff_max=60,
     max_retries=3,
 )
-def send_sms_task(phone: str, text: str) -> None:
-    """SMS navbat orqali yuboriladi: provayder vaqtincha ishlamasa, qayta uriniladi."""
+def send_sms_task(phone: str, text: str, *, platform: bool = False) -> None:
+    """SMS navbat orqali yuboriladi: provayder vaqtincha ishlamasa, qayta uriniladi.
+
+    `platform` — markazning Eskiz'i ulanmagan, kod platforma hisobidan ketadi."""
     try:
-        send_sms(phone, text)
+        if platform:
+            with schema_context(get_public_schema_name()):
+                send_sms(phone, text)
+        else:
+            send_sms(phone, text)
     except SmsNotConfiguredError:
         # Production'da bu xato — foydalanuvchi kodni olmaydi (Sentry'ga ham tushadi).
-        logger.error("SMS sozlanmagan: ESKIZ_EMAIL/ESKIZ_PASSWORD yo'q, SMS yuborilmadi")
+        logger.error("SMS sozlanmagan: Eskiz hisobi kiritilmagan, SMS yuborilmadi")
 
 
 @shared_task(
@@ -40,9 +47,10 @@ def send_sms_task(phone: str, text: str) -> None:
     max_retries=3,
 )
 def send_alert_task(text: str) -> None:
-    """Jamoa chatiga ogohlantirish (apps/notifications/alerts.py)."""
+    """Jamoa chatiga ogohlantirish (apps/notifications/alerts.py): doim platforma botidan."""
     try:
-        telegram.send_message(settings.TELEGRAM_ALERTS_CHAT_ID, text)
+        with schema_context(get_public_schema_name()):
+            telegram.send_message(settings.TELEGRAM_ALERTS_CHAT_ID, text)
     except telegram.TelegramNotConfiguredError:
         logger.warning("Ogohlantirish yuborilmadi: Telegram sozlanmagan")
 

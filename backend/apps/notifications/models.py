@@ -52,7 +52,7 @@ class Broadcast(TimeStampedModel):
     class Audience(models.TextChoices):
         ALL = "ALL", _("Hamma")
         ADULT = "ADULT", _("Kattalar")
-        KIDS = "KIDS", _("SIFAT Kids")
+        KIDS = "KIDS", _("Kids (7–11 yosh)")
 
     class Status(models.TextChoices):
         DRAFT = "DRAFT", _("Qoralama")

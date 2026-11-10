@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.bot.models import BotChat
+from apps.integrations.testing import set_keys
 from apps.leads.models import Lead
 from apps.notifications import telegram
 from apps.stats import metrics, report
@@ -75,9 +76,9 @@ def test_teacher_sees_regular_index() -> None:
 
 
 def test_report_text_and_recipients(settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = "test-token"
-    settings.TELEGRAM_REPORTS_CHAT_ID = "-100500"
-    settings.APP_URL = "https://sifatedu.uz"
+    set_keys(telegram_token="test-token")
+    set_keys(telegram_reports_chat_id="-100500")
+    settings.SITE_SCHEME = "https"
     director = staff("+998909000003", Role.DIRECTOR, telegram_id=31)
     staff("+998909000004", Role.MANAGER, telegram_id=32)  # menejerga hisobot bormaydi
     staff("+998909000005", Role.ADMIN)  # Telegram ulanmagan
@@ -92,12 +93,12 @@ def test_report_text_and_recipients(settings: Any) -> None:
     text = sent.call_args.args[1]
     assert "Ro'yxatdan o'tdi: <b>1</b>" in text
     assert "Arizalar: <b>1</b>" in text
-    assert "https://sifatedu.uz/admin/" in text
+    assert "https://testserver/admin/" in text
     assert director.social_accounts.get().blocked_at is None
 
 
 def test_report_marks_blocked_director(settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = "test-token"
+    set_keys(telegram_token="test-token")
     director = staff("+998909000006", Role.DIRECTOR, telegram_id=41)
 
     with mock.patch.object(
@@ -109,7 +110,7 @@ def test_report_marks_blocked_director(settings: Any) -> None:
 
 
 def test_report_without_bot_is_skipped(settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = ""
+    set_keys(telegram_token="")
 
     assert report.send_daily_report() == 0
     assert "Muammo yo'q" in report.render(metrics.period("today"))

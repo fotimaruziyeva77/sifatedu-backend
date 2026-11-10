@@ -5,15 +5,19 @@ import secrets
 from dataclasses import asdict
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone, translation
 
 from apps.content.models import LegalPage
+from apps.integrations import conf
 from apps.notifications.tasks import send_sms_task
+from apps.tenancy.sites import center_name
 
 from .models import SocialAccount, User
+from .otp import platform_pays_sms
 from .roles import Role
 from .social import SocialProfile
 from .tasks import fetch_social_avatar
@@ -25,18 +29,22 @@ LOGIN_LOCK_SECONDS = 15 * 60
 
 # Eskiz'da har bir matn oldindan tasdiqlanadi: shablonni o'zgartirsangiz, qayta tasdiqlating.
 SMS_TEMPLATES = {
-    "uz": "Sifat Edu: tasdiqlash kodi {code}. Uni hech kimga aytmang.",
-    "ru": "Sifat Edu: код подтверждения {code}. Никому его не сообщайте.",
-    "en": "Sifat Edu: your code is {code}. Do not share it with anyone.",
+    "uz": "{brand}: tasdiqlash kodi {code}. Uni hech kimga aytmang.",
+    "ru": "{brand}: код подтверждения {code}. Никому его не сообщайте.",
+    "en": "{brand}: your code is {code}. Do not share it with anyone.",
 }
 
 
 def send_code_sms(phone: str, code: str) -> None:
-    """Kod SMS'i so'rov tilida; tranzaksiya muvaffaqiyatli tugagandan so'ng navbatga qo'yiladi."""
+    """Kod SMS'i so'rov tilida; tranzaksiya muvaffaqiyatli tugagandan so'ng navbatga qo'yiladi.
+
+    Eskiz ulanmagan markazda platforma hisobidan va platforma nomi bilan (shablon tasdiqlangan)."""
     language = translation.get_language() or "uz"
     template = SMS_TEMPLATES.get(language[:2], SMS_TEMPLATES["uz"])
-    text = template.format(code=code)
-    transaction.on_commit(lambda: send_sms_task.delay(phone, text))
+    platform = platform_pays_sms()
+    brand = settings.PLATFORM_NAME if platform else (conf.eskiz().brand or center_name())
+    text = template.format(brand=brand, code=code)
+    transaction.on_commit(lambda: send_sms_task.delay(phone, text, platform=platform))
 
 
 def _failures_key(phone: str) -> str:

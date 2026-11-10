@@ -5,6 +5,7 @@ import pytest
 from django.core.cache import cache
 from django.test import override_settings
 
+from apps.integrations.testing import set_keys
 from apps.notifications import sms
 
 
@@ -22,14 +23,17 @@ def test_dry_run_does_not_call_provider(caplog: Any) -> None:
     assert "123456" in caplog.text
 
 
-@override_settings(SMS_DRY_RUN=False, ESKIZ_EMAIL="", ESKIZ_PASSWORD="")
+@pytest.mark.django_db
+@override_settings(SMS_DRY_RUN=False)
 def test_missing_credentials_raise() -> None:
     with pytest.raises(sms.SmsNotConfiguredError):
         sms.send_sms("+998901234567", "matn")
 
 
-@override_settings(SMS_DRY_RUN=False, ESKIZ_EMAIL="a@b.uz", ESKIZ_PASSWORD="parol")
+@pytest.mark.django_db
+@override_settings(SMS_DRY_RUN=False)
 def test_token_is_refreshed_once_on_401() -> None:
+    set_keys(eskiz_email="a@b.uz", eskiz_password="parol")
     responses = [
         (200, {"data": {"token": "eski"}}),
         (401, {"message": "Expired"}),
@@ -46,8 +50,10 @@ def test_token_is_refreshed_once_on_401() -> None:
     assert cache.get(sms.TOKEN_CACHE_KEY) == "yangi"
 
 
-@override_settings(SMS_DRY_RUN=False, ESKIZ_EMAIL="a@b.uz", ESKIZ_PASSWORD="parol")
+@pytest.mark.django_db
+@override_settings(SMS_DRY_RUN=False)
 def test_provider_error_is_raised_for_retry() -> None:
+    set_keys(eskiz_email="a@b.uz", eskiz_password="parol")
     cache.set(sms.TOKEN_CACHE_KEY, "token")
     with (
         mock.patch("apps.notifications.sms._post", return_value=(500, {})),

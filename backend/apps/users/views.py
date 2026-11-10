@@ -18,6 +18,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.core.request import get_client_ip
+from apps.integrations import conf
 
 from . import otp, services
 from .models import OneTimeCode, User
@@ -54,6 +55,11 @@ class OtpCooldown(exceptions.Throttled):
 class OtpDailyLimit(exceptions.Throttled):
     default_detail = _("Bugun bu raqamga juda ko'p kod yuborildi. Ertaga qayta urinib ko'ring.")
     default_code = "otp_daily_limit"
+
+
+class OtpQuota(exceptions.Throttled):
+    default_detail = _("Markazning SMS chegarasi tugadi. Markaz ma'muriyatiga murojaat qiling.")
+    default_code = "otp_quota"
 
 
 class LoginLocked(exceptions.Throttled):
@@ -132,6 +138,8 @@ class OtpView(CsrfProtectedView):
                 raise OtpCooldown(wait=exc.seconds) from exc
             except otp.OtpDailyLimitError as exc:
                 raise OtpDailyLimit from exc
+            except otp.OtpQuotaError as exc:
+                raise OtpQuota from exc
             services.send_code_sms(phone, code)
 
         return Response({"resend_in": otp.RESEND_SECONDS})
@@ -275,7 +283,7 @@ class SocialProvidersView(APIView):
         return Response(
             {
                 "google_client_id": settings.GOOGLE_CLIENT_ID if google_enabled() else "",
-                "telegram_bot": settings.TELEGRAM_BOT_USERNAME if telegram_enabled() else "",
+                "telegram_bot": conf.telegram().username if telegram_enabled() else "",
             }
         )
 

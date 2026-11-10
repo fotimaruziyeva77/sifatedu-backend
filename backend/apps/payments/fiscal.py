@@ -13,6 +13,8 @@ from typing import Any
 
 from django.conf import settings
 
+from apps.integrations import conf
+
 from .models import PaymentTransaction
 
 logger = logging.getLogger(__name__)
@@ -33,7 +35,7 @@ def receipt_items(payment: PaymentTransaction) -> list[dict[str, Any]]:
             "Price": order.amount,
             "Amount": order.amount,
             "VatPercent": DEFAULT_VAT_PERCENT,
-            "CommissionInfo": {"TIN": settings.CLICK_MERCHANT_TIN},
+            "CommissionInfo": {"TIN": conf.click().tin},
         }
     ]
 
@@ -41,7 +43,7 @@ def receipt_items(payment: PaymentTransaction) -> list[dict[str, Any]]:
 def submit(payment: PaymentTransaction) -> str:
     """Chekni fiskalizatsiyaga yuboradi va chek havolasini qaytaradi."""
     items = receipt_items(payment)
-    if settings.FISCAL_DRY_RUN or not settings.CLICK_MERCHANT_TIN:
+    if settings.FISCAL_DRY_RUN or not conf.click().tin:
         logger.info(
             "Fiskal chek (dry-run): tranzaksiya=%s, summa=%s, MXIK=%s",
             payment.provider_trans_id,

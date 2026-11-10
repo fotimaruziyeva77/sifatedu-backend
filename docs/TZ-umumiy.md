@@ -888,7 +888,7 @@ ma'lumotini ko'rmaydi. Sifat Edu — birinchi markaz.
 
 **Har markazning o'zi:**
 - Domen (o'ziniki yoki platforma subdomeni), HTTPS avtomatik.
-- Brend: nomi, logo, favicon, ranglar. Landing matnlari, kurslar, ustozlar, oferta va maxfiylik
+- Brend: nomi, logo va asosiy rang. Landing matnlari, kurslar, ustozlar, oferta va maxfiylik
   siyosati — admin'dan.
 - Telegram bot (o'z tokeni): ro'yxatdan o'tish, testlar, xabarlar va yangiliklar shu bot orqali.
 - Click hisobi (pul to'g'ridan-to'g'ri markazga), fiskal ma'lumotlar (STIR, MXIK).
@@ -896,7 +896,9 @@ ma'lumotini ko'rmaydi. Sifat Edu — birinchi markaz.
 - Maxfiy kalitlar (bot, Click, Eskiz) bazada shifrlangan holda saqlanadi.
 
 **Markazni ochish:** markaz saytda o'zi ro'yxatdan o'tadi (nom, manzil, egasi, telefon SMS bilan
-tasdiqlanadi) va darhol sinov muddati bilan ishlay boshlaydi.
+tasdiqlanadi) va darhol sinov muddati bilan ishlay boshlaydi. Bitta telefon raqamiga bitta markaz.
+Markazning o'z Eskiz'i ulanmaguncha o'quvchilarning SMS kodlari platforma hisobidan yuboriladi
+(tarif bo'yicha oylik chegara).
 
 **Tarif:** qaysi bo'limlar ochiq va cheklovlar (o'quvchi, xodim, filial soni, disk, AI budjeti).
 Tarifga kirmagan bo'lim saytda, admin panelda, API'da, botda va fon vazifalarida yopiq.
@@ -1640,7 +1642,8 @@ Har bir loyihaning o'z `.env` fayli bor. Root'dagi `.env` faqat Docker Compose u
 ### `frontend/.env`
 
 ```env
-NEXT_PUBLIC_APP_URL=
+PLATFORM_DOMAIN=
+FLAGSHIP_DOMAINS=
 API_INTERNAL_URL=http://backend:8000   # SSR uchun (Docker tarmog'i ichida)
 NEXT_PUBLIC_SENTRY_DSN=
 NEXT_PUBLIC_GA_ID=
@@ -1654,6 +1657,10 @@ DJANGO_SETTINGS_MODULE=config.settings.prod
 DJANGO_SECRET_KEY=
 FIRST_CENTER_DOMAINS=
 PLATFORM_DOMAIN=
+CENTERS_BASE_DOMAIN=
+PLATFORM_NAME=
+INTEGRATIONS_SECRET=
+SIGNUP_OPEN=
 DJANGO_CSRF_TRUSTED_ORIGINS=
 APP_URL=
 

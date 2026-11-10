@@ -21,6 +21,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.integrations import conf
 from apps.learning import access
 from apps.live.gates import tasks_open
 from apps.quizzes.models import Quiz
@@ -63,7 +64,7 @@ class WebhookView(APIView):
 
     @extend_schema(exclude=True)
     def post(self, request: Request) -> Response:
-        secret = settings.TELEGRAM_WEBHOOK_SECRET
+        secret = conf.telegram().webhook_secret
         given = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
         if not secret or not constant_time_compare(given, secret):
             return Response(status=403)

@@ -14,11 +14,8 @@ from .helpers import make_course
 def _isolated(settings: Any) -> Iterator[None]:
     # Throttle va budjet hisoblagichlari keshda; .env qiymatlari testga ta'sir qilmasin.
     cache.clear()
-    settings.APP_URL = "http://localhost"
     settings.GEMINI_API_KEY = ""
     settings.ASSISTANT_DRY_RUN = False
-    settings.TELEGRAM_BOT_TOKEN = ""
-    settings.TELEGRAM_WEBHOOK_SECRET = ""
     settings.GEMINI_PRICE_INPUT = 2.0
     settings.GEMINI_PRICE_OUTPUT = 10.0
     yield

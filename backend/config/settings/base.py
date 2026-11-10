@@ -7,7 +7,6 @@ from urllib.parse import urlsplit
 
 import environ
 from celery.schedules import crontab
-from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.module_loading import import_string
 
@@ -37,6 +36,10 @@ ALLOWED_HOSTS = ["*"]
 USE_X_FORWARDED_HOST = True
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 APP_URL = env("APP_URL", default="http://localhost")
+_app_url = urlsplit(APP_URL)
+# Markaz manzili uning asosiy domenidan (`apps/tenancy/sites.py`), sxema va port — shu yerdan.
+SITE_SCHEME = _app_url.scheme or "https"
+SITE_PORT = f":{_app_url.port}" if _app_url.port else ""
 API_DOCS_ENABLED = env.bool("API_DOCS_ENABLED", default=False)
 
 # --- Ko'p markazlilik (django-tenants) ---
@@ -92,6 +95,7 @@ TENANT_APPS = [
     "apps.dailytest",
     "apps.bot",
     "apps.stats",
+    "apps.integrations",
 ]
 INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
 TENANT_MODEL = "tenancy.Center"
@@ -102,6 +106,19 @@ DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter"]
 LEGACY_STORAGE_SCHEMAS = env.list("LEGACY_STORAGE_SCHEMAS", default=["sifat"])
 # Platforma (super admin) manzili va birinchi markaz: `ensure_center`, `adopt_center`.
 PLATFORM_DOMAIN = env("PLATFORM_DOMAIN", default="platform.localhost")
+PLATFORM_NAME = env("PLATFORM_NAME", default="Markaz CRM")
+# Yangi markaz manzili: `<nom>.<CENTERS_BASE_DOMAIN>`.
+CENTERS_BASE_DOMAIN = env("CENTERS_BASE_DOMAIN", default=PLATFORM_DOMAIN.removeprefix("platform."))
+# Markaz kalitlari (bot, Click, Eskiz) shu sir bilan shifrlanadi: o'zgarsa, ular ochilmaydi.
+INTEGRATIONS_SECRET = env("INTEGRATIONS_SECRET", default=SECRET_KEY)
+# Markaz to'xtatilganda va platforma saytida ko'rinadigan aloqa.
+PLATFORM_SUPPORT_PHONE = env("PLATFORM_SUPPORT_PHONE", default="")
+PLATFORM_SUPPORT_TELEGRAM = env("PLATFORM_SUPPORT_TELEGRAM", default="")
+# Platforma sayti va markaz ochish. Nom, domen, HTTPS va SMS tayyor bo'lgach yoqiladi
+# (docs/saas-domen.md): oddiy deploy hech narsani tashqariga ochmaydi.
+SIGNUP_OPEN = env.bool("SIGNUP_OPEN", default=False)
+# Markaz ochish arizalariga bir kunda ketadigan SMS kodlar (platforma hisobidan).
+PLATFORM_SMS_DAILY = env.int("PLATFORM_SMS_DAILY", default=300)
 FIRST_CENTER_SCHEMA = env("FIRST_CENTER_SCHEMA", default="sifat")
 FIRST_CENTER_NAME = env("FIRST_CENTER_NAME", default="Sifat Edu")
 FIRST_CENTER_DOMAINS = env.list(
@@ -257,7 +274,9 @@ VIDEO_KEY_SECRET = env("VIDEO_KEY_SECRET", default=SECRET_KEY)
 FFMPEG_BIN = env("FFMPEG_BIN", default="ffmpeg")
 FFPROBE_BIN = env("FFPROBE_BIN", default="ffprobe")
 # Brauzer S3'ga o'zi murojaat qiladi, shuning uchun bucket'da CORS kerak.
-S3_CORS_ORIGINS = env.list("S3_CORS_ORIGINS", default=[APP_URL])
+S3_CORS_ORIGINS = env.list(
+    "S3_CORS_ORIGINS", default=[APP_URL, f"{SITE_SCHEME}://*.{CENTERS_BASE_DOMAIN}{SITE_PORT}"]
+)
 
 # --- DRF va OpenAPI ---
 REST_FRAMEWORK = {
@@ -294,6 +313,8 @@ REST_FRAMEWORK = {
         "telegram_link": "10/hour",
         # Uy vazifasi javobi (fayllar bilan).
         "homework": "30/hour",
+        # Markaz ochish (IP bo'yicha); kod limitlari — apps/users/otp.py.
+        "signup": "10/hour",
         # Test: har bir javob alohida so'rov.
         "quiz": "600/hour",
     },
@@ -460,6 +481,18 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.tenancy.tasks.refresh_usage",
         "schedule": crontab(hour=2, minute=40),
     },
+    # Uzilib qolgan markaz tayyorlash: ariza «xato» bo'ladi, ega qayta urinadi.
+    "fail-stuck-signups": {
+        "task": "apps.tenancy.tasks.fail_stuck_signups",
+        "schedule": 300.0,
+        "tenant_schemas": ["public"],
+    },
+    # Tasdiqlanmagan va xato bo'lgan markaz arizalari (telefon, parol xeshi) saqlanib qolmasin.
+    "purge-signups": {
+        "task": "apps.tenancy.tasks.purge_signups",
+        "schedule": crontab(hour=3, minute=40),
+        "tenant_schemas": ["public"],
+    },
     # Kunlik hisobot direktor va adminlarga (Telegram).
     "daily-report": {
         "task": "apps.stats.tasks.send_daily_report",
@@ -484,7 +517,9 @@ SMS_PRICE_UZS = env.int("SMS_PRICE_UZS", default=100)
 # --- Ijtimoiy kirish ---
 # Google Cloud Console → OAuth client ID (Web). Bo'sh bo'lsa, tugma saytda ko'rinmaydi.
 GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
-# Telegram Login Widget: bot nomi (@siz) va leads bilan umumiy TELEGRAM_BOT_TOKEN.
+# Quyidagi `TELEGRAM_*`, `CLICK_*` va `ESKIZ_*` qiymatlari birinchi markazga bir marta ko'chiriladi
+# (`integrations` migratsiyasi); keyin har markaz o'z kalitlarini kabinetda boshqaradi. `.env`da
+# qoladigani — platformaniki: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_ALERTS_CHAT_ID` va `ESKIZ_*`.
 TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", default="")
 
 # --- To'lov (Click SHOP API) ---
@@ -557,18 +592,13 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
 
 # --- Admin (Unfold) ---
 UNFOLD = {
-    "SITE_TITLE": "Sifat Edu",
-    "SITE_HEADER": "Sifat Edu",
+    "SITE_TITLE": "apps.core.admin_config.site_title",
+    "SITE_HEADER": "apps.core.admin_config.site_title",
     "SITE_SUBHEADER": "Boshqaruv paneli",
     "SITE_URL": "/",
     "SITE_SYMBOL": "school",
-    "SITE_LOGO": {
-        "light": lambda request: static("brand/logo-light.svg"),
-        "dark": lambda request: static("brand/logo-dark.svg"),
-    },
-    "SITE_FAVICONS": [
-        {"rel": "icon", "type": "image/svg+xml", "href": lambda request: static("brand/icon.svg")},
-    ],
+    "SITE_LOGO": "apps.core.admin_config.site_logo",
+    "SITE_FAVICONS": "apps.core.admin_config.site_favicons",
     "SHOW_VIEW_ON_SITE": True,
     "ENVIRONMENT": "apps.core.admin_config.environment_callback",
     # Bosh sahifa: kunlik statistika va muammolar (ruxsati borlarga).
@@ -971,7 +1001,6 @@ UNFOLD_PLATFORM = {
     "SITE_SUBHEADER": "Markazlar boshqaruvi",
     "SITE_URL": "/admin/",
     "SITE_SYMBOL": "hub",
-    "SITE_FAVICONS": UNFOLD["SITE_FAVICONS"],
     "SHOW_VIEW_ON_SITE": False,
     "ENVIRONMENT": UNFOLD["ENVIRONMENT"],
     "SIDEBAR": {
@@ -990,6 +1019,11 @@ UNFOLD_PLATFORM = {
                         "title": "Tariflar",
                         "icon": "sell",
                         "link": reverse_lazy("admin:tenancy_plan_changelist"),
+                    },
+                    {
+                        "title": "Arizalar",
+                        "icon": "how_to_reg",
+                        "link": reverse_lazy("admin:tenancy_signup_changelist"),
                     },
                 ],
             },

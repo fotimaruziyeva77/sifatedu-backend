@@ -1,7 +1,35 @@
 """Unfold admin uchun callback'lar: muhit belgisi, menyudagi sonlar va havolalar."""
 
+from typing import Any
+
 from django.conf import settings
 from django.http import HttpRequest
+from django.templatetags.static import static
+
+from apps.tenancy.sites import center_name, is_flagship
+
+
+def site_title(request: HttpRequest) -> str:
+    return center_name()
+
+
+def site_logo(request: HttpRequest) -> dict[str, str] | None:
+    """Markaz logosi; bo'lmasa panelda nomi ko'rinadi. Birinchi markazda — o'z vektor logolari."""
+    if is_flagship():
+        return {"light": static("brand/logo-light.svg"), "dark": static("brand/logo-dark.svg")}
+    from apps.content.models import SiteSettings
+
+    site = SiteSettings.load()
+    if not site.logo:
+        return None
+    light = site.logo.url
+    return {"light": light, "dark": site.logo_dark.url if site.logo_dark else light}
+
+
+def site_favicons(request: HttpRequest) -> list[dict[str, Any]]:
+    if is_flagship():
+        return [{"rel": "icon", "type": "image/svg+xml", "href": static("brand/icon.svg")}]
+    return []
 
 
 def environment_callback(request: HttpRequest) -> list[str] | None:

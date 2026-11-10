@@ -62,7 +62,7 @@ class UploadStartView(StaffVideoView):
         form.is_valid(raise_exception=True)
         payload = form.validated_data
         # Fayl to'g'ridan-to'g'ri storage'ga ketadi: chegara shu yerda tekshiriladi.
-        check_disk()
+        check_disk(payload["size"])
 
         video = VideoAsset.objects.create(
             title=payload.get("title") or payload["filename"],

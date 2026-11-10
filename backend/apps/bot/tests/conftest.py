@@ -10,6 +10,7 @@ from django.core.cache import cache
 
 from apps.bot.models import BotChat
 from apps.catalog.models import Category, Course, Lesson, Module
+from apps.integrations.testing import set_keys
 from apps.learning.models import Enrollment, StudyGroup
 from apps.notifications import telegram
 from apps.quizzes.models import Quiz
@@ -26,7 +27,7 @@ SENDER = {
     "username": "aziz",
     "language_code": "uz",
 }
-APP = "https://sifatedu.uz"
+APP = "https://testserver"
 
 
 @dataclass
@@ -137,11 +138,11 @@ def contact(phone: str, user_id: int = TG_ID, sender: dict[str, Any] = SENDER) -
 
 
 @pytest.fixture(autouse=True)
-def bot_settings(settings: Any) -> Iterator[None]:
+def bot_settings(settings: Any, db: None) -> Iterator[None]:
     cache.clear()
-    settings.TELEGRAM_BOT_TOKEN = "test-token"
-    settings.TELEGRAM_BOT_USERNAME = "sifat_test_bot"
-    settings.APP_URL = APP
+    set_keys(telegram_token="test-token")
+    set_keys(telegram_username="sifat_test_bot")
+    settings.SITE_SCHEME = "https"
     settings.SMS_DRY_RUN = True
     yield
     cache.clear()

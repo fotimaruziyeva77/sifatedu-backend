@@ -68,7 +68,7 @@ def test_bot_subscribers_get_news_once(
     [guest] = by_chat[7003]
     assert guest["text"].startswith("<b>Yangi kurs: Python</b>")
     assert [item["text"] for item in buttons(guest)] == ["Открыть", "🔕 Выключить новости"]
-    assert buttons(guest)[0]["url"] == "https://sifatedu.uz/ru/courses"
+    assert buttons(guest)[0]["url"] == "https://testserver/ru/courses"
     message.refresh_from_db()
     assert (message.recipients, message.bot_recipients, message.bot_sent) == (2, 1, 1)
     assert Notification.objects.get(user=student).telegram == Delivery.SENT

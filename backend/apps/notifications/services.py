@@ -20,9 +20,11 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
+from apps.integrations import conf
 from apps.learning.models import Enrollment
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
+from apps.tenancy.sites import site_url
 from apps.users.models import SocialAccount, User
 
 from . import telegram
@@ -48,8 +50,8 @@ def telegram_accounts(user_ids: Iterable[int]) -> dict[int, SocialAccount]:
 def can_message(account: SocialAccount | None) -> bool:
     """Bot bu odamga yoza oladimi."""
     return bool(
-        settings.TELEGRAM_BOT_TOKEN
-        and account is not None
+        account is not None
+        and conf.telegram().token
         and account.notify
         and account.blocked_at is None
         and has_feature(Feature.BOT)
@@ -160,7 +162,7 @@ def dispatch(notification_ids: Sequence[int]) -> None:
 
 def absolute_link(link: str, locale: str) -> str:
     if link.startswith("/"):
-        return f"{settings.APP_URL.rstrip('/')}/{locale}{link}"
+        return f"{site_url()}/{locale}{link}"
     return link
 
 
@@ -309,9 +311,8 @@ def reach(broadcast: Broadcast) -> Reach:
         social_accounts__notify=True,
         social_accounts__blocked_at__isnull=True,
     )
-    telegram_count = (
-        reachable.count() if broadcast.send_telegram and settings.TELEGRAM_BOT_TOKEN else 0
-    )
+    has_bot = bool(conf.telegram().token)
+    telegram_count = reachable.count() if broadcast.send_telegram and has_bot else 0
     sms_count = 0
     if broadcast.send_sms and broadcast.sms_text.strip():
         sms_users = consenting
@@ -320,7 +321,7 @@ def reach(broadcast: Broadcast) -> Reach:
         sms_count = sms_users.count()
     cost = sms_count * sms_parts(broadcast.sms_text.strip()) * settings.SMS_PRICE_UZS
     bot_count = 0
-    if broadcast.bot_all and broadcast.send_telegram and settings.TELEGRAM_BOT_TOKEN:
+    if broadcast.bot_all and broadcast.send_telegram and has_bot:
         from apps.bot import news
 
         uids = SocialAccount.objects.filter(provider=TELEGRAM, user__in=reachable).values_list(

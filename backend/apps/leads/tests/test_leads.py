@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework.throttling import ScopedRateThrottle
 
 from apps.catalog.models import Category, Course
+from apps.integrations.testing import set_keys
 from apps.leads.models import Lead
 from apps.leads.tasks import notify_new_lead
 from apps.notifications import telegram
@@ -149,7 +150,7 @@ def test_notify_sends_telegram_message(course: Course) -> None:
 
 @pytest.mark.django_db
 def test_notify_without_telegram_config_is_silent(settings: Any) -> None:
-    settings.TELEGRAM_BOT_TOKEN = ""
+    set_keys(telegram_token="")
     lead = Lead.objects.create(name="Ali", phone="+998901234567")
 
     notify_new_lead(lead.pk)

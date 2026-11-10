@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 from apps.bot import links
 from apps.bot.models import BotChat
 from apps.bot.router import handle_update
+from apps.integrations.testing import set_keys
 from apps.notifications import telegram
 from apps.quizzes.models import Quiz
 from apps.quizzes.parser import parse
@@ -89,8 +90,8 @@ def test_quiz_link_respects_locks_and_bot_setup(
     assert api().post(f"/api/v1/bot/quizzes/{world.quiz.pk}/link/").status_code == 403
 
     # Bot sozlanmagan: Telegram'dan bot nomini ham olib bo'lmaydi.
-    settings.TELEGRAM_BOT_TOKEN = ""
-    settings.TELEGRAM_BOT_USERNAME = ""
+    set_keys(telegram_token="")
+    set_keys(telegram_username="")
     tg.errors["getMe"] = telegram.TelegramNotConfiguredError()
     assert quiz_link(world).status_code == 404
 
@@ -164,7 +165,7 @@ def test_webhook_accepts_private_updates_only(settings: Any) -> None:
     with mock.patch("apps.bot.views.handle_update.delay") as queued:
         assert client.post("/api/v1/bot/webhook/", press, format="json").status_code == 403
 
-        settings.TELEGRAM_WEBHOOK_SECRET = "s3cret"
+        set_keys(telegram_webhook_secret="s3cret")
         wrong = client.post(
             "/api/v1/bot/webhook/", press, format="json", HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="x"
         )
@@ -195,7 +196,7 @@ def test_webhook_accepts_private_updates_only(settings: Any) -> None:
 
 
 def test_bot_name_lookup_failure_is_not_retried_at_once(tg: FakeTelegram, settings: Any) -> None:
-    settings.TELEGRAM_BOT_USERNAME = ""
+    set_keys(telegram_username="")
     tg.errors["getMe"] = OSError("Telegram javob bermadi")
 
     assert telegram.bot_username() == telegram.bot_username() == ""

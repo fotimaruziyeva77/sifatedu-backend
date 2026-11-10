@@ -12,6 +12,7 @@ from django.db import transaction
 
 from apps.catalog.models import Category, Course, Lesson, Module
 from apps.content.models import Advantage, Concern, FAQItem, HowStep, LegalPage, SiteSettings
+from apps.tenancy.sites import center_name
 
 Tr = tuple[str, str, str]  # (uz, ru, en)
 
@@ -777,7 +778,7 @@ class Command(BaseCommand):
         for field, values in SITE.items():
             # Til ustunlarini modeltranslation dinamik qo'shadi, shuning uchun getattr.
             current = getattr(site, f"{field}_uz", "")
-            if current and current != SiteSettings.DEFAULT_HERO_TITLE:
+            if current and current != center_name():
                 continue
             for key, value in tr(field, values).items():
                 setattr(site, key, value)

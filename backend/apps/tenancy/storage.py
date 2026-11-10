@@ -31,5 +31,5 @@ class CenterS3Storage(S3Storage):
         if not current_task:
             from .limits import check_disk
 
-            check_disk()
+            check_disk(int(getattr(content, "size", 0) or 0))
         return str(super()._save(name, content))

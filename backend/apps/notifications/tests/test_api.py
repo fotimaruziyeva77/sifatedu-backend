@@ -6,6 +6,7 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from apps.integrations.testing import set_keys
 from apps.notifications.models import Notification
 from apps.users.models import SocialAccount
 
@@ -68,7 +69,7 @@ def test_settings_show_and_change(settings: Any) -> None:
     me.refresh_from_db()
     assert me.marketing_consent_at is not None
 
-    settings.TELEGRAM_BOT_TOKEN = ""
+    set_keys(telegram_token="")
     assert client.get("/api/v1/me/notifications/").json()["telegram"]["available"] is False
 
 
@@ -76,7 +77,7 @@ def test_connect_link(settings: Any) -> None:
     client = client_for(make_student())
 
     link = client.post("/api/v1/me/telegram/connect/")
-    settings.TELEGRAM_BOT_TOKEN = ""
+    set_keys(telegram_token="")
     unavailable = client.post("/api/v1/me/telegram/connect/")
 
     assert link.status_code == 200

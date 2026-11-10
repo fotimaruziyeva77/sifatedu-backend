@@ -5,6 +5,8 @@ Til — foydalanuvchi tanlagan interfeys tili (`User.locale`).
 
 from datetime import date
 
+from apps.tenancy.sites import rebrand
+
 MONTHS = {
     "uz": (
         "yanvar",
@@ -473,7 +475,7 @@ def locale_of(value: str | None) -> str:
 
 def text(locale: str | None, key: str, **params: str) -> str:
     template = TEXTS[locale_of(locale)][key]
-    return template.format(**params) if params else template
+    return rebrand(template.format(**params) if params else template)
 
 
 def day_month(value: date, locale: str | None) -> str:

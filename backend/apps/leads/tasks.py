@@ -2,9 +2,9 @@ import logging
 from html import escape
 
 from celery import shared_task
-from django.conf import settings
 from django.utils import timezone
 
+from apps.integrations import conf
 from apps.notifications import telegram
 
 from .models import Lead
@@ -46,7 +46,7 @@ def notify_new_lead(lead_id: int) -> None:
     if lead is None or lead.telegram_sent_at is not None:
         return
     try:
-        telegram.send_message(settings.TELEGRAM_LEADS_CHAT_ID, build_message(lead))
+        telegram.send_message(conf.telegram().leads_chat, build_message(lead))
     except telegram.TelegramNotConfiguredError:
         logger.info("Telegram sozlanmagan: ariza #%s faqat admin panelda", lead_id)
         return

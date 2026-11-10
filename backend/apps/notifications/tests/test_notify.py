@@ -42,20 +42,20 @@ def test_telegram_when_connected_otherwise_only_site(
     assert chat_id == "777"
     assert message == "<b>Salom</b>\n\nErtaga dars 18:00 da"
     button = sent.call_args.kwargs["reply_markup"]["inline_keyboard"][0][0]
-    assert button == {"text": "Ochish", "url": "https://sifatedu.uz/uz/dashboard"}
+    assert button == {"text": "Ochish", "url": "https://testserver/uz/dashboard"}
 
 
 def test_local_link_goes_into_text(
     settings: Any, sent: mock.MagicMock, django_capture_on_commit_callbacks: Any
 ) -> None:
     # Telegram tugmada http://localhost havolasini qabul qilmaydi.
-    settings.APP_URL = "http://localhost"
+    settings.SITE_SCHEME = "http"
     user = make_student(telegram_id=777, locale="ru")
 
     notify(user, django_capture_on_commit_callbacks, link="/dashboard/courses")
 
     assert sent.call_args.kwargs["reply_markup"] is None
-    assert sent.call_args.args[1].endswith("http://localhost/ru/dashboard/courses")
+    assert sent.call_args.args[1].endswith("http://testserver/ru/dashboard/courses")
 
 
 def test_promo_needs_consent() -> None:

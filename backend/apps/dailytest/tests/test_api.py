@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.dailytest import services
 from apps.dailytest.models import DailyAttempt, DailyTest
+from apps.integrations.testing import set_keys
 from apps.quizzes.models import Question
 from apps.quizzes.services import Layout
 from apps.users.roles import Role
@@ -30,7 +31,7 @@ def finished(test: DailyTest, world: World, index: int, right: int, minute: int)
 
 
 def test_student_overview(world: World, settings: Any) -> None:
-    settings.TELEGRAM_BOT_USERNAME = "sifat_test_bot"
+    set_keys(telegram_username="sifat_test_bot")
     test = opened(world)
     mine = finished(test, world, 0, right=15, minute=30)
     finished(test, world, 1, right=18, minute=10)

@@ -3,9 +3,10 @@
 import json
 from typing import Any
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
+from apps.integrations import conf
+from apps.integrations.services import set_webhook, webhook_url
 from apps.notifications import telegram
 
 
@@ -26,22 +27,11 @@ class Command(BaseCommand):
                 telegram.call("deleteWebhook", {})
                 self.stdout.write(self.style.SUCCESS("Webhook o'chirildi."))
                 return
-            secret = settings.TELEGRAM_WEBHOOK_SECRET
-            if not secret:
-                raise CommandError(
-                    "TELEGRAM_WEBHOOK_SECRET bo'sh: backend/.env ga tasodifiy qator yozing."
-                )
-            url = f"{settings.APP_URL.rstrip('/')}/api/v1/bot/webhook/"
-            if not url.startswith("https://"):
-                raise CommandError(f"Telegram faqat https manzilga yuboradi: {url} (APP_URL).")
-            telegram.call(
-                "setWebhook",
-                {
-                    "url": url,
-                    "secret_token": secret,
-                    "allowed_updates": ["message", "callback_query", "my_chat_member"],
-                },
-            )
-            self.stdout.write(self.style.SUCCESS(f"Webhook o'rnatildi: {url}"))
+            account = conf.telegram()
+            if not account.webhook_secret:
+                raise CommandError("Webhook siri yo'q: botni kabinetda qayta ulang.")
+            if not set_webhook(account.token, account.webhook_secret):
+                raise CommandError(f"Telegram faqat https manzilga yuboradi: {webhook_url()}.")
+            self.stdout.write(self.style.SUCCESS(f"Webhook o'rnatildi: {webhook_url()}"))
         except telegram.TelegramNotConfiguredError as exc:
-            raise CommandError("TELEGRAM_BOT_TOKEN bo'sh.") from exc
+            raise CommandError("Bot tokeni kiritilmagan.") from exc

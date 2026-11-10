@@ -12,7 +12,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from django.conf import settings
 from django.db.models import Prefetch, QuerySet
 from django.urls import reverse
 from django.utils import translation
@@ -21,6 +20,7 @@ from apps.catalog.models import Course, Lesson, Module
 from apps.content.models import SiteSettings
 from apps.leads.models import Lead
 from apps.leads.services import LeadInput, submit_lead
+from apps.tenancy.sites import site_url
 
 from .models import Conversation
 from .phones import resolve
@@ -204,7 +204,7 @@ def show_courses(conversation: Conversation, data: dict[str, Any]) -> ToolOutcom
 
 def admin_link(conversation: Conversation) -> str:
     path = reverse("admin:assistant_conversation_change", args=[conversation.pk])
-    return f"{settings.APP_URL.rstrip('/')}{path}"
+    return f"{site_url()}{path}"
 
 
 def create_lead(conversation: Conversation, data: dict[str, Any]) -> ToolOutcome:

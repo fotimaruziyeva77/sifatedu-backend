@@ -11,6 +11,8 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 
+from apps.integrations import conf
+
 logger = logging.getLogger(__name__)
 
 API_URL = "https://notify.eskiz.uz/api"
@@ -21,7 +23,7 @@ TOKEN_TTL_SECONDS = 60 * 60 * 24 * 25
 
 
 class SmsNotConfiguredError(Exception):
-    """ESKIZ_EMAIL yoki ESKIZ_PASSWORD berilmagan."""
+    """Eskiz hisobi kiritilmagan."""
 
 
 def send_sms(phone: str, text: str) -> None:
@@ -30,25 +32,35 @@ def send_sms(phone: str, text: str) -> None:
         # Faqat local va testlar: kod logdan o'qiladi.
         logger.warning("SMS (dry-run) %s: %s", phone, text)
         return
-    if not settings.ESKIZ_EMAIL or not settings.ESKIZ_PASSWORD:
+    account = conf.eskiz()
+    if not account.ready:
         raise SmsNotConfiguredError
 
-    payload = {"mobile_phone": phone.lstrip("+"), "message": text, "from": settings.ESKIZ_FROM}
-    status, body = _post("/message/sms/send", payload, _token())
+    payload = {"mobile_phone": phone.lstrip("+"), "message": text, "from": account.sender}
+    status, body = _post("/message/sms/send", payload, _token(account))
     if status == 401:
-        status, body = _post("/message/sms/send", payload, _token(refresh=True))
+        status, body = _post("/message/sms/send", payload, _token(account, refresh=True))
     if status >= 400:
         raise RuntimeError(f"Eskiz javobi {status}: {body.get('message', '')}")
 
 
-def _token(*, refresh: bool = False) -> str:
+def can_login(email: str, password: str) -> bool:
+    """Markaz kiritgan Eskiz hisobini saqlashdan oldin tekshiradi."""
+    status, body = _post("/auth/login", {"email": email, "password": password})
+    return status < 400 and bool(body.get("data", {}).get("token"))
+
+
+def forget_token() -> None:
+    """Hisob almashganda eski token ishlatilmasin."""
+    cache.delete(TOKEN_CACHE_KEY)
+
+
+def _token(account: conf.Eskiz, *, refresh: bool = False) -> str:
     if not refresh:
         cached = cache.get(TOKEN_CACHE_KEY)
         if cached:
             return str(cached)
-    status, body = _post(
-        "/auth/login", {"email": settings.ESKIZ_EMAIL, "password": settings.ESKIZ_PASSWORD}
-    )
+    status, body = _post("/auth/login", {"email": account.email, "password": account.password})
     token = body.get("data", {}).get("token") if status < 400 else None
     if not token:
         raise RuntimeError(f"Eskiz'ga kirib bo'lmadi: {status}")

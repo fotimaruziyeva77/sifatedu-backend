@@ -157,6 +157,7 @@ class OneTimeCode(models.Model):
         REGISTER = "register", _("Ro'yxatdan o'tish")
         RESET = "reset", _("Parolni tiklash")
         LINK = "link", _("Google yoki Telegram'ni bog'lash")
+        SIGNUP = "signup", _("Markaz ochish")
 
     phone = models.CharField(_("telefon"), max_length=13, db_index=True)
     purpose = models.CharField(_("maqsad"), max_length=10, choices=Purpose.choices)

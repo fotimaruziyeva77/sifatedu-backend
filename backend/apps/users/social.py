@@ -16,8 +16,10 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from jwt import PyJWKClient
 
+from apps.integrations import conf
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
+from apps.tenancy.sites import is_flagship
 
 from .models import SocialAccount
 
@@ -49,13 +51,13 @@ class SocialProfile:
 
 
 def google_enabled() -> bool:
-    return bool(settings.GOOGLE_CLIENT_ID)
+    # Google ruxsat etilgan manzillarda `*` qabul qilmaydi: faqat birinchi markaz domeni yozilgan.
+    return bool(settings.GOOGLE_CLIENT_ID) and is_flagship()
 
 
 def telegram_enabled() -> bool:
-    return bool(
-        settings.TELEGRAM_BOT_TOKEN and settings.TELEGRAM_BOT_USERNAME and has_feature(Feature.BOT)
-    )
+    account = conf.telegram()
+    return bool(account.token and account.username and account.login and has_feature(Feature.BOT))
 
 
 # Google kalitlari kamdan-kam o'zgaradi: mijoz ularni keshlaydi.
@@ -103,7 +105,7 @@ def verify_telegram(data: dict[str, Any]) -> SocialProfile:
     received = str(data.get("hash", ""))
     fields = {key: value for key, value in data.items() if key != "hash" and value is not None}
     check_string = "\n".join(f"{key}={fields[key]}" for key in sorted(fields))
-    secret = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
+    secret = hashlib.sha256(conf.telegram().token.encode()).digest()
     expected = hmac.new(secret, check_string.encode(), hashlib.sha256).hexdigest()
 
     if not hmac.compare_digest(expected, received):
