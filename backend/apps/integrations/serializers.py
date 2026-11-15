@@ -103,15 +103,15 @@ class TelegramConnectSerializer(serializers.Serializer):
 
 
 class TelegramOptionsSerializer(serializers.Serializer):
-    leads_chat = serializers.CharField(max_length=32, required=False, allow_blank=True)
-    reports_chat = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    leads_chat = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reports_chat = serializers.CharField(max_length=255, required=False, allow_blank=True)
     login = serializers.BooleanField(required=False)
 
 
 class ClickSerializer(serializers.Serializer):
-    service_id = serializers.CharField(max_length=32)
-    merchant_id = serializers.CharField(max_length=32)
-    merchant_user_id = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    service_id = serializers.CharField(max_length=255)
+    merchant_id = serializers.CharField(max_length=255)
+    merchant_user_id = serializers.CharField(max_length=255, required=False, allow_blank=True)
     tin = serializers.CharField(max_length=20, required=False, allow_blank=True)
     secret_key = serializers.CharField(
         max_length=128, write_only=True, required=False, allow_blank=True

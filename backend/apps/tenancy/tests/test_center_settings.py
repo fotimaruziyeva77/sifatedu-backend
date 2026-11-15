@@ -46,7 +46,7 @@ TOKEN = "123456:SIRLI-TOKEN"
 INFO = "/api/v1/center/"
 
 import_env = __import__(
-    "apps.integrations.migrations.0002_import_env", fromlist=["import_env"]
+    "apps.integrations.migrations.0003_import_env", fromlist=["import_env"]
 ).import_env
 
 
@@ -568,3 +568,23 @@ def test_renamed_center_is_in_the_same_response(admin_client: APIClient) -> None
     response = admin_client.patch("/api/v1/center/brand/", {"name": "Yangi nom"}, format="json")
 
     assert response.json()["name"] == "Yangi nom"
+
+
+def test_env_import_never_stops_deploy(settings: Any, capsys: Any) -> None:
+    """Production'da `.env`dagi 32 belgidan uzun qiymat migratsiyani yiqitgan edi."""
+    settings.TELEGRAM_BOT_TOKEN = TOKEN
+    settings.TELEGRAM_LEADS_CHAT_ID = "-1001234567890  # arizalar guruhi (eski izoh)"
+    settings.CLICK_MERCHANT_USER_ID = "x" * 300
+    settings.ESKIZ_FROM = "  4546 "
+
+    editor = SimpleNamespace(connection=SimpleNamespace(schema_name=settings.FIRST_CENTER_SCHEMA))
+    import_env(django_apps, editor)
+
+    row = Integrations.load()
+    assert row.telegram_token == TOKEN
+    assert row.telegram_leads_chat_id == "-1001234567890  # arizalar guruhi (eski izoh)"
+    assert row.click_merchant_user_id == ""
+    assert row.eskiz_from == "4546"
+    output = capsys.readouterr().out
+    assert "click_merchant_user_id ko'chirilmadi" in output
+    assert "x" * 50 not in output

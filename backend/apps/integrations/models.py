@@ -12,17 +12,17 @@ class Integrations(models.Model):
     telegram_token = SecretField(_("bot tokeni"), blank=True, default="")
     telegram_username = models.CharField(_("bot nomi"), max_length=64, blank=True)
     telegram_webhook_secret = SecretField(_("webhook siri"), blank=True, default="")
-    telegram_leads_chat_id = models.CharField(_("arizalar guruhi"), max_length=32, blank=True)
-    telegram_reports_chat_id = models.CharField(_("hisobot guruhi"), max_length=32, blank=True)
+    telegram_leads_chat_id = models.CharField(_("arizalar guruhi"), max_length=255, blank=True)
+    telegram_reports_chat_id = models.CharField(_("hisobot guruhi"), max_length=255, blank=True)
     telegram_login = models.BooleanField(
         _("saytda Telegram orqali kirish"),
         default=False,
         help_text=_("BotFather'da /setdomain qilingandan keyin yoqiladi."),
     )
 
-    click_service_id = models.CharField(_("Click service ID"), max_length=32, blank=True)
-    click_merchant_id = models.CharField(_("Click merchant ID"), max_length=32, blank=True)
-    click_merchant_user_id = models.CharField(_("Click user ID"), max_length=32, blank=True)
+    click_service_id = models.CharField(_("Click service ID"), max_length=255, blank=True)
+    click_merchant_id = models.CharField(_("Click merchant ID"), max_length=255, blank=True)
+    click_merchant_user_id = models.CharField(_("Click user ID"), max_length=255, blank=True)
     click_secret_key = SecretField(_("Click maxfiy kaliti"), blank=True, default="")
     click_tin = models.CharField(_("STIR"), max_length=20, blank=True)
 
