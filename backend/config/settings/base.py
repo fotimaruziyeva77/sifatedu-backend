@@ -945,6 +945,24 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "SMM agent",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Postlar",
+                        "icon": "auto_awesome",
+                        "link": reverse_lazy("admin:smm_post_changelist"),
+                        "permission": _can("smm.view_post"),
+                    },
+                    {
+                        "title": "SMM sozlamalari",
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:smm_smmsettings_changelist"),
+                        "permission": _can("smm.view_smmsettings"),
+                    },
+                ],
+            },
+            {
                 "title": "Sayt kontenti",
                 "collapsible": True,
                 "items": [
