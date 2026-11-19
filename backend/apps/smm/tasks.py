@@ -5,8 +5,11 @@ import logging
 from datetime import datetime, timedelta
 
 from celery import shared_task
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
+
+from apps.tenancy.db import connection
 
 from . import ai, services
 from .models import Post, SmmSettings
@@ -18,6 +21,7 @@ logger = logging.getLogger(__name__)
 STUCK_AFTER = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 STUCK_PUBLISHING_AFTER = timedelta(minutes=15)
+PLAN_LOCK_SECONDS = 300
 
 
 def active() -> bool:
@@ -33,11 +37,26 @@ def active() -> bool:
     retry_backoff=600,
     retry_jitter=False,
 )
-def plan_week() -> int:
-    """Yakshanba: keyingi hafta rejasi. AI xato qilsa — 10, 20, 40 daqiqadan keyin yana."""
+def plan_week(current: bool = False) -> int:
+    """Yakshanba: keyingi hafta rejasi; `current` — shu haftaning qolgani (agent yoqilganda).
+    AI xato qilsa — 10, 20, 40 daqiqadan keyin yana. Bir vaqtda ikkita reja tuzilmaydi."""
     if not active():
         return 0
-    return len(services.plan_week())
+    lock = f"smm-plan:{connection.schema_name}"
+    if not cache.add(lock, 1, timeout=PLAN_LOCK_SECONDS):
+        return 0
+    try:
+        start = services.this_week(timezone.localdate()) if current else None
+        created = services.plan_week(start)
+    finally:
+        cache.delete(lock)
+    if current:
+        # Yaqin postlar soat boshini kutmasin.
+        soon = timezone.now() + services.LEAD
+        for post in created:
+            if post.publish_at <= soon:
+                prepare.delay(post.pk)
+    return len(created)
 
 
 def recover_stuck_publishing(now: datetime) -> None:
@@ -70,6 +89,10 @@ def prepare_due() -> int:
         return 0
     now = timezone.now()
     recover_stuck(now)
+    week_end = services.slot_time(services.week_start(timezone.localdate(now)), Post.Kind.POST, 0)
+    if not Post.objects.filter(publish_at__gt=now, publish_at__lt=week_end).exists():
+        # Shu haftada oldinda hech narsa yo'q (agent endigina yoqildi): qolgani rejalanadi.
+        plan_week.delay(current=True)
     Post.objects.filter(status=Post.Status.PLANNED, publish_at__lt=now - services.GRACE).update(
         status=Post.Status.REJECTED, error="Vaqti o'tib ketdi."
     )

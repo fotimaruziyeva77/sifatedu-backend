@@ -1,7 +1,7 @@
 """SMM agent: reja, tayyorlash, botda tasdiq va kanalga chiqarish (Gemini va Telegram soxta)."""
 
 from collections.abc import Iterator
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 from typing import Any
@@ -104,6 +104,28 @@ def test_week_plan_creates_slots_once(enabled: SmmSettings) -> None:
     first = Post.objects.filter(kind=Post.Kind.CAROUSEL).order_by("publish_at").first()
     assert first is not None
     assert timezone.localtime(first.publish_at).hour == enabled.publish_hour
+
+
+def test_mid_week_plan_fills_only_the_rest(enabled: SmmSettings) -> None:
+    thursday_noon = timezone.make_aware(datetime(2026, 11, 19, 12, 0))
+    with mock.patch.object(ai, "plan", fake_plan):
+        created = services.plan_week(date(2026, 11, 16), now=thursday_noon)
+        again = services.plan_week(date(2026, 11, 16), now=thursday_noon)
+    # Payshanba 10:00 dagi ssenariy o'tib ketgan; payshanba kechqurundan yakshanbagacha — 4 ta.
+    assert len(created) == 4
+    assert all(post.publish_at > thursday_noon for post in created)
+    assert again == []
+
+
+def test_enabled_agent_plans_current_week_by_itself(enabled: SmmSettings) -> None:
+    with mock.patch.object(tasks.plan_week, "delay") as planner:
+        tasks.prepare_due()
+    planner.assert_called_once_with(current=True)
+
+    make_post(publish_at=timezone.now() + timedelta(minutes=1))
+    with mock.patch.object(tasks.plan_week, "delay") as planner:
+        tasks.prepare_due()
+    planner.assert_not_called()
 
 
 def test_disabled_agent_does_nothing(settings: Any) -> None:
@@ -251,7 +273,10 @@ def test_stuck_post_is_requeued_and_old_slots_are_dropped(enabled: SmmSettings) 
     stuck = make_post(status=Post.Status.MAKING)
     Post.objects.filter(pk=stuck.pk).update(updated_at=timezone.now() - timedelta(minutes=30))
     old = make_post(publish_at=timezone.now() - timedelta(days=2))
-    with mock.patch.object(tasks.prepare, "delay") as queued:
+    with (
+        mock.patch.object(tasks.prepare, "delay") as queued,
+        mock.patch.object(tasks.plan_week, "delay"),
+    ):
         tasks.prepare_due()
     stuck.refresh_from_db()
     old.refresh_from_db()

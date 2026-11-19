@@ -11,7 +11,7 @@
    - **markaz haqida faktlar:** natijalar, yangiliklar, chegirmalar, manzil, telefon — har qatorda bitta. Agent faqat shu faktlar va kurslar ro'yxatidan foydalanadi, raqam o'ylab topmaydi.
    - «yoqilgan» belgisini qo'ying.
 3. Tasdiqlovchilar — Admin roli bor va Telegram'i saytdagi akkauntiga ulangan xodimlar. Menejerga ham tasdiqlash huquqi beriladi.
-4. Birinchi rejani darhol tuzish: SMM sozlamalari ro'yxatida qatorni belgilab, «Keyingi hafta rejasini tuzish» amalini bajaring. Keyin Postlar ro'yxatida kerakli postlarni belgilab, «Hozir tayyorlash» ni bosing.
+4. Qo'lda hech narsa qilish shart emas: agent yoqilgach, soat boshida (:05) shu haftaning qolgan kunlarini o'zi rejalaydi va yaqin postlarni tayyorlaydi. Tezlatish uchun: «Keyingi hafta rejasini tuzish» va Postlar → «Hozir tayyorlash».
 
 5. **Kuchliroq AI (ixtiyoriy, tavsiya).** Serverdagi `backend/.env` ga yozing:
 
@@ -24,7 +24,7 @@
    Keyin `deploy.sh` ni ishga tushiring. Bo'sh qolsa, umumiy `GEMINI_MODEL` ishlatiladi. API kaliti o'sha `GEMINI_API_KEY` bo'ladi. Gemini ilovasidagi «Pro» obunasi API'ga tegishli emas: API alohida, ishlatilgan token bo'yicha to'lanadi.
 
 Keyin hammasi o'zi ishlaydi:
-- **yakshanba 10:00** — keyingi hafta rejasi;
+- **yakshanba 10:00** — keyingi hafta rejasi; **har soat** — shu haftada oldinda post bo'lmasa, qolgan kunlar rejasi;
 - **har soatda** — chiqishiga 30 soat qolgan postlar tayyorlanib, botga tasdiqqa keladi;
 - **har 10 daqiqada** — vaqti kelgan tasdiqlangan postlar kanalga chiqadi.
 

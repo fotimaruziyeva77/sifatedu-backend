@@ -37,6 +37,8 @@ SCRIPT_HOUR = 10
 LEAD = timedelta(hours=30)
 # Tasdiqlanmagan post chiqish vaqtidan keyin shuncha kutadi, so'ng bekor bo'ladi.
 GRACE = timedelta(hours=2)
+# Shundan kam qolgan o'rin rejaga kirmaydi: tayyorlash va tasdiqlashga vaqt kerak.
+PLAN_AHEAD = timedelta(hours=1)
 # Tasdiqlangan, lekin server ishlamagani uchun kechikkan post shuncha vaqtgacha chiqariladi.
 LATE_PUBLISH = timedelta(hours=6)
 TAGS = {
@@ -60,14 +62,21 @@ def slot_time(day: date, kind: str, hour: int) -> datetime:
     return timezone.make_aware(datetime.combine(day, at))
 
 
-def plan_week(start: date | None = None) -> list[Post]:
-    """Haftalik reja: o'rinlar yaratiladi, mavzularni AI yozadi. Hafta allaqachon rejalangan
-    bo'lsa — hech narsa qilinmaydi."""
+def this_week(today: date) -> date:
+    """Shu haftaning dushanbasi."""
+    return today - timedelta(days=today.weekday())
+
+
+def plan_week(start: date | None = None, now: datetime | None = None) -> list[Post]:
+    """Haftalik reja: o'rinlar yaratiladi, mavzularni AI yozadi. Haftada oldinda turgan post
+    bo'lsa — hech narsa qilinmaydi. O'tib ketgan (yoki 1 soatdan kam qolgan) o'rinlar
+    yaratilmaydi: hafta o'rtasida yoqilgan agent shu haftaning qolganini rejalaydi."""
     settings = SmmSettings.load()
-    start = start or week_start(timezone.localdate())
+    now = now or timezone.now()
+    start = start or week_start(timezone.localdate(now))
     begin = slot_time(start, K.POST, 0)
     if Post.objects.filter(
-        publish_at__gte=begin, publish_at__lt=begin + timedelta(days=7)
+        publish_at__gte=max(begin, now), publish_at__lt=begin + timedelta(days=7)
     ).exists():
         return []
     posts = [
@@ -78,6 +87,9 @@ def plan_week(start: date | None = None) -> list[Post]:
         )
         for day, kind, formula in WEEK
     ]
+    posts = [post for post in posts if post.publish_at >= now + PLAN_AHEAD]
+    if not posts:
+        return []
     recent = list(Post.objects.order_by("-publish_at").values_list("topic", flat=True)[:40])
     spent = ai.plan(posts, recent)
     share = (spent / len(posts)).quantize(Decimal("0.0001"))
