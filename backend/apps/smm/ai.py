@@ -20,7 +20,8 @@ from .models import Post, SmmSettings
 
 logger = logging.getLogger(__name__)
 
-TIMEOUT_MS = 120_000
+# Gemini bu muddatni server tomonda ham qo'llaydi (504 DEADLINE_EXCEEDED); vazifa chegarasi 200 s.
+TIMEOUT_MS = 170_000
 MILLION = Decimal(1_000_000)
 
 

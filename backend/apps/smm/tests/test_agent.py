@@ -257,9 +257,11 @@ def test_unanswered_post_expires(tg: AlbumTelegram, enabled: SmmSettings) -> Non
 
 def test_failed_generation_is_recorded(enabled: SmmSettings) -> None:
     post = make_post()
-    with mock.patch.object(ai, "write", side_effect=ai.AiError("AI javob bermadi")):
+    with mock.patch.object(ai, "write", side_effect=ai.AiError("AI javob bermadi")) as writer:
         tasks.prepare(post.pk)
     post.refresh_from_db()
+    # Ikki marta qayta urinib, keyin xato.
+    assert writer.call_count == tasks.MAX_ATTEMPTS
     assert post.status == Post.Status.FAILED
     assert "AI javob bermadi" in post.error
 

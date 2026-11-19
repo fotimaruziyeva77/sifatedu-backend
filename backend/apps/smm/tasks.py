@@ -22,6 +22,7 @@ STUCK_AFTER = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
 STUCK_PUBLISHING_AFTER = timedelta(minutes=15)
 PLAN_LOCK_SECONDS = 300
+RETRY_AFTER_SECONDS = 300
 
 
 def active() -> bool:
@@ -117,6 +118,17 @@ def prepare(post_id: int) -> None:
     post = Post.objects.get(pk=post_id)
     try:
         services.make(post)
+    except ai.AiError as exc:
+        # Gemini band yoki sekin (504, 503): 5 daqiqadan keyin yana, jami 3 marta.
+        logger.warning("SMM post tayyorlanmadi (%s): %s", post_id, exc)
+        retry = post.attempts + 1 < MAX_ATTEMPTS
+        Post.objects.filter(pk=post_id, status=Post.Status.MAKING).update(
+            status=Post.Status.PLANNED if retry else Post.Status.FAILED,
+            attempts=post.attempts + 1,
+            error=str(exc)[:500],
+        )
+        if retry:
+            prepare.apply_async((post_id,), countdown=RETRY_AFTER_SECONDS)
     except Exception as exc:
         logger.exception("SMM post tayyorlanmadi (%s)", post_id)
         Post.objects.filter(pk=post_id, status=Post.Status.MAKING).update(
