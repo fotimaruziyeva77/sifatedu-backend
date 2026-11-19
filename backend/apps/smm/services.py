@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from apps.core.storage import public_storage
 
-from . import ai, render, review
+from . import ai, instagram, render, review
 from . import telegram as tg
 from .models import Post, SmmSettings
 
@@ -122,34 +122,157 @@ def make(post: Post) -> None:
 
 
 def redo(post: Post) -> None:
+    # Rad etilgan variant qolmasin: yangisi yiqilsa ham, eskisi kanalga chiqib ketmasin.
     Post.objects.filter(pk=post.pk).update(
-        status=Post.Status.PLANNED, attempts=F("attempts") + 1, error=""
+        status=Post.Status.PLANNED,
+        attempts=F("attempts") + 1,
+        error="",
+        images=[],
+        caption="",
+        caption_tg="",
+        decided_by=None,
     )
     from .tasks import prepare
 
     transaction.on_commit(lambda: prepare.delay(post.pk))
 
 
-def publish(post: Post) -> None:
-    """Telegram kanalga. Instagram API ulangunga qadar Instagram'ga qo'lda qo'yiladi
-    (rasmlar va matn tasdiq xabarida)."""
-    channel = SmmSettings.load().channel.strip()
-    if not channel:
-        raise tg.ChannelError("Telegram kanal ko'rsatilmagan (SMM sozlamalari).")
+class PublishError(RuntimeError):
+    """Kamida bitta joyga (Telegram yoki Instagram) chiqmadi."""
 
+
+def to_telegram(post: Post, channel: str) -> None:
     def sent(message: dict[str, Any]) -> None:
         # Har yuborilgan xabar darhol yoziladi: keyingi qadam yiqilsa, kanalda nima
-        # qolgani ma'lum bo'ladi va post qayta yasalib, ikkinchi marta chiqmaydi.
+        # qolgani ma'lum bo'ladi va post ikkinchi marta chiqmaydi.
         post.channel_messages = [*post.channel_messages, message.get("message_id")]
         Post.objects.filter(pk=post.pk).update(channel_messages=post.channel_messages)
 
-    post.channel_messages = []
-    tg.send_album(channel, post.images, tg.html(post.caption_tg or post.caption), on_sent=sent)
+    try:
+        tg.send_album(channel, post.images, tg.html(post.caption_tg or post.caption), on_sent=sent)
+    except OSError:
+        # Javob kelmadi: albom kanalga tushgan bo'lishi mumkin. Qayta urinishda ikkinchi marta
+        # yuborilmasin — belgi qo'yiladi, odam kanalni tekshiradi.
+        if not post.channel_messages:
+            post.channel_messages = [0]
+            Post.objects.filter(pk=post.pk).update(channel_messages=post.channel_messages)
+        raise PublishError(
+            "Telegram javob bermadi — kanalni tekshiring, qayta yuborilmaydi."
+        ) from None
+
+
+def to_instagram(post: Post, settings: SmmSettings) -> None:
+    token, user_id = settings.ig_token, settings.ig_user_id
+    if post.ig_container_id:
+        # Oldingi urinishda javob kelmagan: konteyner chiqib bo'lganmi?
+        state = instagram.status(post.ig_container_id, token)
+        if state == "PUBLISHED":
+            post.ig_media_id = "published"
+            Post.objects.filter(pk=post.pk).update(ig_media_id=post.ig_media_id)
+            return
+        if state != "FINISHED":
+            post.ig_container_id = ""
+    if not post.ig_container_id:
+        storage = public_storage()
+        urls = [storage.url(name) for name in post.images]
+        post.ig_container_id = instagram.prepare(user_id, token, urls, post.caption)
+        Post.objects.filter(pk=post.pk).update(ig_container_id=post.ig_container_id)
+    media_id = instagram.publish(user_id, token, post.ig_container_id)
+    post.ig_media_id = media_id
+    Post.objects.filter(pk=post.pk).update(ig_media_id=media_id)
+    post.ig_permalink = instagram.permalink(media_id, settings.ig_token)[:200]
+    Post.objects.filter(pk=post.pk).update(ig_permalink=post.ig_permalink)
+
+
+def publish(post: Post) -> None:
+    """Telegram kanal va (yoqilgan bo'lsa) Instagram. Har biri alohida: biri yiqilsa, ikkinchisi
+    baribir chiqadi; qayta urinishda chiqib bo'lgani o'tkazib yuboriladi (ikki marta emas)."""
+    settings = SmmSettings.load()
+    channel = settings.channel.strip()
+    if not channel and not settings.instagram_ready:
+        raise PublishError("Telegram kanal ham, Instagram ham sozlanmagan (SMM sozlamalari).")
+    errors: list[str] = []
+    if channel and not post.channel_messages:
+        try:
+            to_telegram(post, channel)
+        except Exception as exc:
+            logger.warning("SMM: Telegram kanalga chiqmadi (%s): %s", post.pk, exc)
+            errors.append(f"Telegram: {exc}")
+    if settings.instagram_ready and not post.ig_media_id:
+        try:
+            to_instagram(post, settings)
+        except Exception as exc:
+            logger.warning("SMM: Instagram'ga chiqmadi (%s): %s", post.pk, exc)
+            errors.append(str(exc))
+            if isinstance(exc, instagram.InstagramError) and exc.auth:
+                instagram_broken(settings, str(exc))
+    if errors:
+        raise PublishError("; ".join(errors))
     post.status = Post.Status.PUBLISHED
     post.published_at = timezone.now()
     post.error = ""
-    post.save(update_fields=["channel_messages", "status", "published_at", "error", "updated_at"])
-    review.mark(post, "📣 Kanalga chiqdi")
+    post.save(update_fields=["status", "published_at", "error", "updated_at"])
+    where = []
+    if post.channel_messages:
+        where.append("Telegram")
+    if post.ig_media_id:
+        where.append(
+            f'<a href="{post.ig_permalink}">Instagram</a>' if post.ig_permalink else "Instagram"
+        )
+    review.mark(post, "📣 Chiqdi: " + ", ".join(where))
+
+
+def instagram_broken(settings: SmmSettings, reason: str) -> None:
+    """Token yaroqsiz: Instagram o'chiriladi (har kuni xato bermasin), tasdiqlovchilarga xabar."""
+    settings.instagram = False
+    settings.ig_error = f"Token yaroqsiz, Instagram o'chirildi: {reason}"
+    settings.save(update_fields=["instagram", "ig_error", "updated_at"])
+    review.notify(
+        "⚠️ Instagram tokeni yaroqsiz — Instagram'ga chiqarish o'chirildi. Admin → SMM "
+        "sozlamalari: yangi token kiriting, «Instagram'ni tekshirish» va qayta yoqing."
+    )
+
+
+def refresh_instagram() -> bool:
+    """Tokenni yangilaydi (u 24 soatdan katta bo'lishi kerak). Xatoni sozlamaga yozadi."""
+    settings = SmmSettings.load()
+    if not settings.ig_token:
+        return False
+    try:
+        settings.ig_token = instagram.refresh(settings.ig_token)
+    except instagram.InstagramError as exc:
+        if exc.auth:
+            instagram_broken(settings, str(exc))
+        else:
+            settings.ig_error = f"Token yangilanmadi: {exc}"
+            settings.save(update_fields=["ig_error", "updated_at"])
+        return False
+    settings.ig_token_refreshed_at = timezone.now()
+    settings.ig_error = ""
+    settings.save(update_fields=["ig_token", "ig_token_refreshed_at", "ig_error", "updated_at"])
+    return True
+
+
+def connect_instagram() -> str:
+    """Kiritilgan tokenni tekshiradi va hisob ID sini oladi. Qaytadi: @username."""
+    settings = SmmSettings.load()
+    if not settings.ig_token:
+        raise instagram.InstagramError("Avval Instagram tokenini kiriting.")
+    user_id, username = instagram.me(settings.ig_token)
+    settings.ig_user_id, settings.ig_username = user_id, username
+    settings.ig_error = ""
+    if settings.ig_token_refreshed_at is None:
+        settings.ig_token_refreshed_at = timezone.now()
+    settings.save(
+        update_fields=[
+            "ig_user_id",
+            "ig_username",
+            "ig_error",
+            "ig_token_refreshed_at",
+            "updated_at",
+        ]
+    )
+    return username
 
 
 def expire_unanswered(now: datetime | None = None) -> int:

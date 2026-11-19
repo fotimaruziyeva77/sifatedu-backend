@@ -12,7 +12,7 @@ from apps.notifications import telegram
 from apps.users.models import SocialAccount, User
 
 from . import telegram as tg
-from .models import Post
+from .models import Post, SmmSettings
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +61,13 @@ def script_text(post: Post) -> str:
 def post_text(post: Post, *, auto: bool) -> str:
     kind = post.get_kind_display().capitalize()
     head = f"📝 <b>{kind}</b> · {post.get_formula_display()} · {when(post)}"
+    places = (
+        "Telegram kanal va Instagram" if SmmSettings.load().instagram_ready else "Telegram kanal"
+    )
     note = (
-        "Avtomatik chiqadi."
+        f"Avtomatik chiqadi: {places}."
         if auto
-        else "Kanalga shu vaqtda chiqadi. Instagram'ga hozircha qo'lda qo'ying."
+        else f"Tasdiqlasangiz, shu vaqtda chiqadi: {places}."
     )
     return "\n\n".join(
         [
@@ -107,6 +110,15 @@ def send(post: Post, *, auto: bool = False) -> None:
             stored.append({"chat": chat_id, "message": int(last["message_id"])})
     post.review_messages = stored
     post.save(update_fields=["review_messages", "updated_at"])
+
+
+def notify(text: str) -> None:
+    """Tasdiqlovchilarga oddiy xabar (masalan, Instagram tokeni yaroqsiz)."""
+    for chat_id in approvers():
+        try:
+            telegram.send_message(chat_id, text)
+        except (OSError, RuntimeError, telegram.TelegramNotConfiguredError) as exc:
+            logger.info("SMM xabari yuborilmadi (chat %s): %s", chat_id, exc)
 
 
 def mark(post: Post, status_line: str) -> None:

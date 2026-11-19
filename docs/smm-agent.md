@@ -79,7 +79,7 @@ Ssenariylar kanalga chiqmaydi: ular markaz telefonda suratga olishi uchun yubori
    - Chiqish vaqti kelguncha tasdiqlanmagan kontent chiqmaydi va keyingi kunga ham surilmaydi.
 4. **Chiqarish** (jadvaldagi vaqtda, masalan 19:00):
    - **Telegram:** kanalga markaz boti orqali chiqadi.
-   - **Instagram:** rasmiy Instagram API orqali chiqadi. Fayl `media.sifatedu.uz` dagi ochiq havoladan olinadi.
+   - **Instagram:** rasmiy Instagram API orqali chiqadi (yoqilgan bo'lsa). Fayl `media.sifatedu.uz` dagi ochiq havoladan olinadi.
 5. **Statistika.**
    - 24 soatdan keyin Instagram'dan ko'rishlar, ulashishlar va saqlashlar olinadi.
    - Telegram'dan ko'rishlar olinadi.
@@ -101,18 +101,32 @@ Ssenariylar kanalga chiqmaydi: ular markaz telefonda suratga olishi uchun yubori
   - tasdiqlovchi chat.
 - Admin'da: postlar ro'yxati, qo'lda mavzu qo'shish, «hozir yasash» tugmasi.
 
-## Instagram'ni ulash (sizning qadamlaringiz)
+## Instagram'ni ulash (3-bosqich, kod tayyor)
 
-Dastur orqali Instagram'ga post qo'yish uchun quyidagilar kerak:
+Tasdiqlangan post Telegram bilan bir vaqtda @sifatedu Instagram'ga ham chiqadi: rasm yoki karusel, Instagram matni bilan.
 
-1. **Professional hisob.** @sifatedu profilida «Statistika» tugmasi bor, demak hisob allaqachon professional (Business yoki Creator). Ilovada tekshirib qo'ying: Sozlamalar → Hisob turi.
-2. **Meta ilovasi.**
-   - developers.facebook.com'da ilova ochasiz. Uni men bosqichma-bosqich yo'riqnoma bilan yozib beraman.
-   - Unga «Instagram API with Instagram Login» qo'shiladi va @sifatedu tester qilib biriktiriladi.
-   - Shunda Facebook sahifa ham, Meta tekshiruvi (App Review) ham kerak bo'lmaydi, chunki ilova faqat o'z hisobimiz uchun ishlaydi.
-3. **Token.** Tokenni siz serverda kiritasiz, chatga yozmaysiz. Agent uni har 50 kunda o'zi yangilab turadi.
+Agent rasmiy «Instagram API with Instagram Login» orqali ishlaydi: Facebook sahifa ham, Meta tekshiruvi ham kerak emas, chunki ilova faqat o'z hisobimiz uchun.
 
-Instagram ulanmaguncha agent faqat Telegram kanalga chiqaradi. Instagram uchun tayyor fayl va izohni sizga yuboradi, siz qo'lda qo'yasiz.
+1. **Hisob turi.** Instagram ilovasida: Sozlamalar → Hisob turi → Professional (Business yoki Creator). @sifatedu da «Statistika» bor, demak bu bajarilgan.
+2. **Meta ilovasi.** developers.facebook.com → My Apps → Create app.
+   - Turi: **Business**.
+   - Ilovaga **Instagram** mahsulotini qo'shing → «API setup with Instagram business login».
+3. **Hisobni ulash.** «Generate access tokens» bo'limida @sifatedu hisobini qo'shing, Instagram'ga kiring va ruxsat bering. Ruxsatlar:
+   - `instagram_business_basic`;
+   - `instagram_business_content_publish`.
+
+   Shundan keyin hisob yonidagi **Generate token** ni bosing va tokenni nusxalang (60 kun amal qiladi).
+4. **Tokenni kiritish.** Admin → SMM agent → SMM sozlamalari → Instagram → **Instagram tokeni** maydoniga tokenni kiriting va saqlang.
+   - Tokenni chatga yoki boshqa joyga yozmang.
+   - Sahifa tokenni qayta ko'rsatmaydi.
+5. **Tekshirish.** Ro'yxatda sozlamalar qatorini belgilang → «Instagram'ni tekshirish». Admin «Instagram ulandi: @sifatedu» deb javob beradi.
+6. **Yoqish.** «Instagram'ga ham chiqarish» ni belgilang va saqlang.
+
+Token har dushanba o'zi yangilanadi. Yangilanmasa, xato «Instagram xatosi» maydonida ko'rinadi: yangi token yarating va 4–5-qadamlarni takrorlang.
+
+Agar Telegram'ga chiqib, Instagram'ga chiqmasa (yoki aksincha), post «xato» holatiga o'tadi. Postlar ro'yxatida «Hozir chiqarish» ni bossangiz, faqat chiqmay qolgan joyga yuboriladi, ikki marta chiqmaydi.
+
+Rasmlar Instagram'ga `media.sifatedu.uz` dagi ochiq havoladan yuklanadi.
 
 ## Bosqichlar
 

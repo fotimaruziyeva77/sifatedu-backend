@@ -17,7 +17,7 @@ from apps.bot.tests.conftest import FakeTelegram, connect, make_user, press
 from apps.core.storage import public_storage
 from apps.integrations.testing import set_keys
 from apps.notifications import telegram
-from apps.smm import ai, render, services, tasks
+from apps.smm import ai, instagram, render, services, tasks
 from apps.smm.models import Post, SmmSettings
 from apps.users.roles import Role
 
@@ -303,3 +303,162 @@ def test_late_approval_publishes_after_commit(
         for callback in callbacks:
             callback()
     queued.assert_called_once_with(post.pk)
+
+
+class FakeInstagram:
+    """graph.instagram.com o'rniga: chaqiruvlarni yozadi, konteyner ID larini beradi."""
+
+    def __init__(self, fail_publish: bool = False) -> None:
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
+        self.fail_publish = fail_publish
+        self.next = 0
+
+    def __call__(
+        self, method: str, path: str, params: dict[str, Any], token: str, **_: Any
+    ) -> dict[str, Any]:
+        self.calls.append((method, path, params))
+        if path == "me":
+            return {"data": [{"user_id": "1789", "username": "sifatedu"}]}
+        if path.endswith("/media_publish"):
+            if self.fail_publish:
+                raise instagram.InstagramError("Instagram: limit")
+            return {"id": "ig-post-1"}
+        if path.endswith("/media"):
+            self.next += 1
+            return {"id": f"c{self.next}"}
+        if params.get("fields") == "status_code":
+            return {"status_code": "FINISHED"}
+        if params.get("fields") == "permalink":
+            return {"permalink": "https://www.instagram.com/p/abc/"}
+        if path == "refresh_access_token":
+            return {"access_token": "fresh-token"}
+        return {}
+
+
+@pytest.fixture
+def ig_settings(enabled: SmmSettings) -> SmmSettings:
+    enabled.instagram = True
+    enabled.ig_token = "ig-token"
+    enabled.ig_user_id = "1789"
+    enabled.save()
+    return enabled
+
+
+def approved_carousel() -> Post:
+    approver()
+    post = make_post()
+    with mock.patch.object(ai, "write", return_value=(draft(), Decimal("0"))):
+        tasks.prepare(post.pk)
+    Post.objects.filter(pk=post.pk).update(
+        status=Post.Status.APPROVED, publish_at=timezone.now() - timedelta(minutes=1)
+    )
+    return post
+
+
+def test_carousel_goes_to_instagram_and_telegram(
+    tg: AlbumTelegram, ig_settings: SmmSettings
+) -> None:
+    post = approved_carousel()
+    fake = FakeInstagram()
+    with mock.patch.object(instagram, "request", fake):
+        tasks.publish(post.pk)
+    post.refresh_from_db()
+    assert post.status == Post.Status.PUBLISHED
+    assert post.ig_media_id == "ig-post-1"
+    assert post.ig_permalink == "https://www.instagram.com/p/abc/"
+    media = [params for method, path, params in fake.calls if path == "1789/media"]
+    assert [m.get("is_carousel_item") for m in media[:4]] == ["true"] * 4
+    parent = media[-1]
+    assert parent["media_type"] == "CAROUSEL" and parent["children"] == "c1,c2,c3,c4"
+    assert parent["caption"] == "Instagram matni #sifat"
+    assert all(
+        public_storage().url(name) in [m.get("image_url") for m in media] for name in post.images
+    )
+    assert tg.of("sendMediaGroup")[-1]["chat_id"] == "@sifat_test"
+
+
+def test_instagram_failure_keeps_telegram_and_retries_only_instagram(
+    tg: AlbumTelegram, ig_settings: SmmSettings
+) -> None:
+    post = approved_carousel()
+    with mock.patch.object(instagram, "request", FakeInstagram(fail_publish=True)):
+        tasks.publish(post.pk)
+    post.refresh_from_db()
+    assert post.status == Post.Status.FAILED
+    assert post.channel_messages and not post.ig_media_id
+    assert "limit" in post.error
+
+    tg.clear()
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.APPROVED)
+    with mock.patch.object(instagram, "request", FakeInstagram()):
+        tasks.publish(post.pk)
+    post.refresh_from_db()
+    assert post.status == Post.Status.PUBLISHED
+    assert post.ig_media_id == "ig-post-1"
+    assert tg.of("sendMediaGroup") == []  # Telegram'ga ikkinchi marta chiqmadi
+
+
+def test_connect_and_refresh_instagram(enabled: SmmSettings) -> None:
+    enabled.ig_token = "ig-token"
+    enabled.save()
+    with mock.patch.object(instagram, "request", FakeInstagram()):
+        assert services.connect_instagram() == "sifatedu"
+        assert tasks.refresh_instagram() is True
+    row = SmmSettings.load()
+    assert row.ig_user_id == "1789"
+    assert row.ig_token == "fresh-token"
+    assert row.ig_token_refreshed_at is not None
+
+
+def test_instagram_error_hides_token() -> None:
+    error = instagram.urllib.error.HTTPError(
+        "https://graph.instagram.com",
+        400,
+        "Bad",
+        {},  # type: ignore[arg-type]
+        BytesIO(b'{"error": {"message": "Invalid"}}'),
+    )
+    with (
+        mock.patch.object(instagram.urllib.request, "urlopen", side_effect=error),
+        pytest.raises(instagram.InstagramError) as caught,
+    ):
+        instagram.request("GET", "me", {}, "secret-token")
+    assert "secret-token" not in str(caught.value)
+    assert "Invalid" in str(caught.value)
+
+
+def test_instagram_retry_reuses_container_and_skips_published(
+    tg: AlbumTelegram, ig_settings: SmmSettings
+) -> None:
+    post = approved_carousel()
+    with mock.patch.object(instagram, "request", FakeInstagram(fail_publish=True)):
+        tasks.publish(post.pk)
+    post.refresh_from_db()
+    assert post.ig_container_id == "c5"
+
+    retry = FakeInstagram()
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.APPROVED)
+    with mock.patch.object(instagram, "request", retry):
+        tasks.publish(post.pk)
+    assert not [call for call in retry.calls if call[1] == "1789/media"]  # yangi konteyner yo'q
+    assert ("POST", "1789/media_publish", {"creation_id": "c5"}) in retry.calls
+
+
+def test_expired_token_turns_instagram_off(tg: AlbumTelegram, ig_settings: SmmSettings) -> None:
+    post = approved_carousel()
+    expired = instagram.InstagramError("Instagram: Error validating access token", code=190)
+    with mock.patch.object(instagram, "request", side_effect=expired):
+        tasks.publish(post.pk)
+    row = SmmSettings.load()
+    assert row.instagram is False
+    assert "yaroqsiz" in row.ig_error
+    assert any("Instagram tokeni yaroqsiz" in text for text in tg.texts)
+
+
+def test_redo_drops_rejected_version(tg: AlbumTelegram, enabled: SmmSettings) -> None:
+    approver()
+    post = make_post(status=Post.Status.REVIEW, images=["smm/x.jpg"], caption="eski")
+    with mock.patch.object(tasks.prepare, "delay"):
+        handle_update(press(f"sm:re:{post.pk}", sender={"id": ADMIN_CHAT, "first_name": "Rahbar"}))
+    post.refresh_from_db()
+    assert post.images == [] and post.caption == "" and post.decided_by is None

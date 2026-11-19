@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 # qolib ketmasin: shuncha vaqtdan keyin qayta navbatga qo'yiladi.
 STUCK_AFTER = timedelta(minutes=10)
 MAX_ATTEMPTS = 3
+STUCK_PUBLISHING_AFTER = timedelta(minutes=15)
 
 
 def active() -> bool:
@@ -37,6 +38,17 @@ def plan_week() -> int:
     if not active():
         return 0
     return len(services.plan_week())
+
+
+def recover_stuck_publishing(now: datetime) -> None:
+    """`publish` o'ldirilsa (deploy, xotira): post xato bo'ladi — kanal va Instagram tekshiriladi.
+    Chiqib bo'lgan joylar yozilgan, qayta urinishda faqat qolgani yuboriladi."""
+    Post.objects.filter(
+        status=Post.Status.PUBLISHING, updated_at__lt=now - STUCK_PUBLISHING_AFTER
+    ).update(
+        status=Post.Status.FAILED,
+        error="Chiqarish to'xtab qoldi — kanal va Instagram'ni tekshiring.",
+    )
 
 
 def recover_stuck(now: datetime) -> None:
@@ -96,6 +108,7 @@ def publish_due() -> int:
     if not SmmSettings.load().enabled:
         return 0
     now = timezone.now()
+    recover_stuck_publishing(now)
     services.expire_unanswered(now)
     approved = Post.objects.filter(status=Post.Status.APPROVED).exclude(kind=Post.Kind.SCRIPT)
     approved.filter(publish_at__lt=now - services.LATE_PUBLISH).update(
@@ -107,7 +120,8 @@ def publish_due() -> int:
     return len(due)
 
 
-@shared_task(acks_late=False, soft_time_limit=100, time_limit=120)
+# Instagram konteynerini kutish (8 × 5 s har biri) + Telegram albomi.
+@shared_task(acks_late=False, soft_time_limit=280, time_limit=300)
 def publish(post_id: int) -> None:
     """Avval post «chiqarilmoqda» deb belgilanadi (tranzaksiya yopiladi), keyin Telegram.
     Shunda ikkinchi vazifa uni olmaydi va qisman yuborilgan xabarlar yozib boriladi."""
@@ -129,3 +143,11 @@ def publish(post_id: int) -> None:
         Post.objects.filter(pk=post_id).update(
             status=Post.Status.FAILED, error=f"{note}{exc}"[:500]
         )
+
+
+@shared_task
+def refresh_instagram() -> bool:
+    """Har dushanba: Instagram tokeni (60 kunlik) yangilanadi."""
+    if not SmmSettings.load().ig_token:
+        return False
+    return services.refresh_instagram()

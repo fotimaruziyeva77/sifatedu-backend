@@ -401,6 +401,11 @@ CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
         "task": "apps.smm.tasks.publish_due",
         "schedule": 600.0,
     },
+    # Instagram tokeni 60 kun yashaydi: har dushanba yangilanadi.
+    "smm-refresh-instagram": {
+        "task": "apps.smm.tasks.refresh_instagram",
+        "schedule": crontab(day_of_week="mon", hour=4, minute=20),
+    },
     # To'lanmagan buyurtma 30 daqiqada yopiladi; tekshiruv har 5 daqiqada.
     "expire-orders": {
         "task": "apps.payments.tasks.expire_orders",
@@ -579,6 +584,8 @@ SMM_GEMINI_MODEL = env("SMM_GEMINI_MODEL", default="") or GEMINI_MODEL
 SMM_GEMINI_THINKING = env("SMM_GEMINI_THINKING", default="high")
 SMM_GEMINI_PRICE_INPUT = env.float("SMM_GEMINI_PRICE_INPUT", default=GEMINI_PRICE_INPUT)
 SMM_GEMINI_PRICE_OUTPUT = env.float("SMM_GEMINI_PRICE_OUTPUT", default=GEMINI_PRICE_OUTPUT)
+# Instagram API with Instagram Login versiyasi (developers.facebook.com/docs/instagram-platform).
+SMM_IG_API_VERSION = env("SMM_IG_API_VERSION", default="v27.0")
 # Javob chegarasi (fikrlash tokenlari ham kiradi). Odatdagi javob bundan ancha qisqa.
 ASSISTANT_MAX_TOKENS = env.int("ASSISTANT_MAX_TOKENS", default=16000)
 # DRY_RUN: Gemini chaqirilmaydi (kalit bo'lsa ham) — oddiy rejim "test rejimi" belgisi bilan

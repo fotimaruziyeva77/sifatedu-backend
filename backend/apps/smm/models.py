@@ -6,6 +6,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.integrations.fields import SecretField
+
 
 class SmmSettings(models.Model):
     """Markazda bitta qator. O'chiq turganda agent hech narsa qilmaydi."""
@@ -39,6 +41,16 @@ class SmmSettings(models.Model):
             "yangiliklar, chegirmalar, manzil. Har qatorda bitta fakt."
         ),
     )
+    instagram = models.BooleanField(
+        _("Instagram'ga ham chiqarish"),
+        default=False,
+        help_text=_("Token kiritilib, «Instagram'ni tekshirish» bajarilgandan keyin yoqing."),
+    )
+    ig_token = SecretField(_("Instagram tokeni"), blank=True, default="")
+    ig_user_id = models.CharField(_("Instagram hisob ID"), max_length=40, blank=True)
+    ig_username = models.CharField(_("Instagram nomi"), max_length=64, blank=True)
+    ig_token_refreshed_at = models.DateTimeField(_("token yangilangan"), null=True, blank=True)
+    ig_error = models.TextField(_("Instagram xatosi"), blank=True)
     updated_at = models.DateTimeField(_("yangilangan"), auto_now=True)
 
     class Meta:
@@ -56,6 +68,10 @@ class SmmSettings(models.Model):
     def load(cls) -> "SmmSettings":
         obj, _created = cls.objects.get_or_create(pk=1)
         return obj
+
+    @property
+    def instagram_ready(self) -> bool:
+        return bool(self.instagram and self.ig_token and self.ig_user_id)
 
 
 class Post(models.Model):
@@ -98,6 +114,11 @@ class Post(models.Model):
     # Tasdiqlovchilarga yuborilgan xabarlar: qaror qabul qilingach tugmalar olib tashlanadi.
     review_messages = models.JSONField(default=list, blank=True)
     channel_messages = models.JSONField(default=list, blank=True)
+    # Chiqarishdan oldin yoziladi: javob kelmay qolsa, qayta urinishda shu konteyner holati
+    # tekshiriladi va post Instagram'ga ikkinchi marta chiqmaydi.
+    ig_container_id = models.CharField(max_length=40, blank=True)
+    ig_media_id = models.CharField(_("Instagram post ID"), max_length=40, blank=True)
+    ig_permalink = models.URLField(_("Instagram havolasi"), blank=True)
     attempts = models.PositiveSmallIntegerField(_("urinishlar"), default=0)
     cost_usd = models.DecimalField(_("AI xarajati ($)"), max_digits=8, decimal_places=4, default=0)
     error = models.TextField(_("xato"), blank=True)
