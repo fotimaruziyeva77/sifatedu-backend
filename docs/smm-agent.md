@@ -13,6 +13,16 @@
 3. Tasdiqlovchilar — Admin roli bor va Telegram'i saytdagi akkauntiga ulangan xodimlar. Menejerga ham tasdiqlash huquqi beriladi.
 4. Birinchi rejani darhol tuzish: SMM sozlamalari ro'yxatida qatorni belgilab, «Keyingi hafta rejasini tuzish» amalini bajaring. Keyin Postlar ro'yxatida kerakli postlarni belgilab, «Hozir tayyorlash» ni bosing.
 
+5. **Kuchliroq AI (ixtiyoriy, tavsiya).** Serverdagi `backend/.env` ga yozing:
+
+   ```
+   SMM_GEMINI_MODEL=<AI Studio'dagi Pro model nomi, aynan>
+   SMM_GEMINI_PRICE_INPUT=<1M token narxi, $>
+   SMM_GEMINI_PRICE_OUTPUT=<1M token narxi, $>
+   ```
+
+   Keyin `deploy.sh` ni ishga tushiring. Bo'sh qolsa, umumiy `GEMINI_MODEL` ishlatiladi. API kaliti o'sha `GEMINI_API_KEY` bo'ladi. Gemini ilovasidagi «Pro» obunasi API'ga tegishli emas: API alohida, ishlatilgan token bo'yicha to'lanadi.
+
 Keyin hammasi o'zi ishlaydi:
 - **yakshanba 10:00** — keyingi hafta rejasi;
 - **har soatda** — chiqishiga 30 soat qolgan postlar tayyorlanib, botga tasdiqqa keladi;

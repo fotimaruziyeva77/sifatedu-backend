@@ -94,8 +94,8 @@ def cost(response: types.GenerateContentResponse) -> Decimal:
         return Decimal(0)
     tokens_in = Decimal(usage.prompt_token_count or 0)
     tokens_out = Decimal((usage.candidates_token_count or 0) + (usage.thoughts_token_count or 0))
-    price_in = Decimal(str(settings.GEMINI_PRICE_INPUT))
-    price_out = Decimal(str(settings.GEMINI_PRICE_OUTPUT))
+    price_in = Decimal(str(settings.SMM_GEMINI_PRICE_INPUT))
+    price_out = Decimal(str(settings.SMM_GEMINI_PRICE_OUTPUT))
     return (tokens_in * price_in + tokens_out * price_out) / MILLION
 
 
@@ -110,7 +110,7 @@ def ask[Schema: BaseModel](
     )
     try:
         response = client.models.generate_content(
-            model=settings.GEMINI_MODEL,
+            model=settings.SMM_GEMINI_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system,
@@ -118,7 +118,9 @@ def ask[Schema: BaseModel](
                 response_schema=schema,
                 max_output_tokens=12_000,
                 temperature=1.0,
-                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel("LOW")),
+                thinking_config=types.ThinkingConfig(
+                    thinking_level=types.ThinkingLevel(settings.SMM_GEMINI_THINKING.upper())
+                ),
             ),
         )
     except genai_errors.APIError as exc:

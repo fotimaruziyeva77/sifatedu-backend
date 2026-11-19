@@ -572,6 +572,13 @@ GEMINI_THINKING_LEVEL = env("GEMINI_THINKING_LEVEL", default="low")
 # oxirigacha aksiya — 0.75 / 3.75; budjet zaxira bilan hisoblanadi).
 GEMINI_PRICE_INPUT = env.float("GEMINI_PRICE_INPUT", default=1.5)
 GEMINI_PRICE_OUTPUT = env.float("GEMINI_PRICE_OUTPUT", default=7.5)
+# SMM agent (apps/smm) uchun alohida model: matn sifati muhim, so'rov kam (kuniga 1–2) —
+# kuchliroq "Pro" modelni qo'yish mumkin. Bo'sh bo'lsa, umumiy GEMINI_MODEL ishlatiladi.
+# Model nomi va narxi AI Studio / ai.google.dev/gemini-api/docs/pricing dan aynan olinadi.
+SMM_GEMINI_MODEL = env("SMM_GEMINI_MODEL", default="") or GEMINI_MODEL
+SMM_GEMINI_THINKING = env("SMM_GEMINI_THINKING", default="high")
+SMM_GEMINI_PRICE_INPUT = env.float("SMM_GEMINI_PRICE_INPUT", default=GEMINI_PRICE_INPUT)
+SMM_GEMINI_PRICE_OUTPUT = env.float("SMM_GEMINI_PRICE_OUTPUT", default=GEMINI_PRICE_OUTPUT)
 # Javob chegarasi (fikrlash tokenlari ham kiradi). Odatdagi javob bundan ancha qisqa.
 ASSISTANT_MAX_TOKENS = env.int("ASSISTANT_MAX_TOKENS", default=16000)
 # DRY_RUN: Gemini chaqirilmaydi (kalit bo'lsa ham) — oddiy rejim "test rejimi" belgisi bilan
