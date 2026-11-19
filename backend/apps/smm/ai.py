@@ -101,7 +101,7 @@ def cost(response: types.GenerateContentResponse) -> Decimal:
 
 
 def ask[Schema: BaseModel](
-    system: str, prompt: str, schema: type[Schema]
+    system: str, prompt: str, schema: type[Schema], *, thinking: str | None = None
 ) -> tuple[Schema, Decimal]:
     """Gemini'dan tuzilgan javob: (javob, xarajat $)."""
     if not ready():
@@ -120,8 +120,11 @@ def ask[Schema: BaseModel](
                 max_output_tokens=12_000,
                 temperature=1.0,
                 thinking_config=types.ThinkingConfig(
-                    thinking_level=types.ThinkingLevel(settings.SMM_GEMINI_THINKING.upper())
+                    thinking_level=types.ThinkingLevel(
+                        (thinking or settings.SMM_GEMINI_THINKING).upper()
+                    )
                 ),
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
             ),
         )
     except genai_errors.APIError as exc:
@@ -191,7 +194,8 @@ def plan(slots: list[Post], recent: list[str]) -> Decimal:
     )
     if recent:
         prompt += "\n\nOldingi mavzular (takrorlama):\n" + "\n".join(f"- {t}" for t in recent)
-    result, spent = ask(RULES, prompt, Plan)
+    # Reja — faqat mavzular: chuqur o'ylash shart emas, tez bo'lsin.
+    result, spent = ask(RULES, prompt, Plan, thinking="low")
     by_index = {item.index: item for item in result.items}
     for index, post in enumerate(slots):
         item = by_index.get(index)
