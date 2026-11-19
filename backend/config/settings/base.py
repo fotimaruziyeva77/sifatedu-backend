@@ -582,6 +582,10 @@ GEMINI_PRICE_OUTPUT = env.float("GEMINI_PRICE_OUTPUT", default=7.5)
 # Model nomi va narxi AI Studio / ai.google.dev/gemini-api/docs/pricing dan aynan olinadi.
 SMM_GEMINI_MODEL = env("SMM_GEMINI_MODEL", default="") or GEMINI_MODEL
 SMM_GEMINI_THINKING = env("SMM_GEMINI_THINKING", default="medium")
+# Asosiy model band (503/504/429) bo'lsa, navbat bilan shular sinaladi.
+SMM_GEMINI_FALLBACKS = env.list(
+    "SMM_GEMINI_FALLBACKS", default=["gemini-3.7-flash", "gemini-3.6-flash"]
+)
 SMM_GEMINI_PRICE_INPUT = env.float("SMM_GEMINI_PRICE_INPUT", default=GEMINI_PRICE_INPUT)
 SMM_GEMINI_PRICE_OUTPUT = env.float("SMM_GEMINI_PRICE_OUTPUT", default=GEMINI_PRICE_OUTPUT)
 # Instagram API with Instagram Login versiyasi (developers.facebook.com/docs/instagram-platform).

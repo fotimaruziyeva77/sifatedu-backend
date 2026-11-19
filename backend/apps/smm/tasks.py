@@ -31,8 +31,8 @@ def active() -> bool:
 
 @shared_task(
     acks_late=False,
-    soft_time_limit=200,
-    time_limit=240,
+    soft_time_limit=340,
+    time_limit=360,
     autoretry_for=(ai.AiError,),
     max_retries=3,
     retry_backoff=600,
@@ -107,7 +107,7 @@ def prepare_due() -> int:
     return len(due)
 
 
-@shared_task(acks_late=False, soft_time_limit=200, time_limit=240)
+@shared_task(acks_late=False, soft_time_limit=340, time_limit=360)
 def prepare(post_id: int) -> None:
     with transaction.atomic():
         claimed = Post.objects.filter(pk=post_id, status=Post.Status.PLANNED).update(

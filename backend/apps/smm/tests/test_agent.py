@@ -489,3 +489,26 @@ def test_redo_drops_rejected_version(tg: AlbumTelegram, enabled: SmmSettings) ->
         handle_update(press(f"sm:re:{post.pk}", sender={"id": ADMIN_CHAT, "first_name": "Rahbar"}))
     post.refresh_from_db()
     assert post.images == [] and post.caption == "" and post.decided_by is None
+
+
+def test_busy_model_falls_back_to_next(settings: Any) -> None:
+    from google.genai import errors as genai_errors
+
+    settings.GEMINI_API_KEY = "test"
+    settings.SMM_GEMINI_MODEL = "asosiy"
+    settings.SMM_GEMINI_FALLBACKS = ["zaxira"]
+    busy = genai_errors.ServerError(503, {"error": {"code": 503, "message": "band"}})
+    answer = mock.Mock(parsed=ai.Plan(items=[]), usage_metadata=None)
+    calls: list[str] = []
+
+    def generate(*, model: str, **_: Any) -> Any:
+        calls.append(model)
+        if model == "asosiy":
+            raise busy
+        return answer
+
+    with mock.patch.object(ai.genai, "Client") as client:
+        client.return_value.models.generate_content.side_effect = generate
+        result, _ = ai.ask("s", "p", ai.Plan)
+    assert calls == ["asosiy", "zaxira"]
+    assert result.items == []
