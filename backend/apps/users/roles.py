@@ -54,6 +54,7 @@ DIRECTOR_APPS = (
     "quizzes",
     "rewards",
     "shop",
+    "smm",
     # Kunlik statistika (admin bosh sahifasi): `view_statistics`.
     "stats",
     "users",
@@ -149,6 +150,9 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         # Do'kon: sovg'alar va buyurtmalar (holat: tayyor, topshirildi, bekor).
         *_perms("shop", "product", "view", "add", "change"),
         *_perms("shop", "purchase", "view", "change"),
+        # SMM agent: postlarni ko'rish, tuzatish va botda tasdiqlash.
+        *_perms("smm", "post", "view", "change"),
+        *_perms("smm", "smmsettings", "view"),
     ],
     # DIRECTOR va ADMIN ro'yxati bazadan hisoblanadi: `permissions_for`.
     Role.DIRECTOR: [],

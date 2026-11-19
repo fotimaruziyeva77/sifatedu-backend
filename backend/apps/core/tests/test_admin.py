@@ -30,6 +30,7 @@ from apps.placement.models import PlacementAnswer, PlacementAttempt, PlacementTe
 from apps.quizzes.models import Answer, Attempt, Choice, Question, Quiz, QuizDraft
 from apps.rewards.models import Coupon, DailyTask, Entry, GameSettings, Wallet
 from apps.shop.models import Product, Purchase
+from apps.smm.models import Post, SmmSettings
 from apps.users.models import OneTimeCode, User
 from apps.videos.models import VideoAsset
 
@@ -135,6 +136,14 @@ def staff_client(db: Any) -> Client:
         user=student, course=course, number="SE-2610-ABCDEF", full_name="Aziz Valiyev", score=90
     )
     GameSettings.objects.get_or_create(pk=1)
+    SmmSettings.load()
+    Post.objects.create(
+        kind=Post.Kind.CAROUSEL,
+        formula=Post.Formula.TIPS,
+        topic="Kuniga 20 daqiqa kod",
+        publish_at=timezone.now() + timedelta(days=1),
+        images=["smm/1/0-00.jpg"],
+    )
     Wallet.objects.create(user=student, xp=10, coins=10)
     Entry.objects.create(user=student, reason=Entry.Reason.LESSON, xp=10, coins=10, key="smoke")
     DailyTask.objects.create(user=student, kind=DailyTask.Kind.LESSON, title="Dars")

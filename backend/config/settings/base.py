@@ -96,6 +96,7 @@ TENANT_APPS = [
     "apps.bot",
     "apps.stats",
     "apps.integrations",
+    "apps.smm",
 ]
 INSTALLED_APPS = SHARED_APPS + [app for app in TENANT_APPS if app not in SHARED_APPS]
 TENANT_MODEL = "tenancy.Center"
@@ -374,6 +375,9 @@ CELERY_TASK_ROUTES = {
     # Ommaviy xabarlar alohida navbatda: SMS kodlari ularni kutib qolmaydi.
     "apps.notifications.tasks.deliver": {"queue": "bulk"},
     "apps.bot.tasks.deliver_news": {"queue": "bulk"},
+    # SMM agent: reja va post matni (Gemini, 20–90 s).
+    "apps.smm.tasks.plan_week": {"queue": "ai"},
+    "apps.smm.tasks.prepare": {"queue": "ai"},
 }
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
@@ -383,6 +387,20 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # Har rejali vazifa har markaz uchun alohida yuboriladi; `tenant_schemas` — faqat ko'rsatilganlar.
 CELERY_BEAT_SCHEDULER = "tenant_schemas_celery.scheduler:TenantAwarePersistentScheduler"
 CELERY_BEAT_SCHEDULE: dict[str, dict[str, object]] = {
+    # SMM agent (docs/smm-agent.md): yakshanba — keyingi hafta rejasi, har soatda — chiqishiga
+    # 30 soat qolgan postlarni tayyorlash, har 10 daqiqada — vaqti kelganini kanalga chiqarish.
+    "smm-plan-week": {
+        "task": "apps.smm.tasks.plan_week",
+        "schedule": crontab(day_of_week="sun", hour=10, minute=0),
+    },
+    "smm-prepare-due": {
+        "task": "apps.smm.tasks.prepare_due",
+        "schedule": crontab(minute=5),
+    },
+    "smm-publish-due": {
+        "task": "apps.smm.tasks.publish_due",
+        "schedule": 600.0,
+    },
     # To'lanmagan buyurtma 30 daqiqada yopiladi; tekshiruv har 5 daqiqada.
     "expire-orders": {
         "task": "apps.payments.tasks.expire_orders",

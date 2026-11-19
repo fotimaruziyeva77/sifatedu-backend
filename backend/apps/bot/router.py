@@ -16,6 +16,7 @@ from django.utils import timezone, translation
 
 from apps.core.phone import InvalidPhoneError, normalize_phone
 from apps.notifications import linking, telegram
+from apps.smm import review as smm_review
 from apps.tenancy.access import has_feature
 from apps.tenancy.sections import Feature
 from apps.users.models import User
@@ -473,6 +474,9 @@ def handle_callback(
     if action == "ad":
         # Admin panel: davr yoki «Yangilash» (huquq ichida tekshiriladi).
         return admin_panel.on_button(chat, user, args, message.get("message_id"))
+    if action == "sm":
+        # SMM agent: tayyor postni tasdiqlash (huquq ichida tekshiriladi).
+        return smm_review.on_button(user, args)
     if user is None:
         need_account(chat)
         return ""
