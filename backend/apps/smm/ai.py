@@ -5,6 +5,7 @@ ota-onaning xavotiri yoki g'ururi haqidagi hikoya — muammo → burilish → g'
 """
 
 import logging
+import time
 from decimal import Decimal
 
 from django.conf import settings
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 # zaxira modellar bilan jami 3 urinish vazifa chegarasiga (340 s) sig'adi.
 TIMEOUT_MS = 100_000
 BUSY = {429, 500, 503, 504}
+# Shu vaqtdan keyin yangi model sinalmaydi (vazifa chegarasi 340 s, bir urinish ≤ 100 s).
+ATTEMPT_BUDGET = 220
 MILLION = Decimal(1_000_000)
 
 
@@ -111,22 +114,31 @@ def ask[Schema: BaseModel](
     client = genai.Client(
         api_key=settings.GEMINI_API_KEY, http_options=types.HttpOptions(timeout=TIMEOUT_MS)
     )
-    config = types.GenerateContentConfig(
-        system_instruction=system,
-        response_mime_type="application/json",
-        response_schema=schema,
-        max_output_tokens=12_000,
-        temperature=1.0,
-        thinking_config=types.ThinkingConfig(
-            thinking_level=types.ThinkingLevel((thinking or settings.SMM_GEMINI_THINKING).upper())
-        ),
-        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-    )
+    level = types.ThinkingLevel((thinking or settings.SMM_GEMINI_THINKING).upper())
+
+    def config(model: str) -> types.GenerateContentConfig:
+        return types.GenerateContentConfig(
+            system_instruction=system,
+            response_mime_type="application/json",
+            response_schema=schema,
+            max_output_tokens=12_000,
+            temperature=1.0,
+            # 2.5 avlodi o'ylash darajasini qabul qilmaydi — o'zi hal qiladi.
+            thinking_config=None
+            if model.startswith("gemini-2.")
+            else types.ThinkingConfig(thinking_level=level),
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+        )
+
     models = [settings.SMM_GEMINI_MODEL, *settings.SMM_GEMINI_FALLBACKS]
+    started = time.monotonic()
     for index, model in enumerate(models):
-        last = index == len(models) - 1
+        # Vazifa chegarasiga sig'magan urinish boshlanmaydi.
+        last = index == len(models) - 1 or time.monotonic() - started > ATTEMPT_BUDGET
         try:
-            response = client.models.generate_content(model=model, contents=prompt, config=config)
+            response = client.models.generate_content(
+                model=model, contents=prompt, config=config(model)
+            )
             break
         except genai_errors.APIError as exc:
             # Model band (503), vaqt tugadi (504) yoki kvota (429) — keyingi modelga.
